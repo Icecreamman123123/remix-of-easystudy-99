@@ -5,19 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Model mapping
+// Model mapping - all available Lovable AI models
 const MODEL_MAP: Record<string, string> = {
-  "gemini-flash": "google/gemini-3-flash-preview",
-  "gemini-pro": "google/gemini-2.5-pro",
-  "gemini-3-pro": "google/gemini-3-pro-preview",
-  "gemini-2.5-flash": "google/gemini-2.5-flash",
+  // Fast & Efficient
   "gemini-flash-lite": "google/gemini-2.5-flash-lite",
   "gpt-5-nano": "openai/gpt-5-nano",
+  // Balanced
+  "gemini-flash": "google/gemini-3-flash-preview",
+  "gemini-2.5-flash": "google/gemini-2.5-flash",
   "gpt-5-mini": "openai/gpt-5-mini",
+  // Most Capable
+  "gemini-pro": "google/gemini-2.5-pro",
+  "gemini-3-pro": "google/gemini-3-pro-preview",
   "gpt-5": "openai/gpt-5",
   "gpt-5.2": "openai/gpt-5.2",
-  "gpt-4": "openai/gpt-5-mini", // GPT-4 equivalent mapped to GPT-5 Mini
-  "claude-3": "google/gemini-2.5-pro", // Claude equivalent mapped to Gemini Pro
 };
 
 // Expertise teaching approach hints (NOT topic overrides - the user's topic is ALWAYS primary)

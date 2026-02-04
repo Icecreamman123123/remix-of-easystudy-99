@@ -82,17 +82,18 @@ const GRADE_LEVELS = [
 ];
 
 const AI_MODELS: { value: AIModel; label: string; description: string }[] = [
-  { value: "gemini-flash", label: "Gemini Flash", description: "Fast & efficient" },
-  { value: "gemini-pro", label: "Gemini Pro", description: "Advanced reasoning" },
-  { value: "gemini-3-pro", label: "Gemini 3 Pro", description: "Next-gen flagship" },
-  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Balanced speed" },
-  { value: "gemini-flash-lite", label: "Gemini Flash Lite", description: "Ultra fast" },
+  // Fast & Efficient
+  { value: "gemini-flash-lite", label: "Gemini Flash Lite", description: "Ultra fast, best for simple tasks" },
   { value: "gpt-5-nano", label: "GPT-5 Nano", description: "Lightweight & quick" },
-  { value: "gpt-5-mini", label: "GPT-5 Mini", description: "Balanced performance" },
-  { value: "gpt-5", label: "GPT-5", description: "Most capable" },
-  { value: "gpt-5.2", label: "GPT-5.2", description: "Latest & greatest" },
-  { value: "gpt-4", label: "GPT-4", description: "Classic reliable" },
-  { value: "claude-3", label: "Claude 3", description: "Creative writing" },
+  // Balanced
+  { value: "gemini-flash", label: "Gemini 3 Flash", description: "Fast & capable (default)" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Great speed/quality balance" },
+  { value: "gpt-5-mini", label: "GPT-5 Mini", description: "Strong reasoning, good speed" },
+  // Most Capable
+  { value: "gemini-pro", label: "Gemini 2.5 Pro", description: "Advanced reasoning & context" },
+  { value: "gemini-3-pro", label: "Gemini 3 Pro", description: "Next-gen flagship model" },
+  { value: "gpt-5", label: "GPT-5", description: "Powerful all-rounder" },
+  { value: "gpt-5.2", label: "GPT-5.2", description: "Latest & most capable" },
 ];
 
 const AI_EXPERTISE: { value: AIExpertise; label: string; icon: string }[] = [
