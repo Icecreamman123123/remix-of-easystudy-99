@@ -20,19 +20,19 @@ const MODEL_MAP: Record<string, string> = {
   "claude-3": "google/gemini-2.5-pro", // Claude equivalent mapped to Gemini Pro
 };
 
-// Expertise system prompt prefixes
-const EXPERTISE_PROMPTS: Record<string, string> = {
+// Expertise teaching approach hints (NOT topic overrides - the user's topic is ALWAYS primary)
+const EXPERTISE_APPROACHES: Record<string, string> = {
   "general": "",
-  "math": "You are an expert mathematics tutor specializing in algebra, calculus, geometry, statistics, and mathematical problem-solving. Focus on step-by-step solutions, mathematical notation, and building mathematical intuition. ",
-  "science": "You are an expert science educator specializing in physics, chemistry, biology, and earth sciences. Focus on scientific method, experiments, formulas, and real-world applications. ",
-  "language": "You are an expert language arts tutor specializing in literature, writing, grammar, vocabulary, and literary analysis. Focus on clear writing, reading comprehension, and literary techniques. ",
-  "history": "You are an expert history and social studies educator specializing in world history, geography, civics, and cultural studies. Focus on historical context, cause-and-effect relationships, and primary sources. ",
-  "code": "You are an expert programming tutor specializing in computer science fundamentals, algorithms, data structures, and coding best practices. Focus on code examples, debugging, and computational thinking. ",
-  "medicine": "You are an expert medical educator specializing in anatomy, physiology, pharmacology, and clinical sciences. Focus on medical terminology, diagnostic reasoning, and evidence-based medicine. ",
-  "business": "You are an expert business educator specializing in economics, finance, marketing, and management. Focus on real-world case studies, financial concepts, and strategic thinking. ",
-  "music": "You are an expert music educator specializing in music theory, composition, history, and performance. Focus on musical notation, ear training, and understanding musical structures. ",
-  "psychology": "You are an expert psychology educator specializing in cognitive psychology, behavioral science, and mental health. Focus on research methods, psychological theories, and practical applications. ",
-  "law": "You are an expert legal educator specializing in constitutional law, legal reasoning, and case analysis. Focus on legal terminology, precedent analysis, and critical thinking about legal issues. ",
+  "math": "When explaining concepts, use step-by-step logical reasoning, include relevant calculations or formulas where applicable, and build intuition through worked examples. ",
+  "science": "When explaining concepts, emphasize evidence-based reasoning, include relevant scientific principles or formulas, and connect to real-world observations or experiments. ",
+  "language": "When explaining concepts, focus on clear communication, use precise vocabulary, and include examples that demonstrate proper usage or literary techniques. ",
+  "history": "When explaining concepts, provide historical context, discuss cause-and-effect relationships, and reference relevant events or primary sources where applicable. ",
+  "code": "When explaining concepts, use logical step-by-step breakdowns, include pseudocode or code examples where helpful, and emphasize problem-solving approaches. ",
+  "medicine": "When explaining concepts, use proper medical/scientific terminology with clear definitions, emphasize evidence-based understanding, and include relevant anatomical or physiological context. ",
+  "business": "When explaining concepts, include practical real-world applications, use case study examples where relevant, and connect to economic or strategic principles. ",
+  "music": "When explaining concepts, reference musical structures, notation, or theory where applicable, and include listening or performance examples. ",
+  "psychology": "When explaining concepts, reference psychological research and theories, include behavioral examples, and connect to practical applications of understanding. ",
+  "law": "When explaining concepts, use precise legal terminology with clear definitions, reference relevant legal principles or precedents, and emphasize critical analysis. ",
 };
 
 serve(async (req) => {
@@ -65,47 +65,71 @@ serve(async (req) => {
     const requestedCount = countMatch ? parseInt(countMatch[1]) : 16;
     
     // Get expertise prefix if applicable
-    const expertisePrefix = EXPERTISE_PROMPTS[expertise] || "";
+    const expertiseApproach = EXPERTISE_APPROACHES[expertise] || "";
     
     let systemPrompt = "";
     let userPrompt = "";
 
     switch (action) {
       case "generate-flashcards":
-        systemPrompt = `${expertisePrefix}You are an expert educator specializing in creating effective flashcards for ${gradeLevelText} students using the principle of active recall. Create flashcards that:
+        systemPrompt = `You are an expert educator specializing in creating effective flashcards for ${gradeLevelText} students using the principle of active recall. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is the user's specific topic/content. Create flashcards that thoroughly cover what they want to study.
+
+Requirements:
+- Focus exclusively on the topic/content provided by the user
 - Are appropriate for ${gradeLevelText} comprehension and vocabulary
 - Difficulty: ${difficulty || 'medium'} - adjust question complexity accordingly
 - Test understanding, not just memorization
 - Use clear, concise questions
 - Have specific, accurate answers
 - Include hints when helpful
+
 Return a JSON array of flashcards with this structure: [{"question": "...", "answer": "...", "hint": "..."}]
-IMPORTANT: Generate exactly ${requestedCount} flashcards.`;
-        userPrompt = `Create exactly ${requestedCount} flashcards at ${gradeLevelText} with ${difficulty || 'medium'} difficulty covering the key concepts for this topic/content:\n\n${content || topic}`;
+IMPORTANT: Generate exactly ${requestedCount} flashcards about the user's topic.`;
+        userPrompt = `Create exactly ${requestedCount} flashcards at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Focus ONLY on this specific topic/content - cover it thoroughly:\n\n${content || topic}`;
         break;
 
       case "generate-concepts":
-        systemPrompt = `${expertisePrefix}You are an expert educator specializing in extracting and explaining key concepts for ${gradeLevelText} students. Create concept cards that:
+        systemPrompt = `You are an expert educator specializing in extracting and explaining key concepts for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is the user's specific topic/content. Extract concepts that are directly relevant to what they want to study.
+
+Requirements:
+- Focus exclusively on concepts from the topic/content provided
 - Are appropriate for ${gradeLevelText} comprehension and vocabulary
 - Difficulty: ${difficulty || 'medium'} - adjust complexity accordingly
 - Focus on the core concept, not questions
 - Provide clear, concise definitions
 - Include practical examples when helpful
+
 Return a JSON array of concepts with this structure: [{"concept": "...", "definition": "...", "example": "..."}]
-IMPORTANT: Generate exactly ${requestedCount} concepts.`;
-        userPrompt = `Extract exactly ${requestedCount} key concepts at ${gradeLevelText} with ${difficulty || 'medium'} difficulty from this topic/content:\n\n${content || topic}`;
+IMPORTANT: Generate exactly ${requestedCount} concepts from the user's topic.`;
+        userPrompt = `Extract exactly ${requestedCount} key concepts at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
       case "generate-quiz":
-        systemPrompt = `${expertisePrefix}You are an expert test creator for ${gradeLevelText} students. Generate a quiz that tests understanding at the ${difficulty || 'medium'} difficulty level appropriate for ${gradeLevelText}. Create varied question types with age-appropriate vocabulary.
+        systemPrompt = `You are an expert test creator for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is the user's specific topic/content. Create quiz questions that test understanding of what they want to study.
+
+Requirements:
+- Focus exclusively on the topic/content provided by the user
+- Test understanding at the ${difficulty || 'medium'} difficulty level appropriate for ${gradeLevelText}
+- Create varied question types with age-appropriate vocabulary
+
 Return a JSON array with this structure: [{"question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "..."}]
 The correctAnswer is the index (0-3) of the correct option.
-IMPORTANT: Generate exactly ${requestedCount} questions.`;
-        userPrompt = `Create a quiz about this topic at ${gradeLevelText}:\n\n${content || topic}`;
+IMPORTANT: Generate exactly ${requestedCount} questions about the user's topic.`;
+        userPrompt = `Create a quiz with ${requestedCount} questions at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
       case "worksheet":
-        systemPrompt = `${expertisePrefix}You are an expert worksheet creator for ${gradeLevelText} students. Create a comprehensive worksheet with VARIED question types at ${difficulty || 'medium'} difficulty level. Include a MIX of:
+        systemPrompt = `You are an expert worksheet creator for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is the user's specific topic/content. Create worksheet questions that thoroughly cover what they want to study.
+
+Create a comprehensive worksheet with VARIED question types at ${difficulty || 'medium'} difficulty level. Include a MIX of:
 - Multiple choice questions (type: "multiple-choice", options: ["A", "B", "C", "D"], correctAnswer: "B")
 - True/False questions (type: "true-false", correctAnswer: "True" or "False")
 - Fill in the blank (type: "fill-blank", correctAnswer: "answer word")
@@ -124,15 +148,17 @@ Return a JSON array with this structure:
 }]
 
 IMPORTANT: 
-- Generate exactly ${requestedCount} questions
+- Generate exactly ${requestedCount} questions about the user's topic
 - Use at least 3 different question types
 - Assign 1-3 points based on difficulty
 - Make questions appropriate for ${gradeLevelText}`;
-        userPrompt = `Create a comprehensive worksheet with ${requestedCount} varied questions at ${gradeLevelText} about:\n\n${content || topic}`;
+        userPrompt = `Create a comprehensive worksheet with ${requestedCount} varied questions at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
       case "explain-concept":
-        systemPrompt = `${expertisePrefix}You are a patient, expert tutor who explains concepts to ${gradeLevelText} students using the Feynman Technique. Your explanations should be:
+        systemPrompt = `You are a patient, expert tutor who explains concepts to ${gradeLevelText} students using the Feynman Technique. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is explaining the user's specific topic/content thoroughly and clearly.
 
 FORMAT:
 1. **Simple Definition** - One clear sentence explaining what it is
@@ -142,52 +168,55 @@ FORMAT:
 5. **Key Takeaway** - The one thing to remember
 
 RULES:
+- Focus on explaining the specific topic/content the user provided
 - Use vocabulary appropriate for ${gradeLevelText}
 - Use analogies and examples they can relate to
 - Keep sentences short and clear
 - Use bullet points and numbered lists
 - Include visual descriptions when helpful
 - Make it engaging and memorable`;
-        userPrompt = `Explain this concept clearly for a ${gradeLevelText} student:\n\n${content || topic}`;
+        userPrompt = `Explain this concept clearly and thoroughly for a ${gradeLevelText} student. Focus on this specific topic:\n\n${content || topic}`;
         break;
 
       case "create-study-plan":
-        systemPrompt = `${expertisePrefix}You are an expert learning coach who creates structured weekly study schedules for ${gradeLevelText} students. Create a clean, organized study schedule in Markdown.
+        systemPrompt = `You are an expert learning coach who creates structured weekly study schedules for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is creating a study plan for the user's specific topic/content.
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 
-# 📚 Study Schedule: [Topic Name]
+# 📚 Study Schedule: [User's Topic Name]
 
 ## Weekly Overview
-Brief 1-2 sentence overview of what will be covered.
+Brief 1-2 sentence overview of what will be covered about this specific topic.
 
 ## Study Schedule
 
 | Time | Monday | Tuesday | Wednesday | Thursday | Friday |
 |------|--------|---------|-----------|----------|--------|
-| Morning (30min) | Topic A: Review basics | Topic A: Practice | Topic B: Introduction | Topic B: Examples | Review all |
-| Afternoon (30min) | Topic A: Examples | Quiz yourself | Topic B: Deep dive | Mixed practice | Self-test |
+| Morning (30min) | [Topic-specific activity] | [Topic-specific activity] | [Topic-specific activity] | [Topic-specific activity] | Review all |
+| Afternoon (30min) | [Topic-specific activity] | Quiz yourself | [Topic-specific activity] | Mixed practice | Self-test |
 
 ## Daily Goals
 
 ### Week 1: Foundation
-- **Monday**: [Specific goal]
-- **Tuesday**: [Specific goal]
-- **Wednesday**: [Specific goal]
-- **Thursday**: [Specific goal]
-- **Friday**: [Specific goal]
+- **Monday**: [Specific goal for this topic]
+- **Tuesday**: [Specific goal for this topic]
+- **Wednesday**: [Specific goal for this topic]
+- **Thursday**: [Specific goal for this topic]
+- **Friday**: [Specific goal for this topic]
 
 ### Week 2: Reinforcement
-- **Monday**: [Specific goal]
-- **Tuesday**: [Specific goal]
-- **Wednesday**: [Specific goal]
-- **Thursday**: [Specific goal]
-- **Friday**: [Specific goal]
+- **Monday**: [Specific goal for this topic]
+- **Tuesday**: [Specific goal for this topic]
+- **Wednesday**: [Specific goal for this topic]
+- **Thursday**: [Specific goal for this topic]
+- **Friday**: [Specific goal for this topic]
 
 ## Review Checkpoints
-- [ ] End of Week 1: Can explain basic concepts
-- [ ] End of Week 2: Can solve practice problems
-- [ ] Final: Ready for assessment
+- [ ] End of Week 1: Can explain basic concepts of this topic
+- [ ] End of Week 2: Can solve practice problems about this topic
+- [ ] Final: Ready for assessment on this topic
 
 ## Study Tips
 1. [Specific tip for this topic]
@@ -195,35 +224,48 @@ Brief 1-2 sentence overview of what will be covered.
 3. [Specific tip for this topic]
 
 IMPORTANT:
+- All activities must relate to the user's specific topic
 - Use appropriate session lengths for ${gradeLevelText} (shorter for younger students)
 - Make goals specific and achievable
 - Include variety in study methods
 - Build complexity gradually`;
-        userPrompt = `Create a well-organized weekly study schedule for a ${gradeLevelText} student studying:\n\n${content || topic}\n\nInclude a table-based weekly schedule with specific daily activities.`;
+        userPrompt = `Create a well-organized weekly study schedule for a ${gradeLevelText} student. Focus the entire plan on this specific topic:\n\n${content || topic}\n\nInclude a table-based weekly schedule with specific daily activities related to this topic.`;
         break;
 
       case "summarize":
-        systemPrompt = `${expertisePrefix}You are an expert at creating concise, memorable summaries appropriate for ${gradeLevelText} students. Create a summary that:
-- Uses vocabulary and concepts suitable for ${gradeLevelText}
-- Highlights key concepts
-- Uses bullet points for clarity
-- Includes important definitions explained at this level
-- Notes connections between ideas
+        systemPrompt = `You are an expert at creating concise, memorable summaries appropriate for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is summarizing the user's specific content thoroughly.
+
+Requirements:
+- Summarize the specific content provided, not generic information
+- Use vocabulary and concepts suitable for ${gradeLevelText}
+- Highlight key concepts from the content
+- Use bullet points for clarity
+- Include important definitions explained at this level
+- Note connections between ideas
 Keep it concise but comprehensive and age-appropriate.`;
-        userPrompt = `Summarize this content for a ${gradeLevelText} student:\n\n${content}`;
+        userPrompt = `Summarize this specific content for a ${gradeLevelText} student. Focus on what's actually in this content:\n\n${content}`;
         break;
 
       case "practice-problems":
-        systemPrompt = `${expertisePrefix}You are an expert problem creator for ${gradeLevelText} students. Generate practice problems that build understanding progressively and are appropriate for ${gradeLevelText}. Include:
-- Problems of varying difficulty suitable for this level
-- Step-by-step solutions with age-appropriate explanations
-- Common mistake warnings
+        systemPrompt = `You are an expert problem creator for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is creating practice problems about the user's specific topic/content.
+
+Requirements:
+- Create problems directly related to the topic/content provided
+- Problems should be appropriate for ${gradeLevelText}
+- Include varying difficulty suitable for this level
+- Provide step-by-step solutions with age-appropriate explanations
+- Include common mistake warnings
+
 Return JSON: [{"problem": "...", "solution": "...", "difficulty": "easy|medium|hard", "tip": "..."}]`;
-        userPrompt = `Create practice problems at ${gradeLevelText} for:\n\n${content || topic}`;
+        userPrompt = `Create practice problems at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
       default:
-        systemPrompt = "You are a helpful study assistant. Help students learn effectively.";
+        systemPrompt = "You are a helpful study assistant. Help students learn effectively. Focus on the specific topic they provide.";
         userPrompt = content || topic || "How can I study more effectively?";
     }
 
