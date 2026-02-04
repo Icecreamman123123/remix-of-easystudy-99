@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFlashcardDecks, type FlashcardDeck, type SavedFlashcard } from "@/hooks/useFlashcardDecks";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, Edit3, GripVertical } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Edit3 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,7 +51,8 @@ export function EditDeckDialog({ open, onOpenChange, deck }: EditDeckDialogProps
       setDeckTitle(deck.title);
       setDeckTopic(deck.topic || "");
     }
-  }, [open, deck]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, deck.id, deck.title, deck.topic]);
 
   const loadFlashcards = async () => {
     setLoading(true);

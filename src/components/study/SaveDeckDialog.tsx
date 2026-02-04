@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,13 @@ export function SaveDeckDialog({
   const [saving, setSaving] = useState(false);
   const { saveDeckWithFlashcards } = useFlashcardDecks();
   const { toast } = useToast();
+
+  // Reset title when topic changes or dialog opens
+  React.useEffect(() => {
+    if (open) {
+      setTitle(topic || "");
+    }
+  }, [open, topic]);
 
   const handleSave = async () => {
     if (!title.trim()) {
