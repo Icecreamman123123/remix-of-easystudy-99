@@ -70,7 +70,8 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
 
   useEffect(() => {
     generateTest();
-  }, [flashcards]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flashcards.length]);
 
   const generateTest = () => {
     const allAnswers = flashcards.map((fc) => fc.answer);
