@@ -23,9 +23,7 @@ export type AIModel =
   | "gpt-5-nano"
   | "gpt-5-mini"
   | "gpt-5"
-  | "gpt-5.2"
-  | "gpt-4"
-  | "claude-3";
+  | "gpt-5.2";
 
 export type AIExpertise =
   | "general"
