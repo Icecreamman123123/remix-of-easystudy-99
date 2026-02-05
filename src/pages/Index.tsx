@@ -6,6 +6,7 @@ import { StudyTimer } from "@/components/study/StudyTimer";
 import { MyDecks } from "@/components/study/MyDecks";
 import { LearningAnalytics } from "@/components/study/LearningAnalytics";
 import { SaveDeckDialog } from "@/components/study/SaveDeckDialog";
+ import { StudyChat } from "@/components/study/StudyChat";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
@@ -22,7 +23,8 @@ import {
   LogOut,
   LogIn,
   Save,
-  User
+   User,
+   MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +39,8 @@ const Index = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [flashcardsToSave, setFlashcardsToSave] = useState<Flashcard[]>([]);
   const [currentTopic, setCurrentTopic] = useState<string>("");
+   const [showChat, setShowChat] = useState(false);
+   const [chatGradeLevel, setChatGradeLevel] = useState("8");
   
   const { user, signOut, loading } = useAuth();
   const { recordSession } = useStudySessions();
@@ -44,6 +48,13 @@ const Index = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
 
+   const handleResultWithChat = (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => {
+     handleResult(action, result, topic);
+     if (gradeLevel) {
+       setChatGradeLevel(gradeLevel);
+     }
+   };
+ 
   const handleResult = (action: StudyAction, result: string, topic?: string) => {
     setCurrentResult({ action, result });
     if (topic) {
@@ -169,7 +180,7 @@ const Index = () => {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Study Input - Takes 2 columns on large screens */}
           <div className="lg:col-span-2 space-y-6">
-            <StudyInput onResult={handleResult} />
+             <StudyInput onResult={handleResultWithChat} />
             
             {currentResult && (
               <div className="relative">
@@ -196,6 +207,29 @@ const Index = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+             {/* AI Chat Button */}
+             {currentTopic && !showChat && (
+               <Button
+                 onClick={() => setShowChat(true)}
+                 className="w-full gap-2"
+                 variant="outline"
+               >
+                 <MessageCircle className="h-4 w-4" />
+                 Chat about: {currentTopic.slice(0, 30)}{currentTopic.length > 30 ? "..." : ""}
+               </Button>
+             )}
+ 
+             {/* AI Chat Panel */}
+             {showChat && (
+               <div className="h-[500px]">
+                 <StudyChat
+                   topic={currentTopic}
+                   gradeLevel={chatGradeLevel}
+                   onClose={() => setShowChat(false)}
+                 />
+               </div>
+             )}
+ 
             <StudyTimer />
             
             {/* Show detailed analytics for logged-in users */}
