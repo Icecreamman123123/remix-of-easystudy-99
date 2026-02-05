@@ -13,7 +13,8 @@ export type StudyAction =
   | "worksheet"
   | "generate-concepts"
    | "matching-game"
-   | "speed-challenge";
+   | "speed-challenge"
+   | "elaborative-interrogation";
 
 export type AIModel =
   | "gemini-flash"
