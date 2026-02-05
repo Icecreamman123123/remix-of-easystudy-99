@@ -12,7 +12,8 @@ export type StudyAction =
   | "study-runner"
   | "worksheet"
   | "generate-concepts"
-  | "matching-game";
+   | "matching-game"
+   | "speed-challenge";
 
 export type AIModel =
   | "gemini-flash"

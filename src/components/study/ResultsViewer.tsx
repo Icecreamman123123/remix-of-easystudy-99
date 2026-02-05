@@ -11,6 +11,7 @@ import { MindMap } from "./MindMap";
 import { SubwaySurferGame } from "./SubwaySurferGame";
 import { WorksheetViewer } from "./WorksheetViewer";
 import { MatchingGame } from "./MatchingGame";
+ import { SpeedChallenge } from "./SpeedChallenge";
 import { ExportPdfButton } from "./ExportPdfButton";
 import ReactMarkdown from "react-markdown";
 
@@ -55,7 +56,7 @@ function toMindMapFormat(concepts: Concept[]) {
 
 export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerProps) {
   const [completed, setCompleted] = useState(false);
-  const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game"].includes(action) 
+  const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action) 
     ? parseFlashcards(result) 
     : [];
 
@@ -127,6 +128,18 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
         }
         break;
       }
+       case "speed-challenge": {
+         const flashcards = parseFlashcards(result);
+         if (flashcards.length > 0) {
+           return (
+             <SpeedChallenge
+               flashcards={flashcards}
+               onComplete={(score, total) => handleComplete({ correct: score, total })}
+             />
+           );
+         }
+         break;
+       }
       case "worksheet": {
         const questions = parseWorksheet(result);
         if (questions.length > 0) {
@@ -212,6 +225,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
       case "study-runner": return "Study Runner";
       case "worksheet": return "Worksheet";
       case "matching-game": return "Matching Game";
+       case "speed-challenge": return "Speed Challenge";
       case "explain-concept": return "Concept Explanation";
       case "create-study-plan": return "Study Schedule";
       case "summarize": return "Summary";
@@ -221,7 +235,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
   };
 
   // For interactive modes, use full height
-  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game"].includes(action);
+  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge"].includes(action);
 
   return (
     <Card className="h-full">
