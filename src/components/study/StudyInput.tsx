@@ -29,7 +29,8 @@ import {
   FileEdit,
   Puzzle,
   Star,
-  Trash2
+   Trash2,
+   Zap
 } from "lucide-react";
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
@@ -120,6 +121,7 @@ const LENGTH_OPTIONS = [
 const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; description: string }[] = [
   { action: "generate-flashcards", icon: BookOpen, label: "Flashcards", description: "Create active recall cards" },
   { action: "matching-game", icon: Puzzle, label: "Matching", description: "Match Q&A pairs" },
+   { action: "speed-challenge", icon: Zap, label: "Speed Challenge", description: "Timed blitz mode" },
   { action: "practice-test", icon: Target, label: "Practice Test", description: "Mixed question types" },
   { action: "worksheet", icon: FileEdit, label: "Worksheet", description: "Printable worksheet" },
   { action: "study-runner", icon: Gamepad2, label: "Study Runner", description: "Endless runner game" },
@@ -386,7 +388,7 @@ export function StudyInput({ onResult }: StudyInputProps) {
       // For Practice Test, Study Runner, and Matching Game - we generate flashcards first
       // For Mind Map, we generate concepts
       let effectiveAction: StudyAction = action;
-      if (["practice-test", "study-runner", "matching-game"].includes(action)) {
+      if (["practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)) {
         effectiveAction = "generate-flashcards";
       } else if (action === "mind-map") {
         effectiveAction = "generate-concepts";
