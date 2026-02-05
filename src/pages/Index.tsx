@@ -24,7 +24,8 @@ import {
   LogIn,
   Save,
    User,
-   MessageCircle
+    MessageCircle,
+    Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -208,20 +209,34 @@ const Index = () => {
           {/* Sidebar */}
           <div className="space-y-6">
              {/* AI Chat Button */}
-             {currentTopic && !showChat && (
+            {currentTopic && (
+             <div className="space-y-3">
+               {!showChat && (
                <Button
                  onClick={() => setShowChat(true)}
-                 className="w-full gap-2"
+                 className="w-full gap-2 h-auto py-3 bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10"
                  variant="outline"
                >
-                 <MessageCircle className="h-4 w-4" />
-                 Chat about: {currentTopic.slice(0, 30)}{currentTopic.length > 30 ? "..." : ""}
+                 <div className="flex items-center gap-2 flex-1">
+                   <div className="p-2 bg-primary/20 rounded-full">
+                     <MessageCircle className="h-5 w-5 text-primary" />
+                   </div>
+                   <div className="text-left">
+                     <p className="font-semibold">AI Study Chat</p>
+                     <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                       Ask about: {currentTopic}
+                     </p>
+                   </div>
+                   <Zap className="h-4 w-4 text-primary ml-auto" />
+                 </div>
                </Button>
-             )}
+               )}
+             </div>
+           )}
  
              {/* AI Chat Panel */}
              {showChat && (
-               <div className="h-[500px]">
+              <div className="h-[550px]">
                  <StudyChat
                    topic={currentTopic}
                    gradeLevel={chatGradeLevel}

@@ -4,9 +4,10 @@
  import { Badge } from "@/components/ui/badge";
  import { Progress } from "@/components/ui/progress";
  import { Input } from "@/components/ui/input";
- import { Timer, Zap, Trophy, RotateCcw, Flame, Target, Star } from "lucide-react";
+ import { Timer, Zap, Trophy, RotateCcw, Flame, Target, Star, Loader2, Brain } from "lucide-react";
  import { Flashcard } from "@/lib/study-api";
  import { cn } from "@/lib/utils";
+ import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
  
  interface SpeedChallengeProps {
    flashcards: Flashcard[];
@@ -28,6 +29,8 @@
    const [correctCount, setCorrectCount] = useState(0);
    const [totalAttempts, setTotalAttempts] = useState(0);
    const [showFeedback, setShowFeedback] = useState<"correct" | "wrong" | null>(null);
+   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+   const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
    const [shuffledCards, setShuffledCards] = useState<Flashcard[]>([]);
    const inputRef = useRef<HTMLInputElement>(null);
  
@@ -85,23 +88,17 @@
    };
  
    const checkAnswer = () => {
-     if (!userAnswer.trim()) return;
+     if (!userAnswer.trim() || isCheckingAnswer) return;
  
      const currentCard = shuffledCards[currentIndex % shuffledCards.length];
-     const normalizedUser = normalizeAnswer(userAnswer);
-     const normalizedCorrect = normalizeAnswer(currentCard.answer);
- 
-     // Check for exact or partial match (at least 80% of words)
-     const userWords = normalizedUser.split(/\s+/);
-     const correctWords = normalizedCorrect.split(/\s+/);
-     const matchedWords = userWords.filter((w) =>
-       correctWords.some((cw) => cw.includes(w) || w.includes(cw))
-     );
-     const matchRatio = matchedWords.length / Math.max(correctWords.length, 1);
+     
+     // Use local check for immediate feedback (no time deduction)
+     const localResult = localAnswerCheck(userAnswer, currentCard.answer);
  
      setTotalAttempts((prev) => prev + 1);
+     setIsCheckingAnswer(true);
  
-     if (matchRatio >= 0.7 || normalizedCorrect.includes(normalizedUser)) {
+     if (localResult.isCorrect) {
        // Correct!
        const streakMultiplier = 1 + Math.min(streak, 10) * 0.1;
        const timeBonus = Math.floor((timeLeft / GAME_DURATION) * TIME_BONUS_MULTIPLIER);
@@ -115,19 +112,58 @@
        });
        setCorrectCount((prev) => prev + 1);
        setShowFeedback("correct");
+       setAiFeedback(null);
+       setIsCheckingAnswer(false);
+       
+       // Move to next question after brief feedback
+       setTimeout(() => {
+         setCurrentIndex((prev) => prev + 1);
+         setUserAnswer("");
+         setShowFeedback(null);
+         inputRef.current?.focus();
+       }, 300);
      } else {
-       // Wrong
-       setStreak(0);
+       // Local check says wrong, but let's verify with AI (async, no time deduction)
        setShowFeedback("wrong");
+       
+       // Start AI check in background
+       checkAnswerWithAI(userAnswer, currentCard.answer, currentCard.question)
+         .then((aiResult) => {
+           if (aiResult.isCorrect) {
+             // AI says it's correct! Award points retroactively
+             const streakMultiplier = 1 + Math.min(streak, 10) * 0.1;
+             const pointsEarned = Math.floor(BASE_POINTS * streakMultiplier);
+             
+             setScore((prev) => prev + pointsEarned);
+             setStreak((prev) => {
+               const newStreak = prev + 1;
+               setMaxStreak((max) => Math.max(max, newStreak));
+               return newStreak;
+             });
+             setCorrectCount((prev) => prev + 1);
+             setShowFeedback("correct");
+             setAiFeedback(`✨ AI verified: ${aiResult.feedback}`);
+           } else {
+             setStreak(0);
+             setAiFeedback(aiResult.feedback);
+           }
+         })
+         .catch(() => {
+           // If AI check fails, stick with local result
+           setStreak(0);
+         })
+         .finally(() => {
+           setIsCheckingAnswer(false);
+           // Move to next question
+           setTimeout(() => {
+             setCurrentIndex((prev) => prev + 1);
+             setUserAnswer("");
+             setShowFeedback(null);
+             setAiFeedback(null);
+             inputRef.current?.focus();
+           }, 1500);
+         });
      }
- 
-     // Move to next question after brief feedback
-     setTimeout(() => {
-       setCurrentIndex((prev) => prev + 1);
-       setUserAnswer("");
-       setShowFeedback(null);
-       inputRef.current?.focus();
-     }, 300);
    };
  
    const skipQuestion = () => {
@@ -142,7 +178,7 @@
      if (e.key === "Enter") {
        e.preventDefault();
        checkAnswer();
-     } else if (e.key === "Escape") {
+     } else if (e.key === "Escape" && !isCheckingAnswer) {
        skipQuestion();
      }
    };
@@ -310,15 +346,29 @@
                <Button
                  onClick={checkAnswer}
                  className="flex-1"
-                 disabled={!userAnswer.trim()}
+                 disabled={!userAnswer.trim() || isCheckingAnswer}
                >
-                 Submit
+                 {isCheckingAnswer ? (
+                   <>
+                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                     Checking...
+                   </>
+                 ) : (
+                   "Submit"
+                 )}
                </Button>
-               <Button variant="outline" onClick={skipQuestion}>
+               <Button variant="outline" onClick={skipQuestion} disabled={isCheckingAnswer}>
                  Skip
                </Button>
              </div>
            </div>
+ 
+           {aiFeedback && (
+             <div className="p-3 bg-muted rounded-lg text-sm flex items-start gap-2">
+               <Brain className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+               <span>{aiFeedback}</span>
+             </div>
+           )}
  
            <p className="text-xs text-center text-muted-foreground">
              Press <kbd className="px-1 bg-muted rounded">Enter</kbd> to submit,{" "}

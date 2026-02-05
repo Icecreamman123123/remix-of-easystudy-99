@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+ import { Textarea } from "@/components/ui/textarea";
 import { type SavedFlashcard } from "@/hooks/useFlashcardDecks";
 import { 
   Check, 
@@ -15,15 +16,18 @@ import {
   RotateCcw,
   HelpCircle,
   Shuffle,
-  ClipboardList
+   ClipboardList,
+   Loader2,
+   Brain
 } from "lucide-react";
+ import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
 
 interface PracticeTestProps {
   flashcards: SavedFlashcard[];
   onComplete: (results: { correct: number; total: number }) => void;
 }
 
-type QuestionType = "multiple-choice" | "fill-blank" | "true-false";
+ type QuestionType = "multiple-choice" | "fill-blank" | "true-false" | "short-answer" | "matching";
 
 interface TestQuestion {
   id: string;
@@ -33,6 +37,8 @@ interface TestQuestion {
   options?: string[];
   userAnswer?: string;
   isCorrect?: boolean;
+   aiFeedback?: string;
+   matchingPairs?: { left: string; right: string }[];
 }
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -67,6 +73,8 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
   const [inputAnswer, setInputAnswer] = useState<string>("");
   const [showResult, setShowResult] = useState(false);
   const [testComplete, setTestComplete] = useState(false);
+   const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
+   const [matchingSelections, setMatchingSelections] = useState<Record<string, string>>({});
 
   useEffect(() => {
     generateTest();
@@ -75,11 +83,11 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
 
   const generateTest = () => {
     const allAnswers = flashcards.map((fc) => fc.answer);
-    const questionTypes: QuestionType[] = ["multiple-choice", "fill-blank", "true-false"];
+     const questionTypes: QuestionType[] = ["multiple-choice", "fill-blank", "true-false", "short-answer"];
 
     const generatedQuestions: TestQuestion[] = shuffleArray(flashcards).map((fc, i) => {
-      // Vary question types based on position
-      const type = questionTypes[i % 3];
+       // Vary question types
+       const type = questionTypes[i % questionTypes.length];
 
       if (type === "multiple-choice") {
         return {
@@ -96,6 +104,13 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
           question: `Complete: ${fc.question}`,
           correctAnswer: fc.answer,
         };
+       } else if (type === "short-answer") {
+         return {
+           id: fc.id,
+           type,
+           question: fc.question,
+           correctAnswer: fc.answer,
+         };
       } else {
         // True/False - randomly make it true or false
         const isTrue = Math.random() > 0.5;
@@ -116,31 +131,60 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
     setInputAnswer("");
     setShowResult(false);
     setTestComplete(false);
+     setMatchingSelections({});
   };
 
   const currentQuestion = questions[currentIndex];
 
-  const handleSubmitAnswer = () => {
+   const handleSubmitAnswer = async () => {
     if (!currentQuestion) return;
 
     let userAnswer = "";
-    if (currentQuestion.type === "fill-blank") {
+     if (currentQuestion.type === "fill-blank" || currentQuestion.type === "short-answer") {
       userAnswer = inputAnswer.trim();
     } else {
       userAnswer = selectedAnswer;
     }
 
-    const isCorrect =
-      currentQuestion.type === "fill-blank"
-        ? userAnswer.toLowerCase() === currentQuestion.correctAnswer.toLowerCase()
-        : userAnswer === currentQuestion.correctAnswer;
+     setIsCheckingAnswer(true);
+     let isCorrect = false;
+     let aiFeedback = "";
+ 
+     if (currentQuestion.type === "fill-blank" || currentQuestion.type === "short-answer") {
+       // Use AI checking for text answers
+       const localResult = localAnswerCheck(userAnswer, currentQuestion.correctAnswer);
+       
+       if (localResult.isCorrect) {
+         isCorrect = true;
+         aiFeedback = "Correct!";
+       } else {
+         // Double-check with AI for potentially correct paraphrasing
+         try {
+           const aiResult = await checkAnswerWithAI(
+             userAnswer,
+             currentQuestion.correctAnswer,
+             currentQuestion.question
+           );
+           isCorrect = aiResult.isCorrect;
+           aiFeedback = aiResult.feedback;
+         } catch {
+           isCorrect = localResult.isCorrect;
+           aiFeedback = localResult.isCorrect ? "Correct!" : "Not quite right.";
+         }
+       }
+     } else {
+       // Multiple choice and true/false are exact matches
+       isCorrect = userAnswer === currentQuestion.correctAnswer;
+       aiFeedback = isCorrect ? "Correct!" : "Incorrect";
+     }
 
     setQuestions((prev) =>
       prev.map((q, i) =>
-        i === currentIndex ? { ...q, userAnswer, isCorrect } : q
+         i === currentIndex ? { ...q, userAnswer, isCorrect, aiFeedback } : q
       )
     );
 
+     setIsCheckingAnswer(false);
     setShowResult(true);
   };
 
@@ -166,6 +210,10 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
         return "✏️";
       case "true-false":
         return "⚖️";
+       case "short-answer":
+         return "💬";
+       case "matching":
+         return "🔗";
     }
   };
 
@@ -177,6 +225,10 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
         return "Fill in the Blank";
       case "true-false":
         return "True or False";
+       case "short-answer":
+         return "Short Answer";
+       case "matching":
+         return "Matching";
     }
   };
 
@@ -206,9 +258,10 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
         {/* Results Breakdown */}
         <div className="space-y-2">
           <p className="text-sm font-medium">Question Breakdown</p>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {["multiple-choice", "fill-blank", "true-false"].map((type) => {
+           <div className="grid grid-cols-4 gap-2 text-center">
+             {["multiple-choice", "fill-blank", "true-false", "short-answer"].map((type) => {
               const typeQuestions = questions.filter((q) => q.type === type);
+               if (typeQuestions.length === 0) return null;
               const typeCorrect = typeQuestions.filter((q) => q.isCorrect).length;
               return (
                 <div key={type} className="p-2 rounded-lg bg-muted/50">
@@ -282,22 +335,32 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {currentQuestion.type === "fill-blank" ? (
-            <Input
-              value={inputAnswer}
-              onChange={(e) => setInputAnswer(e.target.value)}
-              placeholder="Type your answer..."
-              disabled={showResult}
-              className="transition-all duration-200"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !showResult) handleSubmitAnswer();
-              }}
-            />
-          ) : (
-            <RadioGroup
+         {(currentQuestion.type === "fill-blank" || currentQuestion.type === "short-answer") ? (
+           currentQuestion.type === "short-answer" ? (
+             <Textarea
+               value={inputAnswer}
+               onChange={(e) => setInputAnswer(e.target.value)}
+               placeholder="Type your answer..."
+               disabled={showResult || isCheckingAnswer}
+               className="transition-all duration-200 min-h-[80px]"
+             />
+           ) : (
+             <Input
+               value={inputAnswer}
+               onChange={(e) => setInputAnswer(e.target.value)}
+               placeholder="Type your answer..."
+               disabled={showResult || isCheckingAnswer}
+               className="transition-all duration-200"
+               onKeyDown={(e) => {
+                 if (e.key === "Enter" && !showResult) handleSubmitAnswer();
+               }}
+             />
+           )
+         ) : (
+           <RadioGroup
               value={selectedAnswer}
               onValueChange={setSelectedAnswer}
-              disabled={showResult}
+             disabled={showResult || isCheckingAnswer}
               className="space-y-2"
             >
               {currentQuestion.options?.map((option, i) => (
@@ -352,6 +415,12 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
                   </>
                 )}
               </p>
+             {currentQuestion.aiFeedback && (
+               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                 <Brain className="h-3 w-3" />
+                 {currentQuestion.aiFeedback}
+               </p>
+             )}
               {!currentQuestion.isCorrect && (
                 <p className="text-sm text-muted-foreground mt-1">
                   The correct answer is: <strong>{currentQuestion.correctAnswer}</strong>
@@ -377,13 +446,23 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
           <Button
             onClick={handleSubmitAnswer}
             disabled={
-              (currentQuestion.type === "fill-blank" && !inputAnswer.trim()) ||
-              (currentQuestion.type !== "fill-blank" && !selectedAnswer)
+             isCheckingAnswer ||
+             ((currentQuestion.type === "fill-blank" || currentQuestion.type === "short-answer") && !inputAnswer.trim()) ||
+             ((currentQuestion.type !== "fill-blank" && currentQuestion.type !== "short-answer") && !selectedAnswer)
             }
             className="transition-all duration-200 hover:scale-105"
           >
-            <ClipboardList className="h-4 w-4 mr-2" />
-            Submit Answer
+           {isCheckingAnswer ? (
+             <>
+               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+               Checking...
+             </>
+           ) : (
+             <>
+               <ClipboardList className="h-4 w-4 mr-2" />
+               Submit Answer
+             </>
+           )}
           </Button>
         ) : (
           <Button onClick={handleNext} className="transition-all duration-200 hover:scale-105">
