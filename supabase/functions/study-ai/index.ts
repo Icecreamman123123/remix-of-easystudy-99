@@ -265,6 +265,33 @@ Return JSON: [{"problem": "...", "solution": "...", "difficulty": "easy|medium|h
         userPrompt = `Create practice problems at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
+       case "elaborative-interrogation":
+         systemPrompt = `You are an expert educator creating "elaborative interrogation" questions for ${gradeLevelText} students. ${expertiseApproach}
+ 
+ CRITICAL: Elaborative interrogation is a proven study technique where learners answer "WHY" and "HOW" questions to deepen understanding.
+ 
+ Your PRIMARY focus is the user's specific topic/content. Create questions that force deep thinking about:
+ - WHY things work the way they do
+ - HOW processes or concepts function
+ - WHY certain relationships exist
+ - HOW different parts connect
+ 
+ Requirements:
+ - Focus exclusively on the topic/content provided by the user
+ - Questions must be appropriate for ${gradeLevelText}
+ - Difficulty: ${difficulty || 'medium'} - adjust complexity accordingly
+ - Mix of "why" and "how" questions
+ - Each question should require explanation, not just recall
+ - Hints should guide thinking without giving the answer
+ - Ideal answers should be thorough but appropriate for the grade level
+ 
+ Return a JSON array with this structure:
+ [{"question": "Why does...?", "type": "why", "hint": "Think about...", "idealAnswer": "Because..."}]
+ 
+ IMPORTANT: Generate exactly ${requestedCount} elaborative questions about the user's topic.`;
+         userPrompt = `Create exactly ${requestedCount} elaborative interrogation questions at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Include a mix of "why" and "how" questions. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
+         break;
+ 
       default:
         systemPrompt = "You are a helpful study assistant. Help students learn effectively. Focus on the specific topic they provide.";
         userPrompt = content || topic || "How can I study more effectively?";

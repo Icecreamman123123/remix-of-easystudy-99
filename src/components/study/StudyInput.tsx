@@ -28,7 +28,8 @@ import {
   Puzzle,
   Star,
    Trash2,
-   Zap
+    Zap,
+    HelpCircle
 } from "lucide-react";
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
@@ -118,6 +119,7 @@ const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; desc
   { action: "matching-game", icon: Puzzle, label: "Matching", description: "Match Q&A pairs" },
    { action: "speed-challenge", icon: Zap, label: "Speed Challenge", description: "Timed blitz mode" },
   { action: "practice-test", icon: Target, label: "Practice Test", description: "Mixed question types" },
+   { action: "elaborative-interrogation", icon: HelpCircle, label: "Why/How", description: "Deep understanding" },
   { action: "worksheet", icon: FileEdit, label: "Worksheet", description: "Printable worksheet" },
   { action: "study-runner", icon: Gamepad2, label: "Study Runner", description: "Endless runner game" },
   { action: "mind-map", icon: Network, label: "Mind Map", description: "Visual concept mapping" },
@@ -386,6 +388,8 @@ export function StudyInput({ onResult }: StudyInputProps) {
         effectiveAction = "generate-flashcards";
       } else if (action === "mind-map") {
         effectiveAction = "generate-concepts";
+       } else if (action === "elaborative-interrogation") {
+         effectiveAction = "elaborative-interrogation";
       }
       
       // Build instructions with difficulty and count

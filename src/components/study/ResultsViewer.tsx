@@ -12,6 +12,7 @@ import { SubwaySurferGame } from "./SubwaySurferGame";
 import { WorksheetViewer } from "./WorksheetViewer";
 import { MatchingGame } from "./MatchingGame";
  import { SpeedChallenge } from "./SpeedChallenge";
+ import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
 import { ExportPdfButton } from "./ExportPdfButton";
 import ReactMarkdown from "react-markdown";
 
@@ -140,6 +141,15 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
          }
          break;
        }
+       case "elaborative-interrogation": {
+         return (
+           <ElaborativeInterrogation
+             result={result}
+             topic={topic || "Study Topic"}
+             onClose={onClose}
+           />
+         );
+       }
       case "worksheet": {
         const questions = parseWorksheet(result);
         if (questions.length > 0) {
@@ -226,6 +236,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
       case "worksheet": return "Worksheet";
       case "matching-game": return "Matching Game";
        case "speed-challenge": return "Speed Challenge";
+       case "elaborative-interrogation": return "Elaborative Interrogation";
       case "explain-concept": return "Concept Explanation";
       case "create-study-plan": return "Study Schedule";
       case "summarize": return "Summary";
@@ -235,7 +246,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
   };
 
   // For interactive modes, use full height
-  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge"].includes(action);
+   const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation"].includes(action);
 
   return (
     <Card className="h-full">
