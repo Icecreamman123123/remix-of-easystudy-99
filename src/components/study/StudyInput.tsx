@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { 
   BookOpen, 
@@ -19,7 +18,6 @@ import {
   Target,
   Gamepad2,
   GraduationCap,
-  ChevronDown,
   Settings2,
   Gauge,
   Hash,
@@ -37,7 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
 
 interface StudyInputProps {
-  onResult: (action: StudyAction, result: string, topic?: string) => void;
+   onResult: (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => void;
 }
 
 interface Source {
@@ -54,9 +52,6 @@ interface FavoritePreset {
   expertise: AIExpertise;
 }
 
-interface StudyInputProps {
-  onResult: (action: StudyAction, result: string, topic?: string) => void;
-}
 
 interface Source {
   id: string;
@@ -271,7 +266,6 @@ export function StudyInput({ onResult }: StudyInputProps) {
   const [difficulty, setDifficulty] = useState(1); // 0-3 (Easy to Expert)
   const [questionCount, setQuestionCount] = useState(16); // 8, 16, or 24
   const [loading, setLoading] = useState<StudyAction | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [favorites, setFavorites] = useState<FavoritePreset[]>([]);
   const { toast } = useToast();
 
@@ -411,10 +405,13 @@ export function StudyInput({ onResult }: StudyInputProps) {
         customInstructions.trim()
       ].filter(Boolean).join("\n");
       
-      const contentWithInstructions = `${combinedContent}\n\n[Instructions: ${allInstructions}]`;
+       // IMPORTANT: Include topic in content if no sources added
+       const topicContent = topic.trim() ? `Topic: ${topic.trim()}` : "";
+       const fullContent = [topicContent, combinedContent].filter(Boolean).join("\n\n");
+       const contentWithInstructions = `${fullContent}\n\n[Instructions: ${allInstructions}]`;
       
       const result = await callStudyAI(effectiveAction, contentWithInstructions, topic, difficultyText, gradeLevel, aiModel, aiExpertise);
-      onResult(action, result, topic);
+       onResult(action, result, topic, gradeLevel);
       toast({
         title: "Success!",
         description: `Generated ${action.replace(/-/g, " ")} successfully.`,
@@ -650,25 +647,30 @@ export function StudyInput({ onResult }: StudyInputProps) {
         </div>
 
         {/* Custom Instructions Collapsible */}
-        <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between">
-              <span className="flex items-center gap-2 text-muted-foreground">
-                <Settings2 className="h-4 w-4" />
-                Custom AI Instructions
-              </span>
-              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${showAdvanced ? "rotate-180" : ""}`} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2">
-            <Textarea
-              placeholder="Add custom instructions for the AI (e.g., 'Focus on practical examples', 'Include mnemonics', 'Make questions more challenging')..."
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
-              className="min-h-[80px]"
-            />
-          </CollapsibleContent>
-        </Collapsible>
+         {/* Custom Instructions - Always Visible */}
+         <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+           <div className="flex items-center justify-between">
+             <Label className="text-sm font-medium flex items-center gap-2">
+               <Settings2 className="h-4 w-4 text-primary" />
+               Custom Instructions
+             </Label>
+             {customInstructions && (
+               <Badge variant="secondary" className="text-xs">
+                 Active
+               </Badge>
+             )}
+           </div>
+           <Textarea
+             placeholder="Tell the AI exactly what you want! Examples:
+• 'Focus on practical real-world examples'
+• 'Include memory tricks and mnemonics'
+• 'Make questions more challenging'
+• 'Add step-by-step explanations'"
+             value={customInstructions}
+             onChange={(e) => setCustomInstructions(e.target.value)}
+             className="min-h-[80px] bg-background"
+           />
+         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {ACTIONS.map(({ action, icon: Icon, label, description }) => (
