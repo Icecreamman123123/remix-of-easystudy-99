@@ -82,6 +82,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
             <PracticeTest
               flashcards={savedFormat}
               onComplete={handleComplete}
+              topic={topic}
             />
           );
         }
@@ -129,18 +130,19 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
         }
         break;
       }
-       case "speed-challenge": {
-         const flashcards = parseFlashcards(result);
-         if (flashcards.length > 0) {
-           return (
-             <SpeedChallenge
-               flashcards={flashcards}
-               onComplete={(score, total) => handleComplete({ correct: score, total })}
-             />
-           );
-         }
-         break;
+     case "speed-challenge": {
+       const flashcards = parseFlashcards(result);
+       if (flashcards.length > 0) {
+         return (
+           <SpeedChallenge
+             flashcards={flashcards}
+             onComplete={(score, total) => handleComplete({ correct: score, total })}
+             topic={topic}
+           />
+         );
        }
+       break;
+     }
        case "elaborative-interrogation": {
          return (
            <ElaborativeInterrogation
@@ -166,7 +168,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
       case "generate-quiz": {
         const questions = parseQuiz(result);
         if (questions.length > 0) {
-          return <QuizViewer questions={questions} />;
+          return <QuizViewer questions={questions} topic={topic} />;
         }
         break;
       }

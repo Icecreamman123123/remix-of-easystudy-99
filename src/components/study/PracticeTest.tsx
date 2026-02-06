@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
- import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
 import { type SavedFlashcard } from "@/hooks/useFlashcardDecks";
 import { 
   Check, 
@@ -16,15 +16,19 @@ import {
   RotateCcw,
   HelpCircle,
   Shuffle,
-   ClipboardList,
-   Loader2,
-   Brain
+  ClipboardList,
+  Loader2,
+  Brain
 } from "lucide-react";
- import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
+import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
+import { useSmartLearning, WrongAnswer } from "@/hooks/useSmartLearning";
+import { SmartLearningInsights } from "./SmartLearningInsights";
 
 interface PracticeTestProps {
   flashcards: SavedFlashcard[];
   onComplete: (results: { correct: number; total: number }) => void;
+  topic?: string;
+  onGenerateFocusedTest?: (content: string) => void;
 }
 
  type QuestionType = "multiple-choice" | "fill-blank" | "true-false" | "short-answer" | "matching";
@@ -66,15 +70,26 @@ function generateMultipleChoiceOptions(
   return shuffleArray([correctAnswer, ...wrongAnswers.slice(0, 3)]);
 }
 
-export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
+export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedTest }: PracticeTestProps) {
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [inputAnswer, setInputAnswer] = useState<string>("");
   const [showResult, setShowResult] = useState(false);
   const [testComplete, setTestComplete] = useState(false);
-   const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
-   const [matchingSelections, setMatchingSelections] = useState<Record<string, string>>({});
+  const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
+  const [matchingSelections, setMatchingSelections] = useState<Record<string, string>>({});
+  const [isGeneratingFocusedTest, setIsGeneratingFocusedTest] = useState(false);
+  
+  const {
+    wrongAnswers,
+    insights,
+    isAnalyzing,
+    recordWrongAnswer,
+    clearWrongAnswers,
+    analyzeWeaknesses,
+    generateFocusedTest,
+  } = useSmartLearning();
 
   useEffect(() => {
     generateTest();
@@ -131,7 +146,8 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
     setInputAnswer("");
     setShowResult(false);
     setTestComplete(false);
-     setMatchingSelections({});
+    setMatchingSelections({});
+    clearWrongAnswers();
   };
 
   const currentQuestion = questions[currentIndex];
@@ -178,13 +194,23 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
        aiFeedback = isCorrect ? "Correct!" : "Incorrect";
      }
 
+    // Record wrong answer for smart learning
+    if (!isCorrect) {
+      recordWrongAnswer({
+        question: currentQuestion.question,
+        correctAnswer: currentQuestion.correctAnswer,
+        userAnswer,
+        topic,
+      });
+    }
+
     setQuestions((prev) =>
       prev.map((q, i) =>
-         i === currentIndex ? { ...q, userAnswer, isCorrect, aiFeedback } : q
+        i === currentIndex ? { ...q, userAnswer, isCorrect, aiFeedback } : q
       )
     );
 
-     setIsCheckingAnswer(false);
+    setIsCheckingAnswer(false);
     setShowResult(true);
   };
 
@@ -240,6 +266,16 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
     );
   }
 
+  const handleGenerateFocusedTest = async () => {
+    if (!topic) return;
+    setIsGeneratingFocusedTest(true);
+    const content = await generateFocusedTest(topic);
+    setIsGeneratingFocusedTest(false);
+    if (content && onGenerateFocusedTest) {
+      onGenerateFocusedTest(content);
+    }
+  };
+
   if (testComplete) {
     const correct = questions.filter((q) => q.isCorrect).length;
     const accuracy = Math.round((correct / questions.length) * 100);
@@ -255,13 +291,23 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
           </p>
         </div>
 
+        {/* Smart Learning Insights */}
+        <SmartLearningInsights
+          insights={insights}
+          wrongAnswers={wrongAnswers}
+          isAnalyzing={isAnalyzing}
+          onAnalyze={() => analyzeWeaknesses(topic)}
+          onGenerateFocusedTest={onGenerateFocusedTest ? handleGenerateFocusedTest : undefined}
+          isGeneratingTest={isGeneratingFocusedTest}
+        />
+
         {/* Results Breakdown */}
         <div className="space-y-2">
           <p className="text-sm font-medium">Question Breakdown</p>
-           <div className="grid grid-cols-4 gap-2 text-center">
-             {["multiple-choice", "fill-blank", "true-false", "short-answer"].map((type) => {
+          <div className="grid grid-cols-4 gap-2 text-center">
+            {["multiple-choice", "fill-blank", "true-false", "short-answer"].map((type) => {
               const typeQuestions = questions.filter((q) => q.type === type);
-               if (typeQuestions.length === 0) return null;
+              if (typeQuestions.length === 0) return null;
               const typeCorrect = typeQuestions.filter((q) => q.isCorrect).length;
               return (
                 <div key={type} className="p-2 rounded-lg bg-muted/50">
@@ -281,12 +327,12 @@ export function PracticeTest({ flashcards, onComplete }: PracticeTestProps) {
             <div
               key={i}
               className={`p-2 rounded-lg border text-sm ${
-                q.isCorrect ? "border-green-500/30 bg-green-500/5" : "border-destructive/30 bg-destructive/5"
+                q.isCorrect ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"
               }`}
             >
               <div className="flex items-start gap-2">
                 {q.isCorrect ? (
-                  <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 ) : (
                   <X className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 )}
