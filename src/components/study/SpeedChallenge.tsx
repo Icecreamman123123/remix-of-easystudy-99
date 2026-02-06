@@ -1,38 +1,50 @@
- import { useState, useEffect, useCallback, useRef } from "react";
- import { Card, CardContent } from "@/components/ui/card";
- import { Button } from "@/components/ui/button";
- import { Badge } from "@/components/ui/badge";
- import { Progress } from "@/components/ui/progress";
- import { Input } from "@/components/ui/input";
- import { Timer, Zap, Trophy, RotateCcw, Flame, Target, Star, Loader2, Brain } from "lucide-react";
- import { Flashcard } from "@/lib/study-api";
- import { cn } from "@/lib/utils";
- import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
- 
- interface SpeedChallengeProps {
-   flashcards: Flashcard[];
-   onComplete: (score: number, total: number) => void;
- }
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Timer, Zap, Trophy, RotateCcw, Flame, Target, Star, Loader2, Brain } from "lucide-react";
+import { Flashcard } from "@/lib/study-api";
+import { cn } from "@/lib/utils";
+import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
+import { useSmartLearning } from "@/hooks/useSmartLearning";
+import { SmartLearningInsights } from "./SmartLearningInsights";
+
+interface SpeedChallengeProps {
+  flashcards: Flashcard[];
+  onComplete: (score: number, total: number) => void;
+  topic?: string;
+}
  
  const GAME_DURATION = 60; // seconds
  const BASE_POINTS = 100;
  const TIME_BONUS_MULTIPLIER = 2;
  
- export function SpeedChallenge({ flashcards, onComplete }: SpeedChallengeProps) {
-   const [gameState, setGameState] = useState<"ready" | "playing" | "finished">("ready");
-   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
-   const [currentIndex, setCurrentIndex] = useState(0);
-   const [userAnswer, setUserAnswer] = useState("");
-   const [score, setScore] = useState(0);
-   const [streak, setStreak] = useState(0);
-   const [maxStreak, setMaxStreak] = useState(0);
-   const [correctCount, setCorrectCount] = useState(0);
-   const [totalAttempts, setTotalAttempts] = useState(0);
-   const [showFeedback, setShowFeedback] = useState<"correct" | "wrong" | null>(null);
-   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
-   const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
-   const [shuffledCards, setShuffledCards] = useState<Flashcard[]>([]);
-   const inputRef = useRef<HTMLInputElement>(null);
+export function SpeedChallenge({ flashcards, onComplete, topic }: SpeedChallengeProps) {
+  const [gameState, setGameState] = useState<"ready" | "playing" | "finished">("ready");
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [totalAttempts, setTotalAttempts] = useState(0);
+  const [showFeedback, setShowFeedback] = useState<"correct" | "wrong" | null>(null);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+  const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
+  const [shuffledCards, setShuffledCards] = useState<Flashcard[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    wrongAnswers,
+    insights,
+    isAnalyzing,
+    recordWrongAnswer,
+    clearWrongAnswers,
+    analyzeWeaknesses,
+  } = useSmartLearning();
  
    // Shuffle cards on mount and game start
    const shuffleCards = useCallback(() => {
@@ -77,11 +89,12 @@
      setScore(0);
      setStreak(0);
      setMaxStreak(0);
-     setCorrectCount(0);
-     setTotalAttempts(0);
-     setUserAnswer("");
-     setShowFeedback(null);
-   };
+    setCorrectCount(0);
+    setTotalAttempts(0);
+    setUserAnswer("");
+    setShowFeedback(null);
+    clearWrongAnswers();
+  };
  
    const normalizeAnswer = (text: string) => {
      return text.toLowerCase().trim().replace(/[^\w\s]/g, "");
@@ -122,36 +135,53 @@
          setShowFeedback(null);
          inputRef.current?.focus();
        }, 300);
-     } else {
-       // Local check says wrong, but let's verify with AI (async, no time deduction)
-       setShowFeedback("wrong");
-       
-       // Start AI check in background
-       checkAnswerWithAI(userAnswer, currentCard.answer, currentCard.question)
-         .then((aiResult) => {
-           if (aiResult.isCorrect) {
-             // AI says it's correct! Award points retroactively
-             const streakMultiplier = 1 + Math.min(streak, 10) * 0.1;
-             const pointsEarned = Math.floor(BASE_POINTS * streakMultiplier);
-             
-             setScore((prev) => prev + pointsEarned);
-             setStreak((prev) => {
-               const newStreak = prev + 1;
-               setMaxStreak((max) => Math.max(max, newStreak));
-               return newStreak;
-             });
-             setCorrectCount((prev) => prev + 1);
-             setShowFeedback("correct");
-             setAiFeedback(`✨ AI verified: ${aiResult.feedback}`);
-           } else {
-             setStreak(0);
-             setAiFeedback(aiResult.feedback);
-           }
-         })
-         .catch(() => {
-           // If AI check fails, stick with local result
-           setStreak(0);
-         })
+    } else {
+      // Local check says wrong, but let's verify with AI (async, no time deduction)
+      setShowFeedback("wrong");
+      
+      const currentCardRef = currentCard; // Capture for async
+      const currentUserAnswer = userAnswer;
+      
+      // Start AI check in background
+      checkAnswerWithAI(userAnswer, currentCard.answer, currentCard.question)
+        .then((aiResult) => {
+          if (aiResult.isCorrect) {
+            // AI says it's correct! Award points retroactively
+            const streakMultiplier = 1 + Math.min(streak, 10) * 0.1;
+            const pointsEarned = Math.floor(BASE_POINTS * streakMultiplier);
+            
+            setScore((prev) => prev + pointsEarned);
+            setStreak((prev) => {
+              const newStreak = prev + 1;
+              setMaxStreak((max) => Math.max(max, newStreak));
+              return newStreak;
+            });
+            setCorrectCount((prev) => prev + 1);
+            setShowFeedback("correct");
+            setAiFeedback(`✨ AI verified: ${aiResult.feedback}`);
+          } else {
+            setStreak(0);
+            setAiFeedback(aiResult.feedback);
+            // Record wrong answer for smart learning
+            recordWrongAnswer({
+              question: currentCardRef.question,
+              correctAnswer: currentCardRef.answer,
+              userAnswer: currentUserAnswer,
+              topic,
+            });
+          }
+        })
+        .catch(() => {
+          // If AI check fails, stick with local result
+          setStreak(0);
+          // Record as wrong
+          recordWrongAnswer({
+            question: currentCardRef.question,
+            correctAnswer: currentCardRef.answer,
+            userAnswer: currentUserAnswer,
+            topic,
+          });
+        })
          .finally(() => {
            setIsCheckingAnswer(false);
            // Move to next question
@@ -232,47 +262,57 @@
      const accuracy = totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : 0;
      const avgTimePerQuestion = totalAttempts > 0 ? ((GAME_DURATION - timeLeft) / totalAttempts).toFixed(1) : 0;
  
-     return (
-       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6 animate-in fade-in-50">
-         <div className="text-center space-y-2">
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6 animate-in fade-in-50">
+          <div className="text-center space-y-2">
             <Trophy className="h-16 w-16 text-accent-foreground mx-auto animate-bounce" />
-           <h2 className="text-2xl font-bold">Challenge Complete!</h2>
-           <p className="text-4xl font-bold text-primary">{score.toLocaleString()} pts</p>
-         </div>
- 
-         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-           <div className="p-4 bg-muted rounded-lg">
-             <p className="text-2xl font-bold text-primary">{correctCount}</p>
-             <p className="text-xs text-muted-foreground">Correct</p>
-           </div>
-           <div className="p-4 bg-muted rounded-lg">
-             <p className="text-2xl font-bold text-primary">{totalAttempts}</p>
-             <p className="text-xs text-muted-foreground">Attempted</p>
-           </div>
-           <div className="p-4 bg-muted rounded-lg">
-             <p className="text-2xl font-bold text-primary">{accuracy}%</p>
-             <p className="text-xs text-muted-foreground">Accuracy</p>
-           </div>
-           <div className="p-4 bg-muted rounded-lg">
-             <div className="flex items-center justify-center gap-1">
+            <h2 className="text-2xl font-bold">Challenge Complete!</h2>
+            <p className="text-4xl font-bold text-primary">{score.toLocaleString()} pts</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-2xl font-bold text-primary">{correctCount}</p>
+              <p className="text-xs text-muted-foreground">Correct</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-2xl font-bold text-primary">{totalAttempts}</p>
+              <p className="text-xs text-muted-foreground">Attempted</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-2xl font-bold text-primary">{accuracy}%</p>
+              <p className="text-xs text-muted-foreground">Accuracy</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex items-center justify-center gap-1">
                 <Flame className="h-5 w-5 text-destructive" />
-               <p className="text-2xl font-bold text-primary">{maxStreak}</p>
-             </div>
-             <p className="text-xs text-muted-foreground">Best Streak</p>
-           </div>
-         </div>
- 
-         <p className="text-sm text-muted-foreground">
-           Average: {avgTimePerQuestion}s per question
-         </p>
- 
-         <Button onClick={startGame} size="lg" className="gap-2">
-           <RotateCcw className="h-4 w-4" />
-           Play Again
-         </Button>
-       </div>
-     );
-   }
+                <p className="text-2xl font-bold text-primary">{maxStreak}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Best Streak</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            Average: {avgTimePerQuestion}s per question
+          </p>
+
+          {/* Smart Learning Insights */}
+          <div className="w-full max-w-md">
+            <SmartLearningInsights
+              insights={insights}
+              wrongAnswers={wrongAnswers}
+              isAnalyzing={isAnalyzing}
+              onAnalyze={() => analyzeWeaknesses(topic)}
+            />
+          </div>
+
+          <Button onClick={startGame} size="lg" className="gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Play Again
+          </Button>
+        </div>
+      );
+    }
  
    const currentCard = shuffledCards[currentIndex % shuffledCards.length];
    const timePercent = (timeLeft / GAME_DURATION) * 100;

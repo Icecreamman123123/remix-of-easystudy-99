@@ -4,18 +4,30 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, XCircle, ArrowRight, RotateCcw } from "lucide-react";
 import type { QuizQuestion } from "@/lib/study-api";
+import { useSmartLearning } from "@/hooks/useSmartLearning";
+import { SmartLearningInsights } from "./SmartLearningInsights";
 
 interface QuizViewerProps {
   questions: QuizQuestion[];
   onComplete?: (score: number, total: number) => void;
+  topic?: string;
 }
 
-export function QuizViewer({ questions, onComplete }: QuizViewerProps) {
+export function QuizViewer({ questions, onComplete, topic }: QuizViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [completed, setCompleted] = useState(false);
+
+  const {
+    wrongAnswers,
+    insights,
+    isAnalyzing,
+    recordWrongAnswer,
+    clearWrongAnswers,
+    analyzeWeaknesses,
+  } = useSmartLearning();
 
   const currentQuestion = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
@@ -24,8 +36,17 @@ export function QuizViewer({ questions, onComplete }: QuizViewerProps) {
     if (showResult) return;
     setSelectedAnswer(optionIndex);
     setShowResult(true);
+    
     if (optionIndex === currentQuestion.correctAnswer) {
       setScore(score + 1);
+    } else {
+      // Record wrong answer for smart learning
+      recordWrongAnswer({
+        question: currentQuestion.question,
+        correctAnswer: currentQuestion.options[currentQuestion.correctAnswer],
+        userAnswer: currentQuestion.options[optionIndex],
+        topic,
+      });
     }
   };
 
@@ -46,6 +67,7 @@ export function QuizViewer({ questions, onComplete }: QuizViewerProps) {
     setShowResult(false);
     setScore(0);
     setCompleted(false);
+    clearWrongAnswers();
   };
 
   if (!currentQuestion) {
@@ -60,22 +82,33 @@ export function QuizViewer({ questions, onComplete }: QuizViewerProps) {
     const percentage = Math.round((score / questions.length) * 100);
     return (
       <Card>
-        <CardContent className="p-8 text-center">
-          <div className="text-6xl mb-4">
-            {percentage >= 80 ? "🎉" : percentage >= 60 ? "👍" : "📚"}
+        <CardContent className="p-8 space-y-6">
+          <div className="text-center">
+            <div className="text-6xl mb-4">
+              {percentage >= 80 ? "🎉" : percentage >= 60 ? "👍" : "📚"}
+            </div>
+            <h3 className="text-2xl font-bold mb-2">Quiz Complete!</h3>
+            <p className="text-3xl font-bold text-primary mb-2">
+              {score} / {questions.length}
+            </p>
+            <p className="text-muted-foreground mb-6">
+              {percentage >= 80 
+                ? "Excellent work! You've mastered this material." 
+                : percentage >= 60 
+                  ? "Good job! Review the missed questions."
+                  : "Keep studying! Try again after reviewing."}
+            </p>
           </div>
-          <h3 className="text-2xl font-bold mb-2">Quiz Complete!</h3>
-          <p className="text-3xl font-bold text-primary mb-2">
-            {score} / {questions.length}
-          </p>
-          <p className="text-muted-foreground mb-6">
-            {percentage >= 80 
-              ? "Excellent work! You've mastered this material." 
-              : percentage >= 60 
-                ? "Good job! Review the missed questions."
-                : "Keep studying! Try again after reviewing."}
-          </p>
-          <Button onClick={handleReset}>
+
+          {/* Smart Learning Insights */}
+          <SmartLearningInsights
+            insights={insights}
+            wrongAnswers={wrongAnswers}
+            isAnalyzing={isAnalyzing}
+            onAnalyze={() => analyzeWeaknesses(topic)}
+          />
+
+          <Button onClick={handleReset} className="w-full">
             <RotateCcw className="h-4 w-4 mr-2" />
             Try Again
           </Button>

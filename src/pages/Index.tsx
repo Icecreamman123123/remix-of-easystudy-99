@@ -292,6 +292,7 @@ const Index = () => {
       <footer className="border-t mt-auto">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
           <p>{t("footer.builtWith")}</p>
+          <p className="mt-2 text-xs opacity-70">Made by Daniel Yu</p>
         </div>
       </footer>
 
