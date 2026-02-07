@@ -29,6 +29,7 @@ interface PracticeTestProps {
   onComplete: (results: { correct: number; total: number }) => void;
   topic?: string;
   onGenerateFocusedTest?: (content: string) => void;
+  disableSmartLearning?: boolean;
 }
 
  type QuestionType = "multiple-choice" | "fill-blank" | "true-false" | "short-answer" | "matching";
@@ -70,7 +71,7 @@ function generateMultipleChoiceOptions(
   return shuffleArray([correctAnswer, ...wrongAnswers.slice(0, 3)]);
 }
 
-export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedTest }: PracticeTestProps) {
+export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedTest, disableSmartLearning }: PracticeTestProps) {
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
@@ -195,7 +196,7 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
      }
 
     // Record wrong answer for smart learning
-    if (!isCorrect) {
+    if (!isCorrect && !disableSmartLearning) {
       recordWrongAnswer({
         question: currentQuestion.question,
         correctAnswer: currentQuestion.correctAnswer,
@@ -292,14 +293,16 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
         </div>
 
         {/* Smart Learning Insights */}
-        <SmartLearningInsights
-          insights={insights}
-          wrongAnswers={wrongAnswers}
-          isAnalyzing={isAnalyzing}
-          onAnalyze={() => analyzeWeaknesses(topic)}
-          onGenerateFocusedTest={onGenerateFocusedTest ? handleGenerateFocusedTest : undefined}
-          isGeneratingTest={isGeneratingFocusedTest}
-        />
+        {!disableSmartLearning && (
+          <SmartLearningInsights
+            insights={insights}
+            wrongAnswers={wrongAnswers}
+            isAnalyzing={isAnalyzing}
+            onAnalyze={() => analyzeWeaknesses(topic)}
+            onGenerateFocusedTest={onGenerateFocusedTest ? handleGenerateFocusedTest : undefined}
+            isGeneratingTest={isGeneratingFocusedTest}
+          />
+        )}
 
         {/* Results Breakdown */}
         <div className="space-y-2">

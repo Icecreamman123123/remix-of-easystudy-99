@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { StudyInput } from "@/components/study/StudyInput";
+import { StudyInput, ManualEditorMode } from "@/components/study/StudyInput";
 import { ResultsViewer } from "@/components/study/ResultsViewer";
 import { StudyTimer } from "@/components/study/StudyTimer";
 import { MyDecks } from "@/components/study/MyDecks";
 import { LearningAnalytics } from "@/components/study/LearningAnalytics";
 import { SaveDeckDialog } from "@/components/study/SaveDeckDialog";
- import { StudyChat } from "@/components/study/StudyChat";
+import { StudyChat } from "@/components/study/StudyChat";
+import { ManualFlashcardEditor } from "@/components/study/ManualFlashcardEditor";
+import { ManualQuizEditor } from "@/components/study/ManualQuizEditor";
+import { ManualWorksheetEditor } from "@/components/study/ManualWorksheetEditor";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
@@ -23,9 +26,9 @@ import {
   LogOut,
   LogIn,
   Save,
-   User,
-    MessageCircle,
-    Zap
+  User,
+  MessageCircle,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -33,15 +36,18 @@ import { useToast } from "@/hooks/use-toast";
 interface StudyResult {
   action: StudyAction;
   result: string;
+  isManual?: boolean;
 }
+
 
 const Index = () => {
   const [currentResult, setCurrentResult] = useState<StudyResult | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [flashcardsToSave, setFlashcardsToSave] = useState<Flashcard[]>([]);
   const [currentTopic, setCurrentTopic] = useState<string>("");
-   const [showChat, setShowChat] = useState(false);
-   const [chatGradeLevel, setChatGradeLevel] = useState("8");
+  const [showChat, setShowChat] = useState(false);
+  const [chatGradeLevel, setChatGradeLevel] = useState("8");
+  const [manualEditor, setManualEditor] = useState<ManualEditorMode>(null);
   
   const { user, signOut, loading } = useAuth();
   const { recordSession } = useStudySessions();
@@ -49,15 +55,15 @@ const Index = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
 
-   const handleResultWithChat = (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => {
-     handleResult(action, result, topic);
-     if (gradeLevel) {
-       setChatGradeLevel(gradeLevel);
-     }
-   };
- 
-  const handleResult = (action: StudyAction, result: string, topic?: string) => {
-    setCurrentResult({ action, result });
+  const handleResultWithChat = (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => {
+    handleResult(action, result, topic);
+    if (gradeLevel) {
+      setChatGradeLevel(gradeLevel);
+    }
+  };
+
+  const handleResult = (action: StudyAction, result: string, topic?: string, isManual?: boolean) => {
+    setCurrentResult({ action, result, isManual });
     if (topic) {
       setCurrentTopic(topic);
     }
@@ -67,10 +73,14 @@ const Index = () => {
       const cards = parseFlashcards(result);
       setFlashcardsToSave(cards);
     } else if (action === "mind-map") {
-      // Mind map uses concepts which can also be saved as flashcards
       const cards = parseFlashcards(result);
       setFlashcardsToSave(cards);
     }
+  };
+
+  const handleManualResult = (action: StudyAction, result: string, topic: string) => {
+    setManualEditor(null);
+    handleResult(action, result, topic, true);
   };
 
   const handleSaveFlashcards = () => {
@@ -148,30 +158,10 @@ const Index = () => {
       <section className="bg-muted/50 border-b">
         <div className="container mx-auto px-4 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <FeatureCard 
-              icon={Sparkles} 
-              title={t("feature.activeRecall")} 
-              description={t("feature.activeRecall.desc")}
-              index={0}
-            />
-            <FeatureCard 
-              icon={Repeat} 
-              title={t("feature.spacedRepetition")} 
-              description={t("feature.spacedRepetition.desc")}
-              index={1}
-            />
-            <FeatureCard 
-              icon={Brain} 
-              title={t("feature.feynman")} 
-              description={t("feature.feynman.desc")}
-              index={2}
-            />
-            <FeatureCard 
-              icon={Target} 
-              title={t("feature.pomodoro")} 
-              description={t("feature.pomodoro.desc")}
-              index={3}
-            />
+            <FeatureCard icon={Sparkles} title={t("feature.activeRecall")} description={t("feature.activeRecall.desc")} index={0} />
+            <FeatureCard icon={Repeat} title={t("feature.spacedRepetition")} description={t("feature.spacedRepetition.desc")} index={1} />
+            <FeatureCard icon={Brain} title={t("feature.feynman")} description={t("feature.feynman.desc")} index={2} />
+            <FeatureCard icon={Target} title={t("feature.pomodoro")} description={t("feature.pomodoro.desc")} index={3} />
           </div>
         </div>
       </section>
@@ -181,7 +171,36 @@ const Index = () => {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Study Input - Takes 2 columns on large screens */}
           <div className="lg:col-span-2 space-y-6">
-             <StudyInput onResult={handleResultWithChat} />
+            <StudyInput 
+              onResult={handleResultWithChat} 
+              onManualCreate={(mode) => setManualEditor(mode)}
+            />
+
+            {/* Manual Editors */}
+            {manualEditor && !currentResult && (
+              <div>
+                {manualEditor.type === "flashcard" && (
+                  <ManualFlashcardEditor
+                    targetAction={manualEditor.action}
+                    actionLabel={manualEditor.label}
+                    onSubmit={handleManualResult}
+                    onCancel={() => setManualEditor(null)}
+                  />
+                )}
+                {manualEditor.type === "quiz" && (
+                  <ManualQuizEditor
+                    onSubmit={handleManualResult}
+                    onCancel={() => setManualEditor(null)}
+                  />
+                )}
+                {manualEditor.type === "worksheet" && (
+                  <ManualWorksheetEditor
+                    onSubmit={handleManualResult}
+                    onCancel={() => setManualEditor(null)}
+                  />
+                )}
+              </div>
+            )}
             
             {currentResult && (
               <div className="relative">
@@ -198,6 +217,7 @@ const Index = () => {
                   result={currentResult.result}
                   topic={currentTopic}
                   onClose={() => setCurrentResult(null)}
+                  isManual={currentResult.isManual}
                 />
               </div>
             )}
@@ -208,36 +228,36 @@ const Index = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-             {/* AI Chat - Always visible */}
-             {!showChat ? (
-               <Button
-                 onClick={() => setShowChat(true)}
-                 className="w-full gap-2 h-auto py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10"
-                 variant="outline"
-               >
-                 <div className="flex items-center gap-2 flex-1">
-                   <div className="p-2 bg-primary/20 rounded-full">
-                     <MessageCircle className="h-5 w-5 text-primary" />
-                   </div>
-                   <div className="text-left">
-                     <p className="font-semibold">AI Study Chat</p>
-                     <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                       {currentTopic ? `Ask about: ${currentTopic}` : "Ask anything!"}
-                     </p>
-                   </div>
-                   <Zap className="h-4 w-4 text-primary ml-auto" />
-                 </div>
-               </Button>
-             ) : (
+            {/* AI Chat - Always visible */}
+            {!showChat ? (
+              <Button
+                onClick={() => setShowChat(true)}
+                className="w-full gap-2 h-auto py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10"
+                variant="outline"
+              >
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="p-2 bg-primary/20 rounded-full">
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold">AI Study Chat</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                      {currentTopic ? `Ask about: ${currentTopic}` : "Ask anything!"}
+                    </p>
+                  </div>
+                  <Zap className="h-4 w-4 text-primary ml-auto" />
+                </div>
+              </Button>
+            ) : (
               <div className="h-[550px]">
-                 <StudyChat
-                    topic={currentTopic || "General Study Help"}
-                   gradeLevel={chatGradeLevel}
-                   onClose={() => setShowChat(false)}
-                 />
-               </div>
-             )}
- 
+                <StudyChat
+                  topic={currentTopic || "General Study Help"}
+                  gradeLevel={chatGradeLevel}
+                  onClose={() => setShowChat(false)}
+                />
+              </div>
+            )}
+
             <StudyTimer />
             
             {/* Show detailed analytics for logged-in users */}

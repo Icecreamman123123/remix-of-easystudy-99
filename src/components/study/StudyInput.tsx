@@ -35,8 +35,16 @@ import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api"
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
 
+// Manual editor mode types
+export type ManualEditorMode = 
+  | null
+  | { type: "flashcard"; action: StudyAction; label: string }
+  | { type: "quiz" }
+  | { type: "worksheet" };
+
 interface StudyInputProps {
    onResult: (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => void;
+   onManualCreate?: (mode: ManualEditorMode) => void;
 }
 
 interface Source {
@@ -257,7 +265,7 @@ function saveFavorites(favorites: FavoritePreset[]) {
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
 }
 
-export function StudyInput({ onResult }: StudyInputProps) {
+export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [topic, setTopic] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [currentTextContent, setCurrentTextContent] = useState("");
@@ -695,6 +703,47 @@ export function StudyInput({ onResult }: StudyInputProps) {
             </Button>
           ))}
         </div>
+
+        {/* Manual Create Section */}
+        {onManualCreate && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Or create manually</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { action: "generate-flashcards" as StudyAction, label: "Flashcards", icon: BookOpen },
+                { action: "practice-test" as StudyAction, label: "Practice Test", icon: Target },
+                { action: "speed-challenge" as StudyAction, label: "Speed Challenge", icon: Gauge },
+                { action: "study-runner" as StudyAction, label: "Study Runner", icon: Gamepad2 },
+                { action: "matching-game" as StudyAction, label: "Matching Game", icon: Puzzle },
+                { action: "generate-quiz" as StudyAction, label: "Quiz", icon: ClipboardList },
+                { action: "worksheet" as StudyAction, label: "Worksheet", icon: FileEdit },
+              ].map(({ action, label, icon: Icon }) => (
+                <Button
+                  key={`manual-${action}`}
+                  variant="secondary"
+                  className="h-auto py-2 flex flex-col items-center gap-1 text-xs"
+                  onClick={() => {
+                    if (action === "generate-quiz") {
+                      onManualCreate({ type: "quiz" });
+                    } else if (action === "worksheet") {
+                      onManualCreate({ type: "worksheet" });
+                    } else {
+                      onManualCreate({ type: "flashcard", action, label });
+                    }
+                  }}
+                  disabled={loading !== null}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="font-medium">{label}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
