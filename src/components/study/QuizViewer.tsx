@@ -11,9 +11,10 @@ interface QuizViewerProps {
   questions: QuizQuestion[];
   onComplete?: (score: number, total: number) => void;
   topic?: string;
+  disableSmartLearning?: boolean;
 }
 
-export function QuizViewer({ questions, onComplete, topic }: QuizViewerProps) {
+export function QuizViewer({ questions, onComplete, topic, disableSmartLearning }: QuizViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -39,7 +40,7 @@ export function QuizViewer({ questions, onComplete, topic }: QuizViewerProps) {
     
     if (optionIndex === currentQuestion.correctAnswer) {
       setScore(score + 1);
-    } else {
+    } else if (!disableSmartLearning) {
       // Record wrong answer for smart learning
       recordWrongAnswer({
         question: currentQuestion.question,
@@ -101,12 +102,14 @@ export function QuizViewer({ questions, onComplete, topic }: QuizViewerProps) {
           </div>
 
           {/* Smart Learning Insights */}
-          <SmartLearningInsights
-            insights={insights}
-            wrongAnswers={wrongAnswers}
-            isAnalyzing={isAnalyzing}
-            onAnalyze={() => analyzeWeaknesses(topic)}
-          />
+          {!disableSmartLearning && (
+            <SmartLearningInsights
+              insights={insights}
+              wrongAnswers={wrongAnswers}
+              isAnalyzing={isAnalyzing}
+              onAnalyze={() => analyzeWeaknesses(topic)}
+            />
+          )}
 
           <Button onClick={handleReset} className="w-full">
             <RotateCcw className="h-4 w-4 mr-2" />

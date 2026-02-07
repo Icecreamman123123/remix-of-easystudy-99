@@ -15,13 +15,14 @@ interface SpeedChallengeProps {
   flashcards: Flashcard[];
   onComplete: (score: number, total: number) => void;
   topic?: string;
+  disableSmartLearning?: boolean;
 }
  
  const GAME_DURATION = 60; // seconds
  const BASE_POINTS = 100;
  const TIME_BONUS_MULTIPLIER = 2;
  
-export function SpeedChallenge({ flashcards, onComplete, topic }: SpeedChallengeProps) {
+export function SpeedChallenge({ flashcards, onComplete, topic, disableSmartLearning }: SpeedChallengeProps) {
   const [gameState, setGameState] = useState<"ready" | "playing" | "finished">("ready");
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -163,6 +164,21 @@ export function SpeedChallenge({ flashcards, onComplete, topic }: SpeedChallenge
             setStreak(0);
             setAiFeedback(aiResult.feedback);
             // Record wrong answer for smart learning
+            if (!disableSmartLearning) {
+              recordWrongAnswer({
+                question: currentCardRef.question,
+                correctAnswer: currentCardRef.answer,
+                userAnswer: currentUserAnswer,
+                topic,
+              });
+            }
+          }
+        })
+        .catch(() => {
+          // If AI check fails, stick with local result
+          setStreak(0);
+          // Record as wrong
+          if (!disableSmartLearning) {
             recordWrongAnswer({
               question: currentCardRef.question,
               correctAnswer: currentCardRef.answer,
@@ -170,17 +186,6 @@ export function SpeedChallenge({ flashcards, onComplete, topic }: SpeedChallenge
               topic,
             });
           }
-        })
-        .catch(() => {
-          // If AI check fails, stick with local result
-          setStreak(0);
-          // Record as wrong
-          recordWrongAnswer({
-            question: currentCardRef.question,
-            correctAnswer: currentCardRef.answer,
-            userAnswer: currentUserAnswer,
-            topic,
-          });
         })
          .finally(() => {
            setIsCheckingAnswer(false);
@@ -297,14 +302,16 @@ export function SpeedChallenge({ flashcards, onComplete, topic }: SpeedChallenge
           </p>
 
           {/* Smart Learning Insights */}
-          <div className="w-full max-w-md">
-            <SmartLearningInsights
-              insights={insights}
-              wrongAnswers={wrongAnswers}
-              isAnalyzing={isAnalyzing}
-              onAnalyze={() => analyzeWeaknesses(topic)}
-            />
-          </div>
+          {!disableSmartLearning && (
+            <div className="w-full max-w-md">
+              <SmartLearningInsights
+                insights={insights}
+                wrongAnswers={wrongAnswers}
+                isAnalyzing={isAnalyzing}
+                onAnalyze={() => analyzeWeaknesses(topic)}
+              />
+            </div>
+          )}
 
           <Button onClick={startGame} size="lg" className="gap-2">
             <RotateCcw className="h-4 w-4" />

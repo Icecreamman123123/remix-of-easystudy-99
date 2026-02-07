@@ -21,6 +21,7 @@ interface ResultsViewerProps {
   result: string;
   onClose: () => void;
   topic?: string;
+  isManual?: boolean;
 }
 
 // Convert Flashcard to SavedFlashcard-like format for study components
@@ -55,7 +56,7 @@ function toMindMapFormat(concepts: Concept[]) {
   }));
 }
 
-export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerProps) {
+export function ResultsViewer({ action, result, onClose, topic, isManual }: ResultsViewerProps) {
   const [completed, setCompleted] = useState(false);
   const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action) 
     ? parseFlashcards(result) 
@@ -83,6 +84,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
               flashcards={savedFormat}
               onComplete={handleComplete}
               topic={topic}
+              disableSmartLearning={isManual}
             />
           );
         }
@@ -134,11 +136,12 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
        const flashcards = parseFlashcards(result);
        if (flashcards.length > 0) {
          return (
-           <SpeedChallenge
-             flashcards={flashcards}
-             onComplete={(score, total) => handleComplete({ correct: score, total })}
-             topic={topic}
-           />
+            <SpeedChallenge
+              flashcards={flashcards}
+              onComplete={(score, total) => handleComplete({ correct: score, total })}
+              topic={topic}
+              disableSmartLearning={isManual}
+            />
          );
        }
        break;
@@ -168,7 +171,7 @@ export function ResultsViewer({ action, result, onClose, topic }: ResultsViewerP
       case "generate-quiz": {
         const questions = parseQuiz(result);
         if (questions.length > 0) {
-          return <QuizViewer questions={questions} topic={topic} />;
+          return <QuizViewer questions={questions} topic={topic} disableSmartLearning={isManual} />;
         }
         break;
       }
