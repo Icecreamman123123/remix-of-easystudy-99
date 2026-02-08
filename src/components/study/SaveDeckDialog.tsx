@@ -48,6 +48,11 @@ export function SaveDeckDialog({
   const { templates: userTemplates, loading: userTemplatesLoading } = useStudyTemplates();
   const [templatesManagerOpen, setTemplatesManagerOpen] = React.useState(false);
 
+  // Template preview/edit state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewCards, setPreviewCards] = useState<Flashcard[]>([]);
+
   // Reset title when topic changes or dialog opens
   React.useEffect(() => {
     if (open) {
@@ -60,12 +65,6 @@ export function SaveDeckDialog({
       setSaving(false);
     }
   }, [open, topic]);
-
-  // Template preview/edit state
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewTitle, setPreviewTitle] = useState("");
-  const [previewCards, setPreviewCards] = useState<Flashcard[]>([]);
-
   // Show preview editor when creating from a template
   const handleCreateFromTemplate = async (templateId: string) => {
     const effectiveTopic = topic || title || "";

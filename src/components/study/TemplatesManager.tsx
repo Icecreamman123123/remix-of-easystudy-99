@@ -182,7 +182,25 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
                         <div className="text-sm text-muted-foreground">{t.description}</div>
                         {t.preview && <div className="text-xs italic text-muted-foreground mt-1">{t.preview}</div>}
                       </div>
-                      <div className="text-xs text-muted-foreground">{t.defaultCount || "—"} cards</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-muted-foreground mr-2">{t.defaultCount || "—"} cards</div>
+                        <Button size="sm" onClick={() => {
+                          // Prefill the create form with this sample template
+                          setEditing(null);
+                          const payloadObj: any = {};
+                          if (t.defaultCount) payloadObj.defaultCount = t.defaultCount;
+                          if (t.difficulty) payloadObj.difficulty = t.difficulty;
+                          setForm({
+                            name: t.name,
+                            description: t.description,
+                            action: t.action,
+                            payload: JSON.stringify(payloadObj, null, 2),
+                            estimated_count: t.defaultCount || 10,
+                            is_public: false,
+                          });
+                          setPayloadError(null);
+                        }}>Use</Button>
+                      </div>
                     </div>
                   </div>
                 ))}

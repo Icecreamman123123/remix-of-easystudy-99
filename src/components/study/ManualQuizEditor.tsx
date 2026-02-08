@@ -104,12 +104,17 @@ export function ManualQuizEditor({ onSubmit, onCancel }: ManualQuizEditorProps) 
   const handleSubmit = () => {
     if (validQuestions.length < 1) return;
 
-    const quizData = validQuestions.map((q) => ({
-      question: q.question.trim(),
-      options: q.options.filter((o) => o.trim()),
-      correctAnswer: q.correctAnswer,
-      explanation: q.explanation.trim() || "No explanation provided.",
-    }));
+    const quizData = validQuestions.map((q) => {
+      const trimmedOptions = q.options.map(o => o.trim()).filter(Boolean);
+      const correctText = q.options[q.correctAnswer]?.trim();
+      const newCorrect = correctText ? Math.max(0, trimmedOptions.findIndex(o => o === correctText)) : 0;
+      return {
+        question: q.question.trim(),
+        options: trimmedOptions,
+        correctAnswer: newCorrect >= 0 ? newCorrect : 0,
+        explanation: q.explanation.trim() || "No explanation provided.",
+      };
+    });
 
     const result = JSON.stringify(quizData);
     onSubmit("generate-quiz", result, title.trim() || "Manual Quiz");
