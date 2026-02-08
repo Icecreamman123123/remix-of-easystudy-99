@@ -58,7 +58,7 @@ serve(async (req) => {
     };
 
     const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
-    
+
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
@@ -118,10 +118,10 @@ serve(async (req) => {
     }
 
     // Format grade level for prompts
-    const gradeLevelText = gradeLevel 
-      ? gradeLevel === "university" 
-        ? "university undergraduate level" 
-        : gradeLevel === "phd" 
+    const gradeLevelText = gradeLevel
+      ? gradeLevel === "university"
+        ? "university undergraduate level"
+        : gradeLevel === "phd"
           ? "PhD/graduate research level"
           : `grade ${gradeLevel} (ages ${parseInt(gradeLevel) + 5}-${parseInt(gradeLevel) + 6})`
       : "middle school level";
@@ -129,10 +129,10 @@ serve(async (req) => {
     // Extract question count from instructions if present
     const countMatch = content?.match(/Generate exactly (\d+) items/);
     const requestedCount = countMatch ? parseInt(countMatch[1]) : 16;
-    
+
     // Get expertise prefix if applicable
     const expertiseApproach = EXPERTISE_APPROACHES[expertise] || "";
-    
+
     let systemPrompt = "";
     let userPrompt = "";
 
@@ -245,57 +245,33 @@ RULES:
         break;
 
       case "create-study-plan":
-        systemPrompt = `You are an expert learning coach who creates structured weekly study schedules for ${gradeLevelText} students. ${expertiseApproach}
+        systemPrompt = `You are an expert learning coach who creates structured study schedules for ${gradeLevelText} students. ${expertiseApproach}
 
 CRITICAL: Your PRIMARY focus is creating a study plan for the user's specific topic/content.
 
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+Requirements:
+- Create a structured study plan with specific activities
+- Focus exclusively on the topic/content provided
+- Assign a difficulty level (1-10) to each session based on complexity
+- Estimate time in minutes for each session
 
-# 📚 Study Schedule: [User's Topic Name]
-
-## Weekly Overview
-Brief 1-2 sentence overview of what will be covered about this specific topic.
-
-## Study Schedule
-
-| Time | Monday | Tuesday | Wednesday | Thursday | Friday |
-|------|--------|---------|-----------|----------|--------|
-| Morning (30min) | [Topic-specific activity] | [Topic-specific activity] | [Topic-specific activity] | [Topic-specific activity] | Review all |
-| Afternoon (30min) | [Topic-specific activity] | Quiz yourself | [Topic-specific activity] | Mixed practice | Self-test |
-
-## Daily Goals
-
-### Week 1: Foundation
-- **Monday**: [Specific goal for this topic]
-- **Tuesday**: [Specific goal for this topic]
-- **Wednesday**: [Specific goal for this topic]
-- **Thursday**: [Specific goal for this topic]
-- **Friday**: [Specific goal for this topic]
-
-### Week 2: Reinforcement
-- **Monday**: [Specific goal for this topic]
-- **Tuesday**: [Specific goal for this topic]
-- **Wednesday**: [Specific goal for this topic]
-- **Thursday**: [Specific goal for this topic]
-- **Friday**: [Specific goal for this topic]
-
-## Review Checkpoints
-- [ ] End of Week 1: Can explain basic concepts of this topic
-- [ ] End of Week 2: Can solve practice problems about this topic
-- [ ] Final: Ready for assessment on this topic
-
-## Study Tips
-1. [Specific tip for this topic]
-2. [Specific tip for this topic]
-3. [Specific tip for this topic]
+Return a JSON array with this structure:
+[
+  {
+    "day": 1,
+    "topic": "Sub-topic name",
+    "activities": ["Activity 1", "Activity 2"],
+    "difficulty": 5, // 1-10 intensity
+    "timeMinutes": 45,
+    "description": "Brief description of goals"
+  }
+]
 
 IMPORTANT:
-- All activities must relate to the user's specific topic
-- Use appropriate session lengths for ${gradeLevelText} (shorter for younger students)
-- Make goals specific and achievable
-- Include variety in study methods
-- Build complexity gradually`;
-        userPrompt = `Create a well-organized weekly study schedule for a ${gradeLevelText} student. Focus the entire plan on this specific topic:\n\n${content || topic}\n\nInclude a table-based weekly schedule with specific daily activities related to this topic.`;
+- Generate a 5-7 day plan
+- Build complexity gradually (start with lower difficulty)
+- Include specific, actionable activities`;
+        userPrompt = `Create a structured study plan for a ${gradeLevelText} student. Focus the entire plan on this specific topic:\n\n${content || topic}\n\nReturn ONLY the JSON array.`;
         break;
 
       case "summarize":
@@ -330,8 +306,8 @@ Return JSON: [{"problem": "...", "solution": "...", "difficulty": "easy|medium|h
         userPrompt = `Create practice problems at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
-       case "elaborative-interrogation":
-         systemPrompt = `You are an expert educator creating "elaborative interrogation" questions for ${gradeLevelText} students. ${expertiseApproach}
+      case "elaborative-interrogation":
+        systemPrompt = `You are an expert educator creating "elaborative interrogation" questions for ${gradeLevelText} students. ${expertiseApproach}
  
  CRITICAL: Elaborative interrogation is a proven study technique where learners answer "WHY" and "HOW" questions to deepen understanding.
  
@@ -354,9 +330,9 @@ Return JSON: [{"problem": "...", "solution": "...", "difficulty": "easy|medium|h
  [{"question": "Why does...?", "type": "why", "hint": "Think about...", "idealAnswer": "Because..."}]
  
  IMPORTANT: Generate exactly ${requestedCount} elaborative questions about the user's topic.`;
-         userPrompt = `Create exactly ${requestedCount} elaborative interrogation questions at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Include a mix of "why" and "how" questions. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
-         break;
- 
+        userPrompt = `Create exactly ${requestedCount} elaborative interrogation questions at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Include a mix of "why" and "how" questions. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
+        break;
+
       default:
         systemPrompt = "You are a helpful study assistant. Help students learn effectively. Focus on the specific topic they provide.";
         userPrompt = content || topic || "How can I study more effectively?";

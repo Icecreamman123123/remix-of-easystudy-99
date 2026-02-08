@@ -226,6 +226,35 @@ export function parseWorksheet(response: string): WorksheetQuestion[] {
     return [];
   }
 }
+export interface StudyPlanItem {
+  day: number;
+  topic: string;
+  activities: string[];
+  difficulty: number;
+  timeMinutes: number;
+  description: string;
+}
+
+export function parseStudyPlan(response: string): StudyPlanItem[] {
+  try {
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.map((item: any) => ({
+        day: item.day || 1,
+        topic: item.topic || "Study Session",
+        activities: Array.isArray(item.activities) ? item.activities : [],
+        difficulty: item.difficulty || 5,
+        timeMinutes: item.timeMinutes || 30,
+        description: item.description || ""
+      }));
+    }
+    return [];
+  } catch (e) {
+    console.error('parseStudyPlan: Failed to parse response', e);
+    return [];
+  }
+}
 
 /**
  * Call Study AI with Wikipedia fallback support

@@ -23,9 +23,16 @@ interface TemplatesManagerProps {
   onOpenChange: (open: boolean) => void;
   // If true, pre-fill create form to publish (used when uploading from Explore page)
   defaultIsPublic?: boolean;
+  // Pre-fill data for creating a new template
+  prefillData?: {
+    name?: string;
+    description?: string;
+    action?: string;
+    payload?: any;
+  } | null;
 }
 
-export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }: TemplatesManagerProps) {
+export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, prefillData = null }: TemplatesManagerProps) {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useStudyTemplates();
   const { toast } = useToast();
 
@@ -82,10 +89,23 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
 
   // If the dialog was opened with defaultIsPublic, start create and prefill public flag
   React.useEffect(() => {
-    if (open && defaultIsPublic) {
-      startCreate(true);
+    if (open) {
+      if (prefillData) {
+        setEditing(null);
+        setForm({
+          name: prefillData.name || "",
+          description: prefillData.description || "",
+          action: prefillData.action || "generate-flashcards",
+          payload: prefillData.payload ? JSON.stringify(prefillData.payload, null, 2) : "{}",
+          estimated_count: 10,
+          is_public: !!defaultIsPublic,
+        });
+        setPayloadError(null);
+      } else if (defaultIsPublic) {
+        startCreate(true);
+      }
     }
-  }, [open, defaultIsPublic]);
+  }, [open, defaultIsPublic, prefillData]);
 
   const startEdit = (t: any) => {
     setEditing(t.id);
@@ -244,8 +264,8 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
                     <div
                       key={t.id}
                       className={`p-3 border rounded-lg cursor-pointer transition-all ${editing === t.id
-                          ? "bg-primary/10 border-primary/50 ring-1 ring-primary/30"
-                          : "bg-card hover:bg-muted/30"
+                        ? "bg-primary/10 border-primary/50 ring-1 ring-primary/30"
+                        : "bg-card hover:bg-muted/30"
                         }`}
                       onClick={() => startEdit(t)}
                     >

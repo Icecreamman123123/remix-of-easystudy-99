@@ -70,6 +70,12 @@ export function useStreakAndAchievements() {
         }
       } catch (error) {
         console.error("Error fetching streak data:", error);
+        // Set default data on error so UI doesn't stick on loading
+        setStreakData({
+          currentStreak: 0,
+          longestStreak: 0,
+          studiedToday: false,
+        });
       } finally {
         setStreakLoading(false);
       }
@@ -91,6 +97,22 @@ export function useStreakAndAchievements() {
         });
       } catch (error) {
         console.error("Error fetching achievements:", error);
+        // Set default data on error
+        setAchievements({
+          earned: [],
+          progress: {
+            completedCount: 0,
+            totalCount: 0,
+            percentComplete: 0,
+            categories: {
+              streak: { completed: 0, total: 0 },
+              cards: { completed: 0, total: 0 },
+              accuracy: { completed: 0, total: 0 },
+              social: { completed: 0, total: 0 }
+            }
+          },
+          nextMilestones: [],
+        });
       } finally {
         setAchievementLoading(false);
       }

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X } from "lucide-react";
-import { StudyAction, parseFlashcards, parseQuiz, parsePracticeProblems, parseConcepts, parseWorksheet, Flashcard, Concept } from "@/lib/study-api";
+import { StudyAction, parseFlashcards, parseQuiz, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, Flashcard, Concept } from "@/lib/study-api";
 import { FlashcardViewer } from "./FlashcardViewer";
 import { QuizViewer } from "./QuizViewer";
 import { PracticeTest } from "./PracticeTest";
@@ -14,6 +14,7 @@ import { MatchingGame } from "./MatchingGame";
 import { SpeedChallenge } from "./SpeedChallenge";
 import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
 import { ExportPdfButton } from "./ExportPdfButton";
+import { StudyPlanViewer } from "./StudyPlanViewer";
 import ReactMarkdown from "react-markdown";
 
 interface ResultsViewerProps {
@@ -22,6 +23,7 @@ interface ResultsViewerProps {
   onClose: () => void;
   topic?: string;
   isManual?: boolean;
+  onSavePlan?: (plan: any) => void;
 }
 
 // Convert Flashcard to SavedFlashcard-like format for study components
@@ -56,7 +58,7 @@ function toMindMapFormat(concepts: Concept[]) {
   }));
 }
 
-export function ResultsViewer({ action, result, onClose, topic, isManual }: ResultsViewerProps) {
+export function ResultsViewer({ action, result, onClose, topic, isManual, onSavePlan }: ResultsViewerProps) {
   const [completed, setCompleted] = useState(false);
   const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)
     ? parseFlashcards(result)
@@ -68,6 +70,19 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
 
   const renderContent = () => {
     switch (action) {
+      case "create-study-plan": {
+        const plan = parseStudyPlan(result);
+        if (plan.length > 0) {
+          return (
+            <StudyPlanViewer
+              plan={plan}
+              onSavePlan={() => onSavePlan?.(plan)}
+              className="h-full"
+            />
+          );
+        }
+        break;
+      }
       case "generate-flashcards": {
         const flashcards = parseFlashcards(result);
         if (flashcards.length > 0) {
@@ -186,10 +201,10 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">Problem {index + 1}</CardTitle>
                       <span className={`text-xs px-2 py-1 rounded-full ${problem.difficulty === "easy"
-                          ? "bg-primary/20 text-primary"
-                          : problem.difficulty === "medium"
-                            ? "bg-accent/20 text-accent-foreground"
-                            : "bg-destructive/20 text-destructive"
+                        ? "bg-primary/20 text-primary"
+                        : problem.difficulty === "medium"
+                          ? "bg-accent/20 text-accent-foreground"
+                          : "bg-destructive/20 text-destructive"
                         }`}>
                         {problem.difficulty}
                       </span>

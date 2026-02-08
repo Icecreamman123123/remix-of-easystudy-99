@@ -51,6 +51,7 @@ const Index = () => {
   const [showChat, setShowChat] = useState(false);
   const [chatGradeLevel, setChatGradeLevel] = useState("8");
   const [manualEditor, setManualEditor] = useState<ManualEditorMode>(null);
+  const [pendingTemplateData, setPendingTemplateData] = useState<any>(null);
 
   const { user, signOut, loading } = useAuth();
   const { recordSession } = useStudySessions();
@@ -99,11 +100,37 @@ const Index = () => {
     setSaveDialogOpen(true);
   };
 
+  const handleSaveStudyPlan = (plan: any) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save templates.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    setPendingTemplateData({
+      name: `Study Plan: ${currentTopic}`,
+      description: `Structured study plan for ${currentTopic}`,
+      action: "create-study-plan",
+      payload: {
+        plan,
+        topic: currentTopic,
+        difficulty: "medium", // Default, could be extracted
+        defaultCount: plan.length
+      }
+    });
+    setTemplatesManagerOpen(true);
+  };
+
   const handleSignOut = async () => {
     await signOut();
     toast({
       title: "Signed out",
       description: "You've been signed out successfully.",
+      variant: "default",
     });
   };
 
@@ -221,6 +248,7 @@ const Index = () => {
                   topic={currentTopic}
                   onClose={() => setCurrentResult(null)}
                   isManual={currentResult.isManual}
+                  onSavePlan={handleSaveStudyPlan}
                 />
               </div>
             )}
@@ -326,7 +354,7 @@ const Index = () => {
           <p className="mt-2 text-xs opacity-70">Made by Daniel Yu</p>
 
           <div className="mt-4 flex items-center justify-center gap-3">
-            <Button size="sm" variant="outline" onClick={() => setTemplatesManagerOpen(true)} className="hover-glow">
+            <Button size="sm" variant="outline" onClick={() => { setPendingTemplateData(null); setTemplatesManagerOpen(true); }} className="hover-glow">
               Manage templates
             </Button>
             <Button size="sm" variant="outline" asChild className="hover-glow">
@@ -347,7 +375,14 @@ const Index = () => {
       />
 
       {/* Templates Manager (accessible from footer) */}
-      <TemplatesManager open={templatesManagerOpen} onOpenChange={setTemplatesManagerOpen} />
+      <TemplatesManager
+        open={templatesManagerOpen}
+        onOpenChange={(open) => {
+          setTemplatesManagerOpen(open);
+          if (!open) setPendingTemplateData(null);
+        }}
+        prefillData={pendingTemplateData}
+      />
     </div>
   );
 };
