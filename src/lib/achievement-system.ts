@@ -29,7 +29,7 @@ export interface UserAchievement {
  */
 export async function getAllAchievements(): Promise<Achievement[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("achievements")
       .select("*")
       .order("requirement_value", { ascending: true });
@@ -47,7 +47,7 @@ export async function getAllAchievements(): Promise<Achievement[]> {
  */
 export async function getUserAchievements(userId: string): Promise<UserAchievement[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("user_achievements")
       .select(
         `
@@ -98,7 +98,7 @@ export async function getAchievementsByCategory(
   category: "streak" | "cards" | "accuracy" | "social"
 ): Promise<Achievement[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("achievements")
       .select("*")
       .eq("category", category)
@@ -120,7 +120,7 @@ export async function hasEarnedAchievement(
   achievementId: string
 ): Promise<boolean> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("user_achievements")
       .select("id")
       .eq("user_id", userId)
@@ -226,7 +226,7 @@ export async function getNextMilestones(userId: string): Promise<Achievement[]> 
  */
 export async function awardAchievement(userId: string, achievementId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("user_achievements")
       .insert({ user_id: userId, achievement_id: achievementId })
       .select();
@@ -252,7 +252,7 @@ export async function getAchievementRarity(achievementId: string): Promise<{
 }> {
   try {
     const [earnedCount, totalUsers] = await Promise.all([
-      supabase
+      (supabase as any)
         .from("user_achievements")
         .select("id", { count: "exact" })
         .eq("achievement_id", achievementId),

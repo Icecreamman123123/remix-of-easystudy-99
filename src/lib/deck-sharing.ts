@@ -41,7 +41,7 @@ export async function createDeckInvitation(
   inviteeId?: string
 ): Promise<DeckInvitation | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("deck_invitations")
       .insert({
         deck_id: deckId,
@@ -65,7 +65,7 @@ export async function createDeckInvitation(
  */
 export async function acceptDeckInvitation(invitationId: string): Promise<boolean> {
   try {
-    const { data: invitation, error: fetchError } = await supabase
+    const { data: invitation, error: fetchError } = await (supabase as any)
       .from("deck_invitations")
       .select("*")
       .eq("id", invitationId)
@@ -76,7 +76,7 @@ export async function acceptDeckInvitation(invitationId: string): Promise<boolea
     const inv = invitation as DeckInvitation;
 
     // Grant access to the deck
-    const { error: accessError } = await supabase
+    const { error: accessError } = await (supabase as any)
       .from("shared_deck_access")
       .insert({
         deck_id: inv.deck_id,
@@ -91,7 +91,7 @@ export async function acceptDeckInvitation(invitationId: string): Promise<boolea
     }
 
     // Update invitation status
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("deck_invitations")
       .update({
         status: "accepted",
@@ -112,7 +112,7 @@ export async function acceptDeckInvitation(invitationId: string): Promise<boolea
  */
 export async function declineDeckInvitation(invitationId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("deck_invitations")
       .update({
         status: "declined",
@@ -133,7 +133,7 @@ export async function declineDeckInvitation(invitationId: string): Promise<boole
  */
 export async function getPendingInvitations(userId: string): Promise<DeckInvitation[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("deck_invitations")
       .select("*")
       .eq("invitee_id", userId)
@@ -152,7 +152,7 @@ export async function getPendingInvitations(userId: string): Promise<DeckInvitat
  */
 export async function getSentInvitations(userId: string): Promise<DeckInvitation[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("deck_invitations")
       .select("*")
       .eq("inviter_id", userId)
@@ -171,7 +171,7 @@ export async function getSentInvitations(userId: string): Promise<DeckInvitation
  */
 export async function getDeckAccessUsers(deckId: string): Promise<SharedDeckAccess[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("shared_deck_access")
       .select("*")
       .eq("deck_id", deckId);
@@ -193,7 +193,7 @@ export async function updateDeckAccess(
   newAccessLevel: AccessLevel
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("shared_deck_access")
       .update({ access_level: newAccessLevel })
       .eq("deck_id", deckId)
@@ -212,7 +212,7 @@ export async function updateDeckAccess(
  */
 export async function revokeDeckAccess(deckId: string, userId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("shared_deck_access")
       .delete()
       .eq("deck_id", deckId)
@@ -231,7 +231,7 @@ export async function revokeDeckAccess(deckId: string, userId: string): Promise<
  */
 export async function cancelInvitation(invitationId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("deck_invitations")
       .delete()
       .eq("id", invitationId);
@@ -252,7 +252,7 @@ export async function getUserDeckAccess(
   userId: string
 ): Promise<AccessLevel | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("shared_deck_access")
       .select("access_level")
       .eq("deck_id", deckId)
@@ -260,7 +260,7 @@ export async function getUserDeckAccess(
       .single();
 
     if (error && error.code !== "PGRST116") throw error; // PGRST116 = no row found
-    return data?.access_level || null;
+    return (data?.access_level as AccessLevel) || null;
   } catch (error) {
     console.error("Error checking deck access:", error);
     return null;
@@ -272,7 +272,7 @@ export async function getUserDeckAccess(
  */
 export async function getSharedDecksForUser(userId: string) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("shared_deck_access")
       .select(
         `

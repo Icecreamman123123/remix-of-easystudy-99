@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string
@@ -96,6 +129,56 @@ export type Database = {
           {
             foreignKeyName: "deck_copies_copied_deck_id_fkey"
             columns: ["copied_deck_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deck_invitations: {
+        Row: {
+          access_level: string
+          created_at: string
+          deck_id: string
+          expires_at: string | null
+          id: string
+          invitee_email: string | null
+          invitee_id: string | null
+          inviter_id: string
+          responded_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          access_level?: string
+          created_at?: string
+          deck_id: string
+          expires_at?: string | null
+          id?: string
+          invitee_email?: string | null
+          invitee_id?: string | null
+          inviter_id: string
+          responded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          deck_id?: string
+          expires_at?: string | null
+          id?: string
+          invitee_email?: string | null
+          invitee_id?: string | null
+          inviter_id?: string
+          responded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deck_invitations_deck_id_fkey"
+            columns: ["deck_id"]
             isOneToOne: false
             referencedRelation: "flashcard_decks"
             referencedColumns: ["id"]
@@ -206,6 +289,41 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_deck_access: {
+        Row: {
+          access_level: string
+          created_at: string
+          deck_id: string
+          granted_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          access_level?: string
+          created_at?: string
+          deck_id: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          deck_id?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_deck_access_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_decks: {
         Row: {
           created_at: string
@@ -284,6 +402,35 @@ export type Database = {
             columns: ["deck_id"]
             isOneToOne: false
             referencedRelation: "flashcard_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
             referencedColumns: ["id"]
           },
         ]

@@ -27,7 +27,7 @@ export interface StreakStats {
  */
 export async function getUserStreak(userId: string): Promise<DailyStreak | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("daily_streaks")
       .select("*")
       .eq("user_id", userId)
@@ -53,7 +53,7 @@ export async function getUserStreak(userId: string): Promise<DailyStreak | null>
  */
 export async function initializeUserStreak(userId: string): Promise<DailyStreak | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("daily_streaks")
       .insert({
         user_id: userId,
