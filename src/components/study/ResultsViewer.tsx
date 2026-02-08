@@ -267,6 +267,12 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
         </div>
       </CardHeader>
       <CardContent>
+        {!isManual && (
+          <div className="mb-3">
+            <div className="inline-block rounded px-2 py-1 bg-yellow-50 text-yellow-800 text-xs">⚠️ AI may be inaccurate — please double-check sources before studying.</div>
+          </div>
+        )}
+
         {isInteractiveMode ? (
           <div className="min-h-[500px]">
             {renderContent()}

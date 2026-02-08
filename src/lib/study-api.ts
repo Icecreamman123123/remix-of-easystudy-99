@@ -26,7 +26,8 @@ export type AIModel =
   | "gpt-5-nano"
   | "gpt-5-mini"
   | "gpt-5"
-  | "gpt-5.2";
+  | "gpt-5.2"
+  | "wikipedia"; // Use Wikipedia API as source content
 
 export type AIExpertise =
   | "general"
@@ -84,10 +85,11 @@ export async function callStudyAI(
   difficulty?: string,
   gradeLevel?: string,
   model?: AIModel,
-  expertise?: AIExpertise
+  expertise?: AIExpertise,
+  includeWikipedia?: boolean
 ): Promise<string> {
   const { data, error } = await supabase.functions.invoke("study-ai", {
-    body: { action, content, topic, difficulty, gradeLevel, model, expertise },
+    body: { action, content, topic, difficulty, gradeLevel, model, expertise, includeWikipedia },
   });
 
   if (error) {

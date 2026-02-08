@@ -23,7 +23,7 @@ export function useStudyTemplates() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("study_templates")
-      .select("*")
+      .select("*, profiles(display_name)")
       .order("created_at", { ascending: false });
 
     if (error) {

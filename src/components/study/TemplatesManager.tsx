@@ -15,13 +15,17 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStudyTemplates } from "@/hooks/useStudyTemplates";
 import { useToast } from "@/hooks/use-toast";
+import { STUDY_TEMPLATES } from "@/lib/study-templates";
+import { Globe, UploadCloud } from "lucide-react";
 
 interface TemplatesManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // If true, pre-fill create form to publish (used when uploading from Explore page)
+  defaultIsPublic?: boolean;
 }
 
-export function TemplatesManager({ open, onOpenChange }: TemplatesManagerProps) {
+export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }: TemplatesManagerProps) {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useStudyTemplates();
   const { toast } = useToast();
 
@@ -35,10 +39,17 @@ export function TemplatesManager({ open, onOpenChange }: TemplatesManagerProps) 
     is_public: false,
   });
 
-  const startCreate = () => {
+  const startCreate = (prefillPublic = false) => {
     setEditing(null);
-    setForm({ name: "", description: "", action: "generate-flashcards", payload: "{}", estimated_count: 10, is_public: false });
+    setForm({ name: "", description: "", action: "generate-flashcards", payload: "{}", estimated_count: 10, is_public: !!prefillPublic });
   };
+
+  // If the dialog was opened with defaultIsPublic, start create and prefill public flag
+  React.useEffect(() => {
+    if (open && defaultIsPublic) {
+      startCreate(true);
+    }
+  }, [open, defaultIsPublic]);
 
   const startEdit = (t: any) => {
     setEditing(t.id);
@@ -95,6 +106,17 @@ export function TemplatesManager({ open, onOpenChange }: TemplatesManagerProps) 
     }
   };
 
+  const handlePublish = async (id: string, publish: boolean) => {
+    try {
+      await updateTemplate(id, { is_public: publish });
+      toast({ title: publish ? "Published" : "Unpublished" });
+      // Refresh list is handled by updateTemplate
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Publish failed", description: String((err as Error).message || "Error"), variant: "destructive" });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -105,10 +127,35 @@ export function TemplatesManager({ open, onOpenChange }: TemplatesManagerProps) 
 
         <div className="grid lg:grid-cols-3 gap-4">
           <div className="col-span-1">
+            {/* Sample / Built-in templates */}
+            <div className="mb-4">
+              <h4 className="font-semibold flex items-center gap-2">Sample Templates <span className="text-xs text-muted-foreground">(examples)</span></h4>
+              <div className="space-y-2 max-h-[140px] overflow-auto mt-2">
+                {STUDY_TEMPLATES.map((t) => (
+                  <div key={t.id} className="p-2 border rounded bg-muted/10">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{t.name}</div>
+                        <div className="text-sm text-muted-foreground">{t.description}</div>
+                        {t.preview && <div className="text-xs italic text-muted-foreground mt-1">{t.preview}</div>}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{t.defaultCount || "—"} cards</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold">Your Templates</h4>
-                <Button size="sm" onClick={startCreate}>New</Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => startCreate(false)}>New</Button>
+                  <Button size="sm" variant="ghost" onClick={() => startCreate(true)} title="Upload and publish" className="ml-2">
+                    <UploadCloud className="h-4 w-4 mr-2" />
+                    Upload & Publish
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2 max-h-[340px] overflow-auto mt-2">
@@ -124,7 +171,18 @@ export function TemplatesManager({ open, onOpenChange }: TemplatesManagerProps) 
                           <div className="font-medium">{t.name}</div>
                           <div className="text-sm text-muted-foreground">{t.description}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">{t.estimated_count || "—"} cards</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground">{t.estimated_count || "—"} cards</div>
+                          {t.is_public ? (
+                            <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handlePublish(t.id, false); }} className="h-7 text-xs px-2">
+                              <Globe className="h-3 w-3 mr-1" /> Unpublish
+                            </Button>
+                          ) : (
+                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handlePublish(t.id, true); }} className="h-7 text-xs px-2">
+                              <Globe className="h-3 w-3 mr-1" /> Publish
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))

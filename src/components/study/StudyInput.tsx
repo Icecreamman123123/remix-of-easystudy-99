@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   BookOpen, 
   Brain, 
@@ -99,6 +100,8 @@ const AI_MODELS: { value: AIModel; label: string; description: string }[] = [
   { value: "gemini-3-pro", label: "Gemini 3 Pro", description: "Next-gen flagship model" },
   { value: "gpt-5", label: "GPT-5", description: "Powerful all-rounder" },
   { value: "gpt-5.2", label: "GPT-5.2", description: "Latest & most capable" },
+  // External source (Wikipedia)
+  { value: "wikipedia", label: "Wikipedia", description: "Use Wikipedia content as the source" },
 ];
 
 const AI_EXPERTISE: { value: AIExpertise; label: string; icon: string }[] = [
@@ -422,7 +425,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
        const fullContent = [topicContent, combinedContent].filter(Boolean).join("\n\n");
        const contentWithInstructions = `${fullContent}\n\n[Instructions: ${allInstructions}]`;
       
-      const result = await callStudyAI(effectiveAction, contentWithInstructions, topic, difficultyText, gradeLevel, aiModel, aiExpertise);
+      const result = await callStudyAI(effectiveAction, contentWithInstructions, topic, difficultyText, gradeLevel, aiModel, aiExpertise, includeWikipedia);
        onResult(action, result, topic, gradeLevel);
       toast({
         title: "Success!",
@@ -475,20 +478,43 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               Model:
             </Label>
             <Select value={aiModel} onValueChange={(v) => setAiModel(v as AIModel)}>
-              <SelectTrigger id="ai-model" className="w-[140px]">
-                <SelectValue placeholder="Select model" />
+              <SelectTrigger id="ai-model" className="w-[220px]">
+                <SelectValue placeholder="Select model" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {AI_MODELS.map(({ value, label, description }) => (
                   <SelectItem key={value} value={value}>
-                    <div className="flex flex-col">
-                      <span>{label}</span>
-                      <span className="text-xs text-muted-foreground">{description}</span>
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">{label}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground shrink-0 ml-2">
+                        {description}
+                      </div>
                     </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Network className="h-4 w-4" />
+              Include Wikipedia
+            </Label>
+            <Switch checked={includeWikipedia} onCheckedChange={(v) => setIncludeWikipedia(!!v)} disabled={aiModel === "wikipedia"} />
+          </div>
+
+          {/* Small banner when Wikipedia content is being included */}
+          {includeWikipedia && (
+            <div className="w-full mt-1">
+              <div className="inline-block rounded px-2 py-1 bg-primary/10 text-xs text-primary">Using Wikipedia extract as context</div>
+            </div>
+          )}
+
+          <div className="w-full mt-1">
+            <div className="text-xs text-muted-foreground">⚠️ AI may be inaccurate — please double-check sources and verify facts before using generated content.</div>
           </div>
         </div>
 

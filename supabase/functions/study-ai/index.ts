@@ -43,10 +43,11 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { action, content, topic, difficulty, gradeLevel, model, expertise, instruction, customInstruction } = body;
+    let { action, content, topic, difficulty, gradeLevel, model, expertise, instruction, customInstruction, includeWikipedia } = body;
     const customInstructionText = customInstruction || instruction;
 
     // runtime-safe environment access
+    const WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php";
     const getEnv = (key: string): string | undefined => {
       try {
         if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
@@ -69,6 +70,57 @@ serve(async (req) => {
 
     // Select model (default to gemini-flash)
     const selectedModel = MODEL_MAP[model] || MODEL_MAP["gemini-flash"];
+
+    // If user selected Wikipedia as the 'model', or requested to include Wikipedia content, fetch a Wikipedia extract for the topic/content
+    if (model === "wikipedia" || includeWikipedia) {
+      const query = (topic || content || "").trim();
+      if (!query) {
+        return new Response(JSON.stringify({ error: "Wikipedia requires a topic or content" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      try {
+        const params = new URLSearchParams({
+          action: "query",
+          prop: "extracts",
+          exintro: "1",
+          explaintext: "1",
+          redirects: "1",
+          format: "json",
+          titles: query,
+        });
+        const wikiResp = await fetch(`${WIKIPEDIA_API}?${params}`);
+        if (!wikiResp.ok) {
+          console.error("Wikipedia API error:", wikiResp.status);
+          throw new Error("Wikipedia API error");
+        }
+        const wikiJson = await wikiResp.json();
+        const pages = wikiJson.query?.pages;
+        const page = pages ? Object.values(pages)[0] : null;
+        const extract = page?.extract || "";
+        if (!extract) {
+          return new Response(JSON.stringify({ error: "No Wikipedia extract found for topic" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // If includeWikipedia is true, we prepend the extract to existing content so AI gets the extra context
+        if (includeWikipedia && model !== "wikipedia") {
+          content = `${extract}\n\n[Wikipedia extract]\n\n${content || ""}`;
+        } else {
+          // Model === 'wikipedia' retains previous behavior: replace content with extract
+          content = extract;
+        }
+      } catch (err) {
+        console.error("Wikipedia fetch failed:", err);
+        return new Response(JSON.stringify({ error: "Wikipedia fetch failed" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Format grade level for prompts
     const gradeLevelText = gradeLevel 

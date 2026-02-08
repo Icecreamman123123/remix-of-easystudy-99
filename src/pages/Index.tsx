@@ -316,11 +316,16 @@ const Index = () => {
           <p>{t("footer.builtWith")}</p>
           <p className="mt-2 text-xs opacity-70">Made by Daniel Yu</p>
 
-          <div className="mt-3">
+          <div className="mt-3 flex items-center justify-center gap-2">
             <Button size="sm" variant="outline" onClick={() => setTemplatesManagerOpen(true)}>
-              Templates
+              Manage templates
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <a href="/explore">Explore Sets</a>
             </Button>
           </div>
+
+          <div className="mt-3 text-xs text-muted-foreground">© Daniel Yu. All rights reserved.</div>
         </div>
       </footer>
 
