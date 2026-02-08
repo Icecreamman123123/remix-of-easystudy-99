@@ -54,7 +54,13 @@ export function SaveDeckDialog({
     const deck = await saveDeckWithFlashcards(title, flashcards, topic);
     setSaving(false);
 
-    if (deck) {
+    if (deck && deck.error === "limit_reached") {
+      toast({
+        title: "Deck limit reached",
+        description: deck.message,
+        variant: "destructive",
+      });
+    } else if (deck && !deck.error) {
       toast({
         title: "Deck saved!",
         description: `"${title}" with ${flashcards.length} flashcards has been saved.`,

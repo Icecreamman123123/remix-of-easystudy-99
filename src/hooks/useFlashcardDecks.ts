@@ -63,6 +63,12 @@ export function useFlashcardDecks() {
   const createDeck = async (title: string, topic?: string, description?: string) => {
     if (!user) return null;
 
+    // Check deck limit (max 10 decks)
+    if (decks.length >= 10) {
+      console.warn("Deck limit reached: maximum 10 decks allowed");
+      return { error: "limit_reached", message: "You can only create a maximum of 10 custom decks. Delete a deck to create a new one." } as any;
+    }
+
     const { data, error } = await supabase
       .from("flashcard_decks")
       .insert({
@@ -89,6 +95,12 @@ export function useFlashcardDecks() {
     topic?: string
   ) => {
     if (!user) return null;
+
+    // Check deck limit (max 10 decks)
+    if (decks.length >= 10) {
+      console.warn("Deck limit reached: maximum 10 decks allowed");
+      return { error: "limit_reached", message: "You can only create a maximum of 10 custom decks. Delete a deck to create a new one." } as any;
+    }
 
     // Create the deck
     const { data: deck, error: deckError } = await supabase

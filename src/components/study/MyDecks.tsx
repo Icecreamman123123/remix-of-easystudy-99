@@ -230,10 +230,15 @@ export function MyDecks() {
     <>
       <Card className="animate-in fade-in-50 duration-300">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FolderOpen className="h-5 w-5" />
-            My Flashcard Decks
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FolderOpen className="h-5 w-5" />
+              My Flashcard Decks
+            </CardTitle>
+            <Badge variant={decks.length >= 10 ? "destructive" : "secondary"}>
+              {decks.length}/10 Decks
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           {decks.length === 0 ? (
