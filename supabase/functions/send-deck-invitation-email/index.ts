@@ -45,19 +45,10 @@ serve(async (req: Request) => {
       deckTitle,
       accessLevel,
     });
-    // Integration point for email services
-    // Use a runtime-safe helper to read environment variables so this file
-    // can run in Deno (Supabase Functions) and be tested locally (Node).
+    // Deno environment access
     const getEnv = (key: string): string | undefined => {
       try {
-        // Deno runtime
-        if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
-          return (globalThis as any).Deno.env.get(key);
-        }
-        // Node runtime (for local testing)
-        if (typeof process !== "undefined" && process.env) {
-          return (process.env as any)[key];
-        }
+        return Deno.env.get(key);
       } catch (e) {
         console.warn("getEnv error:", e);
       }

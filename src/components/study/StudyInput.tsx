@@ -280,6 +280,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [questionCount, setQuestionCount] = useState(16); // 8, 16, or 24
   const [loading, setLoading] = useState<StudyAction | null>(null);
   const [favorites, setFavorites] = useState<FavoritePreset[]>([]);
+  const [includeWikipedia, setIncludeWikipedia] = useState(false);
   const { toast } = useToast();
 
   // Load favorites on mount
