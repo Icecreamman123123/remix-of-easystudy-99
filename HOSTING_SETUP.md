@@ -210,6 +210,24 @@ No manual deploy steps needed after initial setup!
 
 ---
 
+## Lovable Hosting (lovable.dev)
+
+If your project is managed or deployed via Lovable, follow these guidelines:
+
+- Open your project on Lovable and go to the Project Settings or Environment/Secrets section.
+- Add the same environment variables listed above:
+   - `VITE_SUPABASE_PROJECT_ID`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+- For server-only secrets (e.g., `SENDGRID_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`), store them in Lovable's secret manager and ensure they are not written into repository files.
+- If Lovable provides a build configuration panel, set the build command to `npm run build` and the output directory to `dist`.
+- Trigger a deployment via Lovable or push to GitHub (Lovable may auto-deploy repository updates).
+
+Notes:
+- Do not paste secrets into code edited via Lovable; use the platform's secret management to avoid committing sensitive values.
+- If you rely on Supabase edge functions, deploy them from the Supabase dashboard or CLI and configure their environment variables there.
+
+
 ## 📊 Typical Performance (after deployment)
 
 - **First Load**: 2-5 seconds
