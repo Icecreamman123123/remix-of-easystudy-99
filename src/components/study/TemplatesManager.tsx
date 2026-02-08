@@ -39,9 +39,45 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
     is_public: false,
   });
 
+  const [payloadError, setPayloadError] = React.useState<string | null>(null);
+
+  const validatePayload = (payload: string) => {
+    try {
+      JSON.parse(payload || "{}");
+      setPayloadError(null);
+      return true;
+    } catch (err) {
+      setPayloadError(String((err as Error).message || "Invalid JSON"));
+      return false;
+    }
+  };
+
+  React.useEffect(() => {
+    validatePayload(form.payload);
+  }, [form.payload]);
+
+  const formatPayload = () => {
+    try {
+      const p = JSON.parse(form.payload || "{}");
+      setForm((s) => ({ ...s, payload: JSON.stringify(p, null, 2) }));
+      setPayloadError(null);
+    } catch (err) {
+      setPayloadError(String((err as Error).message || "Invalid JSON"));
+    }
+  };
+
+  const parsedPayload = React.useMemo(() => {
+    try {
+      return JSON.parse(form.payload || "{}");
+    } catch {
+      return null;
+    }
+  }, [form.payload]);
+
   const startCreate = (prefillPublic = false) => {
     setEditing(null);
     setForm({ name: "", description: "", action: "generate-flashcards", payload: "{}", estimated_count: 10, is_public: !!prefillPublic });
+    setPayloadError(null);
   };
 
   // If the dialog was opened with defaultIsPublic, start create and prefill public flag
@@ -67,7 +103,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
     try {
       const parsed = JSON.parse(form.payload || "{}");
       if (editing) {
-        await updateTemplate(editing, {
+        const updated = await updateTemplate(editing, {
           name: form.name,
           description: form.description,
           action: form.action,
@@ -76,8 +112,10 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
           is_public: form.is_public,
         });
         toast({ title: "Template updated" });
+        setEditing(updated.id);
+        setForm((s) => ({ ...s, payload: JSON.stringify(parsed, null, 2) }));
       } else {
-        await createTemplate({
+        const created = await createTemplate({
           name: form.name,
           description: form.description,
           action: form.action,
@@ -86,9 +124,9 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
           is_public: form.is_public,
         });
         toast({ title: "Template created" });
+        setEditing(created.id);
+        setForm((s) => ({ ...s, payload: JSON.stringify(parsed, null, 2) }));
       }
-      setForm({ name: "", description: "", action: "generate-flashcards", payload: "{}", estimated_count: 10, is_public: false });
-      setEditing(null);
     } catch (err) {
       console.error(err);
       toast({ title: "Failed", description: String((err as Error).message || "Error"), variant: "destructive" });
@@ -101,6 +139,8 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
       await deleteTemplate(id);
       toast({ title: "Deleted" });
       setEditing(null);
+      setForm({ name: "", description: "", action: "generate-flashcards", payload: "{}", estimated_count: 10, is_public: false });
+      setPayloadError(null);
     } catch (err) {
       toast({ title: "Delete failed", description: String((err as Error).message || "Error"), variant: "destructive" });
     }
@@ -128,9 +168,12 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
         <div className="grid lg:grid-cols-3 gap-4">
           <div className="col-span-1">
             {/* Sample / Built-in templates */}
-            <div className="mb-4">
-              <h4 className="font-semibold flex items-center gap-2">Sample Templates <span className="text-xs text-muted-foreground">(examples)</span></h4>
-              <div className="space-y-2 max-h-[140px] overflow-auto mt-2">
+            <details className="mb-4 group" open>
+              <summary className="font-semibold flex items-center justify-between cursor-pointer">
+                <span>Sample Templates <span className="text-xs text-muted-foreground ml-2">(examples)</span></span>
+                <span className="text-xs text-muted-foreground">Examples</span>
+              </summary>
+              <div className="space-y-2 max-h-[140px] overflow-auto mt-2 pt-2">
                 {STUDY_TEMPLATES.map((t) => (
                   <div key={t.id} className="p-2 border rounded bg-muted/10">
                     <div className="flex items-center justify-between">
@@ -144,7 +187,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
                   </div>
                 ))}
               </div>
-            </div>
+            </details>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -165,10 +208,10 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
                   <p className="text-muted-foreground">No templates yet</p>
                 ) : (
                   templates.map((t) => (
-                    <div key={t.id} className="p-2 border rounded hover:bg-muted/50 cursor-pointer" onClick={() => startEdit(t)}>
+                    <div key={t.id} className={`p-2 border rounded hover:bg-muted/50 cursor-pointer ${editing === t.id ? "bg-muted/60 ring-2 ring-primary" : ""}`} onClick={() => startEdit(t)}>
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium">{t.name}</div>
+                          <div className="font-medium">{t.name} {(t as any).profiles?.display_name && <span className="text-xs text-muted-foreground ml-1">by {(t as any).profiles.display_name}</span>}</div>
                           <div className="text-sm text-muted-foreground">{t.description}</div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -217,8 +260,22 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
 
               <div>
                 <Label>Payload (JSON)</Label>
-                <Textarea value={form.payload} onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))} />
+                <div className="flex gap-4">
+                  <Textarea value={form.payload} onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))} className="font-mono text-sm" />
+                  <div className="flex flex-col gap-2">
+                    <Button size="sm" variant="ghost" onClick={formatPayload}>Format</Button>
+                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard?.writeText(form.payload || ""); toast({ title: "Copied" }); }}>Copy</Button>
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">Provide JSON with defaults (e.g., {`{ "defaultCount": 10, "difficulty": "medium" }`}).</p>
+                {payloadError && <p className="text-xs text-destructive mt-1">{payloadError}</p>}
+
+                <div className="mt-2">
+                  <Label>Preview</Label>
+                  <div className="bg-surface p-3 rounded text-xs font-mono max-h-[200px] overflow-auto">
+                    <pre className="whitespace-pre-wrap">{parsedPayload ? JSON.stringify(parsedPayload, null, 2) : "{}"}</pre>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-4">
@@ -232,9 +289,10 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleSave}>Save</Button>
+              <div className="flex gap-2 items-center">
+                <Button onClick={handleSave} disabled={!form.name.trim() || !!payloadError}>Save</Button>
                 {editing && <Button variant="destructive" onClick={() => handleDelete(editing)}>Delete</Button>}
+                <Button variant="ghost" size="sm" onClick={formatPayload}>Format JSON</Button>
               </div>
             </div>
           </div>
