@@ -159,33 +159,40 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Manage Study Templates</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <div className="p-1.5 icon-gradient rounded-md">
+              <UploadCloud className="h-4 w-4 text-white" />
+            </div>
+            Manage Study Templates
+          </DialogTitle>
           <DialogDescription>Create or edit your reusable study templates.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid lg:grid-cols-3 gap-4">
-          <div className="col-span-1">
-            {/* Sample / Built-in templates */}
-            <details className="mb-4 group" open>
-              <summary className="font-semibold flex items-center justify-between cursor-pointer">
-                <span>Sample Templates <span className="text-xs text-muted-foreground ml-2">(examples)</span></span>
-                <span className="text-xs text-muted-foreground">Examples</span>
+        <div className="grid md:grid-cols-5 gap-6 overflow-hidden">
+          {/* Left Sidebar - Template List */}
+          <div className="md:col-span-2 space-y-4 overflow-y-auto max-h-[60vh] pr-2">
+            {/* Sample Templates */}
+            <details className="group" open>
+              <summary className="font-semibold text-sm cursor-pointer flex items-center gap-2 py-2 px-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <span className="flex-1">Sample Templates</span>
+                <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded">Examples</span>
               </summary>
-              <div className="space-y-2 max-h-[140px] overflow-auto mt-2 pt-2">
+              <div className="space-y-2 mt-3 pl-1">
                 {STUDY_TEMPLATES.map((t) => (
-                  <div key={t.id} className="p-2 border rounded bg-muted/10">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{t.name}</div>
-                        <div className="text-sm text-muted-foreground">{t.description}</div>
-                        {t.preview && <div className="text-xs italic text-muted-foreground mt-1">{t.preview}</div>}
+                  <div key={t.id} className="p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors card-hover">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{t.name}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-2">{t.description}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{t.defaultCount || "—"} cards</div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs text-muted-foreground mr-2">{t.defaultCount || "—"} cards</div>
-                        <Button size="sm" onClick={() => {
-                          // Prefill the create form with this sample template
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 hover-glow"
+                        onClick={() => {
                           setEditing(null);
                           const payloadObj: any = {};
                           if (t.defaultCount) payloadObj.defaultCount = t.defaultCount;
@@ -199,51 +206,74 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
                             is_public: false,
                           });
                           setPayloadError(null);
-                        }}>Use</Button>
-                      </div>
+                        }}
+                      >
+                        Use
+                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
             </details>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="font-semibold">Your Templates</h4>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={() => startCreate(false)}>New</Button>
-                  <Button size="sm" variant="ghost" onClick={() => startCreate(true)} title="Upload and publish" className="ml-2">
-                    <UploadCloud className="h-4 w-4 mr-2" />
-                    Upload & Publish
+            {/* Your Templates */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
+                <h4 className="font-semibold text-sm">Your Templates</h4>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="default" onClick={() => startCreate(false)} className="h-7 text-xs">
+                    New
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => startCreate(true)} title="Upload and publish" className="h-7 text-xs">
+                    <Globe className="h-3 w-3 mr-1" />
+                    Publish
                   </Button>
                 </div>
               </div>
 
-              <div className="space-y-2 max-h-[340px] overflow-auto mt-2">
+              <div className="space-y-2">
                 {loading ? (
-                  <p>Loading...</p>
+                  <div className="text-center py-4 text-muted-foreground text-sm">Loading...</div>
                 ) : templates.length === 0 ? (
-                  <p className="text-muted-foreground">No templates yet</p>
+                  <div className="text-center py-6 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                    <p>No templates yet</p>
+                    <p className="text-xs mt-1">Create one to get started</p>
+                  </div>
                 ) : (
                   templates.map((t) => (
-                    <div key={t.id} className={`p-2 border rounded hover:bg-muted/50 cursor-pointer ${editing === t.id ? "bg-muted/60 ring-2 ring-primary" : ""}`} onClick={() => startEdit(t)}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{t.name} {(t as any).profiles?.display_name && <span className="text-xs text-muted-foreground ml-1">by {(t as any).profiles.display_name}</span>}</div>
-                          <div className="text-sm text-muted-foreground">{t.description}</div>
+                    <div
+                      key={t.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-all ${editing === t.id
+                          ? "bg-primary/10 border-primary/50 ring-1 ring-primary/30"
+                          : "bg-card hover:bg-muted/30"
+                        }`}
+                      onClick={() => startEdit(t)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate flex items-center gap-2">
+                            {t.name}
+                            {t.is_public && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-primary/20 text-primary">
+                                <Globe className="h-2.5 w-2.5 mr-0.5" />
+                                Public
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">{t.description}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{t.estimated_count || "—"} cards</div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-xs text-muted-foreground">{t.estimated_count || "—"} cards</div>
-                          {t.is_public ? (
-                            <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handlePublish(t.id, false); }} className="h-7 text-xs px-2">
-                              <Globe className="h-3 w-3 mr-1" /> Unpublish
-                            </Button>
-                          ) : (
-                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handlePublish(t.id, true); }} className="h-7 text-xs px-2">
-                              <Globe className="h-3 w-3 mr-1" /> Publish
-                            </Button>
-                          )}
-                        </div>
+                        <Button
+                          size="sm"
+                          variant={t.is_public ? "outline" : "default"}
+                          className="h-7 text-xs shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePublish(t.id, !t.is_public);
+                          }}
+                        >
+                          {t.is_public ? "Unpublish" : "Publish"}
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -252,71 +282,130 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false }
             </div>
           </div>
 
-          <div className="col-span-2">
-            <div className="space-y-3">
-              <div>
-                <Label>Name</Label>
-                <Input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} />
+          {/* Right Panel - Editor */}
+          <div className="md:col-span-3 space-y-4 overflow-y-auto max-h-[60vh] pr-2">
+            <div className="p-4 border rounded-lg bg-card/50 space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Name</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                    placeholder="Template name..."
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Action Type</Label>
+                  <Select value={form.action} onValueChange={(v) => setForm((s) => ({ ...s, action: v }))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="generate-flashcards">Generate Flashcards</SelectItem>
+                      <SelectItem value="generate-quiz">Generate Quiz</SelectItem>
+                      <SelectItem value="create-study-plan">Create Study Plan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div>
-                <Label>Description</Label>
-                <Input value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} />
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Description</Label>
+                <Input
+                  value={form.description}
+                  onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+                  placeholder="Brief description..."
+                  className="h-9"
+                />
               </div>
 
-              <div>
-                <Label>Action</Label>
-                <Select value={form.action} onValueChange={(v) => setForm((s) => ({ ...s, action: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="generate-flashcards">Generate Flashcards</SelectItem>
-                    <SelectItem value="generate-quiz">Generate Quiz</SelectItem>
-                    <SelectItem value="create-study-plan">Create Study Plan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Payload (JSON)</Label>
-                <div className="flex gap-4">
-                  <Textarea value={form.payload} onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))} className="font-mono text-sm" />
-                  <div className="flex flex-col gap-2">
-                    <Button size="sm" variant="ghost" onClick={formatPayload}>Format</Button>
-                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard?.writeText(form.payload || ""); toast({ title: "Copied" }); }}>Copy</Button>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Payload (JSON)</Label>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" onClick={formatPayload} className="h-6 text-xs px-2">
+                      Format
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { navigator.clipboard?.writeText(form.payload || ""); toast({ title: "Copied" }); }}
+                      className="h-6 text-xs px-2"
+                    >
+                      Copy
+                    </Button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Provide JSON with defaults (e.g., {`{ "defaultCount": 10, "difficulty": "medium" }`}).</p>
-                {payloadError && <p className="text-xs text-destructive mt-1">{payloadError}</p>}
+                <Textarea
+                  value={form.payload}
+                  onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))}
+                  className="font-mono text-xs min-h-[80px]"
+                  placeholder='{ "defaultCount": 10 }'
+                />
+                {payloadError && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <span>⚠️</span> {payloadError}
+                  </p>
+                )}
+              </div>
 
-                <div className="mt-2">
-                  <Label>Preview</Label>
-                  <div className="bg-surface p-3 rounded text-xs font-mono max-h-[200px] overflow-auto">
-                    <pre className="whitespace-pre-wrap">{parsedPayload ? JSON.stringify(parsedPayload, null, 2) : "{}"}</pre>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Card Count</Label>
+                  <Input
+                    type="number"
+                    value={String(form.estimated_count)}
+                    onChange={(e) => setForm((s) => ({ ...s, estimated_count: Number(e.target.value || 0) }))}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label className="text-xs font-medium">Visibility</Label>
+                  <div className="flex items-center gap-3 h-9">
+                    <Switch
+                      checked={form.is_public}
+                      onCheckedChange={(v) => setForm((s) => ({ ...s, is_public: !!v }))}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {form.is_public ? "Public (visible to everyone)" : "Private (only you)"}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div>
-                  <Label>Estimated count</Label>
-                  <Input type="number" value={String(form.estimated_count)} onChange={(e) => setForm((s) => ({ ...s, estimated_count: Number(e.target.value || 0) }))} />
+              {/* Preview */}
+              <details className="group">
+                <summary className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                  Preview JSON →
+                </summary>
+                <div className="mt-2 p-3 rounded-lg bg-muted/50 border">
+                  <pre className="text-xs font-mono whitespace-pre-wrap text-muted-foreground max-h-[100px] overflow-auto">
+                    {parsedPayload ? JSON.stringify(parsedPayload, null, 2) : "{}"}
+                  </pre>
                 </div>
-                <div>
-                  <Label>Public</Label>
-                  <Switch checked={form.is_public} onCheckedChange={(v) => setForm((s) => ({ ...s, is_public: !!v }))} />
-                </div>
-              </div>
+              </details>
+            </div>
 
-              <div className="flex gap-2 items-center">
-                <Button onClick={handleSave} disabled={!form.name.trim() || !!payloadError}>Save</Button>
-                {editing && <Button variant="destructive" onClick={() => handleDelete(editing)}>Delete</Button>}
-                <Button variant="ghost" size="sm" onClick={formatPayload}>Format JSON</Button>
-              </div>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                onClick={handleSave}
+                disabled={!form.name.trim() || !!payloadError}
+                className="hover-glow"
+              >
+                {editing ? "Update Template" : "Create Template"}
+              </Button>
+              {editing && (
+                <Button variant="destructive" onClick={() => handleDelete(editing)}>
+                  Delete
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t pt-4 mt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
         </DialogFooter>
       </DialogContent>

@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { searchWikipedia, fetchStudyContentWithFallback } from "./wikipedia-fallback";
 
-export type StudyAction = 
+export type StudyAction =
   | "generate-flashcards"
   | "generate-quiz"
   | "explain-concept"
@@ -13,9 +13,9 @@ export type StudyAction =
   | "study-runner"
   | "worksheet"
   | "generate-concepts"
-   | "matching-game"
-   | "speed-challenge"
-   | "elaborative-interrogation";
+  | "matching-game"
+  | "speed-challenge"
+  | "elaborative-interrogation";
 
 export type AIModel =
   | "gemini-flash"
@@ -107,10 +107,24 @@ export function parseFlashcards(response: string): Flashcard[] {
   try {
     const jsonMatch = response.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      // Validate each flashcard has required properties
+      const valid = parsed.filter((item: unknown): item is Flashcard => {
+        if (typeof item !== 'object' || item === null) return false;
+        const obj = item as Record<string, unknown>;
+        return typeof obj.question === 'string' &&
+          typeof obj.answer === 'string' &&
+          obj.question.trim().length > 0 &&
+          obj.answer.trim().length > 0;
+      });
+      if (valid.length < parsed.length) {
+        console.warn(`parseFlashcards: Filtered out ${parsed.length - valid.length} invalid flashcards`);
+      }
+      return valid;
     }
     return [];
-  } catch {
+  } catch (e) {
+    console.error('parseFlashcards: Failed to parse response', e);
     return [];
   }
 }
@@ -119,10 +133,24 @@ export function parseConcepts(response: string): Concept[] {
   try {
     const jsonMatch = response.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      // Validate each concept has required properties
+      const valid = parsed.filter((item: unknown): item is Concept => {
+        if (typeof item !== 'object' || item === null) return false;
+        const obj = item as Record<string, unknown>;
+        return typeof obj.concept === 'string' &&
+          typeof obj.definition === 'string' &&
+          obj.concept.trim().length > 0 &&
+          obj.definition.trim().length > 0;
+      });
+      if (valid.length < parsed.length) {
+        console.warn(`parseConcepts: Filtered out ${parsed.length - valid.length} invalid concepts`);
+      }
+      return valid;
     }
     return [];
-  } catch {
+  } catch (e) {
+    console.error('parseConcepts: Failed to parse response', e);
     return [];
   }
 }
@@ -131,10 +159,26 @@ export function parseQuiz(response: string): QuizQuestion[] {
   try {
     const jsonMatch = response.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      // Validate each quiz question has required properties
+      const valid = parsed.filter((item: unknown): item is QuizQuestion => {
+        if (typeof item !== 'object' || item === null) return false;
+        const obj = item as Record<string, unknown>;
+        return typeof obj.question === 'string' &&
+          Array.isArray(obj.options) &&
+          obj.options.length >= 2 &&
+          typeof obj.correctAnswer === 'number' &&
+          obj.correctAnswer >= 0 &&
+          obj.correctAnswer < obj.options.length;
+      });
+      if (valid.length < parsed.length) {
+        console.warn(`parseQuiz: Filtered out ${parsed.length - valid.length} invalid questions`);
+      }
+      return valid;
     }
     return [];
-  } catch {
+  } catch (e) {
+    console.error('parseQuiz: Failed to parse response', e);
     return [];
   }
 }
@@ -143,10 +187,24 @@ export function parsePracticeProblems(response: string): PracticeProblem[] {
   try {
     const jsonMatch = response.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      // Validate each problem has required properties
+      const valid = parsed.filter((item: unknown): item is PracticeProblem => {
+        if (typeof item !== 'object' || item === null) return false;
+        const obj = item as Record<string, unknown>;
+        return typeof obj.problem === 'string' &&
+          typeof obj.solution === 'string' &&
+          obj.problem.trim().length > 0 &&
+          obj.solution.trim().length > 0;
+      });
+      if (valid.length < parsed.length) {
+        console.warn(`parsePracticeProblems: Filtered out ${parsed.length - valid.length} invalid problems`);
+      }
+      return valid;
     }
     return [];
-  } catch {
+  } catch (e) {
+    console.error('parsePracticeProblems: Failed to parse response', e);
     return [];
   }
 }
@@ -191,23 +249,23 @@ export async function callStudyAIWithFallback(
 
     // For certain actions, attempt Wikipedia fallback
     const fallbackTopic = topic || content || "";
-    
+
     if (!fallbackTopic) {
-      return { 
-        result: "", 
-        fallback: true, 
-        source: "error" 
+      return {
+        result: "",
+        fallback: true,
+        source: "error"
       };
     }
 
     try {
       const wikiResults = await searchWikipedia(fallbackTopic, 1);
-      
+
       if (wikiResults.length === 0) {
-        return { 
-          result: "", 
-          fallback: true, 
-          source: "error" 
+        return {
+          result: "",
+          fallback: true,
+          source: "error"
         };
       }
 
@@ -222,10 +280,10 @@ export async function callStudyAIWithFallback(
       return { result: formattedResult, fallback: true, source: "wikipedia" };
     } catch (fallbackError) {
       console.error("Wikipedia fallback also failed:", fallbackError);
-      return { 
-        result: "", 
-        fallback: true, 
-        source: "error" 
+      return {
+        result: "",
+        fallback: true,
+        source: "error"
       };
     }
   }
@@ -245,16 +303,16 @@ function formatWikipediaContentForAction(
   switch (action) {
     case "generate-flashcards":
       return `[{"question": "What is ${wikiResult.title}?", "answer": "${wikiResult.extract.substring(0, 200)}...", "hint": "See the Wikipedia article"}]`;
-    
+
     case "explain-concept":
       return baseContent;
-    
+
     case "summarize":
       return `${wikiResult.title}\n\n${wikiResult.extract.substring(0, 300)}...`;
-    
+
     case "mind-map":
       return `${wikiResult.title}\n- Definition: ${wikiResult.extract.substring(0, 100)}...`;
-    
+
     default:
       return baseContent;
   }
