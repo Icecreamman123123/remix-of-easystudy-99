@@ -46,16 +46,11 @@ serve(async (req) => {
     let { action, content, topic, difficulty, gradeLevel, model, expertise, instruction, customInstruction, includeWikipedia } = body;
     const customInstructionText = customInstruction || instruction;
 
-    // runtime-safe environment access
+    // Deno environment access
     const WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php";
     const getEnv = (key: string): string | undefined => {
       try {
-        if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
-          return (globalThis as any).Deno.env.get(key);
-        }
-        if (typeof process !== "undefined" && process.env) {
-          return (process.env as any)[key];
-        }
+        return Deno.env.get(key);
       } catch (e) {
         console.warn("getEnv error:", e);
       }
@@ -98,7 +93,7 @@ serve(async (req) => {
         }
         const wikiJson = await wikiResp.json();
         const pages = wikiJson.query?.pages;
-        const page = pages ? Object.values(pages)[0] : null;
+        const page = pages ? Object.values(pages)[0] as { extract?: string } : null;
         const extract = page?.extract || "";
         if (!extract) {
           return new Response(JSON.stringify({ error: "No Wikipedia extract found for topic" }), {

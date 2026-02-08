@@ -22,15 +22,10 @@ serve(async (req) => {
     const { wrongAnswers, insights, topic, action, difficulty, gradeLevel, instruction, customInstruction } = body;
     const customInstructionText = customInstruction || instruction;
 
-    // runtime-safe environment access
+    // Deno environment access
     const getEnv = (key: string): string | undefined => {
       try {
-        if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
-          return (globalThis as any).Deno.env.get(key);
-        }
-        if (typeof process !== "undefined" && process.env) {
-          return (process.env as any)[key];
-        }
+        return Deno.env.get(key);
       } catch (e) {
         console.warn("getEnv error:", e);
       }

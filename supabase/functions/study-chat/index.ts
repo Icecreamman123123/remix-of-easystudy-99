@@ -16,15 +16,10 @@
      const { messages, topic, gradeLevel, difficulty, instruction, customInstruction } = body;
      const customInstructionText = customInstruction || instruction;
 
-     // runtime-safe environment access
+     // Deno environment access
      const getEnv = (key: string): string | undefined => {
        try {
-         if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
-           return (globalThis as any).Deno.env.get(key);
-         }
-         if (typeof process !== "undefined" && process.env) {
-           return (process.env as any)[key];
-         }
+         return Deno.env.get(key);
        } catch (e) {
          console.warn("getEnv error:", e);
        }
@@ -45,7 +40,7 @@
            : `grade ${gradeLevel} (ages ${parseInt(gradeLevel) + 5}-${parseInt(gradeLevel) + 6})`
        : "middle school level";
  
-     const systemPrompt = `You are a helpful, knowledgeable study assistant helping a ${gradeLevelText} student learn about: ${topic || "their studies"}.
+     let systemPrompt = `You are a helpful, knowledgeable study assistant helping a ${gradeLevelText} student learn about: ${topic || "their studies"}.
  
  IMPORTANT GUIDELINES:
  - Focus your answers on the topic: "${topic || "the student's questions"}"
