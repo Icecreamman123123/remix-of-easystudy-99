@@ -82,6 +82,11 @@ export function useFlashcardDecks() {
 
     if (error) {
       console.error("Error creating deck:", error);
+      // Detect database-enforced deck limit
+      const msg = (error as any)?.message || (error as any)?.details || "";
+      if (msg.includes("deck_limit_exceeded")) {
+        return { error: "limit_reached", message: "You can only create a maximum of 10 custom decks. Delete a deck to create a new one." } as any;
+      }
       return null;
     }
 
@@ -115,6 +120,10 @@ export function useFlashcardDecks() {
 
     if (deckError || !deck) {
       console.error("Error creating deck:", deckError);
+      const msg = (deckError as any)?.message || (deckError as any)?.details || "";
+      if (msg.includes("deck_limit_exceeded")) {
+        return { error: "limit_reached", message: "You can only create a maximum of 10 custom decks. Delete a deck to create a new one." } as any;
+      }
       return null;
     }
 

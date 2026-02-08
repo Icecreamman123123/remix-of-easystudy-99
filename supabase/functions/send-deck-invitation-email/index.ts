@@ -45,56 +45,102 @@ serve(async (req: Request) => {
       deckTitle,
       accessLevel,
     });
-
     // Integration point for email services
-    // Uncomment and configure one of the options below:
-    
-    // Option 1: SendGrid
-    /*
-    import SendGridMail from "https://cdn.skypack.dev/@sendgrid/mail@7.7.0?dts";
-    const sgMail = SendGridMail(Deno.env.get("SENDGRID_API_KEY"));
-    await sgMail.send({
-      to: email,
-      from: "noreply@easierstudying.com",
-      subject: `${inviterName} shared "${deckTitle}" with you`,
-      html: emailHtml,
-    });
-    */
+    // Use a runtime-safe helper to read environment variables so this file
+    // can run in Deno (Supabase Functions) and be tested locally (Node).
+    const getEnv = (key: string): string | undefined => {
+      try {
+        // Deno runtime
+        if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
+          return (globalThis as any).Deno.env.get(key);
+        }
+        // Node runtime (for local testing)
+        if (typeof process !== "undefined" && process.env) {
+          return (process.env as any)[key];
+        }
+      } catch (e) {
+        console.warn("getEnv error:", e);
+      }
+      return undefined;
+    };
 
-    // Option 2: Resend
-    /*
-    import { Resend } from "https://cdn.skypack.dev/resend@0.15.0?dts";
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    await resend.emails.send({
-      from: "invitations@easierstudying.com",
-      to: email,
-      subject: `${inviterName} shared "${deckTitle}" with you`,
-      html: emailHtml,
-    });
-    */
+    const SENDGRID_API_KEY = getEnv("SENDGRID_API_KEY");
 
-    // Option 3: Custom API endpoint
-    /*
-    const emailResponse = await fetch("https://your-email-service.com/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: email,
-        subject: `${inviterName} shared "${deckTitle}" with you`,
-        html: emailHtml,
-      }),
-    });
-    
-    if (!emailResponse.ok) {
-      throw new Error("Email service failed");
+    if (SENDGRID_API_KEY) {
+      const payload = {
+        personalizations: [
+          {
+            to: [{ email }],
+            subject: `${inviterName} shared "${deckTitle}" with you`,
+          },
+        ],
+        from: { email: "invitations@easierstudying.com", name: "EasierStudying" },
+        content: [{ type: "text/html", value: emailHtml }],
+      };
+
+      const sgResp = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SENDGRID_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!sgResp.ok) {
+        const text = await sgResp.text().catch(() => "");
+        console.error("SendGrid failed:", sgResp.status, text);
+        return new Response(
+          JSON.stringify({ error: "Email service failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Invitation email sent via SendGrid" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
     }
-    */
 
-    // For now, return success (email would be sent with proper integration)
+    // Resend support (alternative provider) - uses Resend HTTP API
+    const RESEND_API_KEY = getEnv("RESEND_API_KEY");
+    if (RESEND_API_KEY) {
+      const resendPayload = {
+        from: "invitations@easierstudying.com",
+        to: email,
+        subject: `${inviterName} shared \"${deckTitle}\" with you`,
+        html: emailHtml,
+      };
+
+      const resendResp = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(resendPayload),
+      });
+
+      if (!resendResp.ok) {
+        const text = await resendResp.text().catch(() => "");
+        console.error("Resend failed:", resendResp.status, text);
+        return new Response(
+          JSON.stringify({ error: "Email service failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Invitation email sent via Resend" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // If no email provider configured, return a prepared preview so callers can inspect
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Invitation email prepared successfully",
+        message: "Invitation email prepared successfully (preview)",
         preview: {
           to: email,
           subject: `${inviterName} shared "${deckTitle}" with you`,

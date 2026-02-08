@@ -18,8 +18,26 @@ serve(async (req) => {
   }
 
   try {
-    const { wrongAnswers, insights, topic, action } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const body = await req.json();
+    const { wrongAnswers, insights, topic, action, difficulty, gradeLevel, instruction, customInstruction } = body;
+    const customInstructionText = customInstruction || instruction;
+
+    // runtime-safe environment access
+    const getEnv = (key: string): string | undefined => {
+      try {
+        if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
+          return (globalThis as any).Deno.env.get(key);
+        }
+        if (typeof process !== "undefined" && process.env) {
+          return (process.env as any)[key];
+        }
+      } catch (e) {
+        console.warn("getEnv error:", e);
+      }
+      return undefined;
+    };
+
+    const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -36,6 +54,11 @@ ${i + 1}. Question: "${w.question}"
 `).join("")}
 
 ${topic ? `The study topic is: "${topic}"` : ""}
+${gradeLevel ? `Target grade level: ${gradeLevel}` : ""}
+${difficulty ? `Difficulty: ${difficulty}` : ""}
+${customInstructionText ? `Custom instruction: ${customInstructionText}` : ""}
+
+Take into account the target grade level and difficulty when analyzing mistakes. If a custom instruction is provided, prioritize it when making recommendations.
 
 Analyze the student's mistakes and identify patterns. Respond with ONLY a JSON object (no markdown):
 {
@@ -94,8 +117,13 @@ The student needs to improve in these areas:
 ${weakAreas.map((area: string, i: number) => `${i + 1}. ${area}`).join("\n")}
 
 ${topic ? `The study topic is: "${topic}"` : ""}
+${gradeLevel ? `Target grade level: ${gradeLevel}` : ""}
+${difficulty ? `Difficulty: ${difficulty}` : ""}
+${customInstructionText ? `Custom instruction: ${customInstructionText}` : ""}
 
 Generate 5-8 flashcard-style questions that specifically target these weak areas.
+Adjust question wording and complexity to be appropriate for the target grade level and difficulty.
+If a custom instruction is provided, follow it when selecting and phrasing questions.
 Focus on the concepts the student struggled with, but phrase questions differently.
 
 Respond with ONLY a JSON array (no markdown):

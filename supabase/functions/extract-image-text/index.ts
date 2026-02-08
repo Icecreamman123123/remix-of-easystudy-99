@@ -12,7 +12,23 @@ serve(async (req) => {
 
   try {
     const { imageBase64, mimeType } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    // runtime-safe environment access
+    const getEnv = (key: string): string | undefined => {
+      try {
+        if (typeof globalThis !== "undefined" && (globalThis as any).Deno && typeof (globalThis as any).Deno.env?.get === "function") {
+          return (globalThis as any).Deno.env.get(key);
+        }
+        if (typeof process !== "undefined" && process.env) {
+          return (process.env as any)[key];
+        }
+      } catch (e) {
+        console.warn("getEnv error:", e);
+      }
+      return undefined;
+    };
+
+    const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");

@@ -42,6 +42,7 @@ interface TestQuestion {
   options?: string[];
   userAnswer?: string;
   isCorrect?: boolean;
+  score?: number; // 1 = correct, 0.5 = partial, 0 = incorrect
    aiFeedback?: string;
    matchingPairs?: { left: string; right: string }[];
 }
@@ -207,7 +208,7 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
 
     setQuestions((prev) =>
       prev.map((q, i) =>
-        i === currentIndex ? { ...q, userAnswer, isCorrect, aiFeedback } : q
+        i === currentIndex ? { ...q, userAnswer, isCorrect, aiFeedback, score: isCorrect ? 1 : 0 } : q
       )
     );
 
@@ -224,8 +225,8 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
       setCurrentIndex((prev) => prev + 1);
     } else {
       setTestComplete(true);
-      const correct = questions.filter((q) => q.isCorrect).length;
-      onComplete({ correct, total: questions.length });
+      const correctPoints = questions.reduce((sum, q) => sum + (q.score ?? (q.isCorrect ? 1 : 0)), 0);
+      onComplete({ correct: correctPoints, total: questions.length });
     }
   };
 
@@ -278,8 +279,8 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
   };
 
   if (testComplete) {
-    const correct = questions.filter((q) => q.isCorrect).length;
-    const accuracy = Math.round((correct / questions.length) * 100);
+    const correctPoints = questions.reduce((sum, q) => sum + (q.score ?? (q.isCorrect ? 1 : 0)), 0);
+    const accuracy = Math.round((correctPoints / questions.length) * 100);
 
     return (
       <div className="space-y-6 animate-in fade-in-50 zoom-in-95">
@@ -288,7 +289,7 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
           <h3 className="text-2xl font-bold mb-2">Test Complete!</h3>
           <p className="text-3xl font-bold text-primary mb-2">{accuracy}%</p>
           <p className="text-muted-foreground">
-            {correct} of {questions.length} correct
+            {correctPoints} of {questions.length} points
           </p>
         </div>
 
@@ -311,7 +312,7 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
             {["multiple-choice", "fill-blank", "true-false", "short-answer"].map((type) => {
               const typeQuestions = questions.filter((q) => q.type === type);
               if (typeQuestions.length === 0) return null;
-              const typeCorrect = typeQuestions.filter((q) => q.isCorrect).length;
+              const typeCorrect = typeQuestions.reduce((s, q) => s + (q.score ?? (q.isCorrect ? 1 : 0)), 0);
               return (
                 <div key={type} className="p-2 rounded-lg bg-muted/50">
                   <p className="text-lg">{getQuestionTypeIcon(type as QuestionType)}</p>
@@ -330,12 +331,18 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
             <div
               key={i}
               className={`p-2 rounded-lg border text-sm ${
-                q.isCorrect ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"
+                q.score === 1
+                  ? "border-primary/30 bg-primary/5"
+                  : q.score === 0.5
+                  ? "border-yellow-600/30 bg-yellow-400/5"
+                  : "border-destructive/30 bg-destructive/5"
               }`}
             >
               <div className="flex items-start gap-2">
-                {q.isCorrect ? (
+                {q.score === 1 ? (
                   <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                ) : q.score === 0.5 ? (
+                  <span className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5">½</span>
                 ) : (
                   <X className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 )}
@@ -474,6 +481,28 @@ export function PracticeTest({ flashcards, onComplete, topic, onGenerateFocusedT
                 <p className="text-sm text-muted-foreground mt-1">
                   The correct answer is: <strong>{currentQuestion.correctAnswer}</strong>
                 </p>
+              )}
+
+              {/* Partial credit action */}
+              {!currentQuestion.isCorrect && (currentQuestion.score !== 0.5) && (
+                <div className="mt-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      // Give half mark to current question
+                      setQuestions((prev) =>
+                        prev.map((q, i) => (i === currentIndex ? { ...q, score: 0.5 } : q))
+                      );
+                      // update aiFeedback to indicate partial credit awarded
+                      setQuestions((prev) =>
+                        prev.map((q, i) => (i === currentIndex ? { ...q, aiFeedback: "Partial credit awarded" } : q))
+                      );
+                    }}
+                  >
+                    Give half mark
+                  </Button>
+                </div>
               )}
             </div>
           )}

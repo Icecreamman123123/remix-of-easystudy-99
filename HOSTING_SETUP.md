@@ -223,6 +223,18 @@ If your project is managed or deployed via Lovable, follow these guidelines:
 - If Lovable provides a build configuration panel, set the build command to `npm run build` and the output directory to `dist`.
 - Trigger a deployment via Lovable or push to GitHub (Lovable may auto-deploy repository updates).
 
+### Email provider keys
+
+- For sending invitation emails from the edge function, add your email provider key in the Supabase Function environment or Lovable secrets (do NOT expose in client build):
+   - `SENDGRID_API_KEY` — SendGrid API key (preferred for this project)
+   - `RESEND_API_KEY` — alternative provider
+
+- Example: In Supabase dashboard → Functions → your function → Environment variables, add `SENDGRID_API_KEY`.
+
+Notes:
+- The edge function will attempt to use `SENDGRID_API_KEY` automatically; if unset the function will return an email preview instead of sending.
+- Store these keys in Lovable or your hosting provider's secret manager and never commit them to the repository.
+
 Notes:
 - Do not paste secrets into code edited via Lovable; use the platform's secret management to avoid committing sensitive values.
 - If you rely on Supabase edge functions, deploy them from the Supabase dashboard or CLI and configure their environment variables there.
