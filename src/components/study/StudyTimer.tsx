@@ -30,11 +30,11 @@ export function StudyTimer() {
     if (newMode !== "focus" && !focusCompleted) {
       return;
     }
-    
+
     setMode(newMode);
     setTimeLeft(TIMER_SETTINGS[newMode].duration);
     setIsRunning(false);
-    
+
     // Reset focus completed when switching to focus mode
     if (newMode === "focus") {
       setFocusCompleted(false);
@@ -86,10 +86,12 @@ export function StudyTimer() {
   const isBreakLocked = (m: TimerMode) => m !== "focus" && !focusCompleted;
 
   return (
-    <Card>
+    <Card className="glass-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <CurrentIcon className="h-5 w-5" />
+          <div className="p-1.5 icon-gradient rounded-md">
+            <CurrentIcon className="h-4 w-4 text-white" />
+          </div>
           Pomodoro Timer
         </CardTitle>
       </CardHeader>
@@ -120,7 +122,7 @@ export function StudyTimer() {
         )}
 
         <div className="relative">
-          <div 
+          <div
             className="absolute inset-0 bg-primary/10 rounded-lg transition-all"
             style={{ width: `${progress}%` }}
           />
@@ -136,9 +138,9 @@ export function StudyTimer() {
           <Button size="lg" onClick={toggleTimer}>
             {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
-          <Button 
-            variant="outline" 
-            size="lg" 
+          <Button
+            variant="outline"
+            size="lg"
             onClick={resetTimer}
             disabled={mode === "focus" && isRunning}
           >

@@ -11,8 +11,8 @@ import { MindMap } from "./MindMap";
 import { SubwaySurferGame } from "./SubwaySurferGame";
 import { WorksheetViewer } from "./WorksheetViewer";
 import { MatchingGame } from "./MatchingGame";
- import { SpeedChallenge } from "./SpeedChallenge";
- import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
+import { SpeedChallenge } from "./SpeedChallenge";
+import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
 import { ExportPdfButton } from "./ExportPdfButton";
 import ReactMarkdown from "react-markdown";
 
@@ -58,8 +58,8 @@ function toMindMapFormat(concepts: Concept[]) {
 
 export function ResultsViewer({ action, result, onClose, topic, isManual }: ResultsViewerProps) {
   const [completed, setCompleted] = useState(false);
-  const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action) 
-    ? parseFlashcards(result) 
+  const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)
+    ? parseFlashcards(result)
     : [];
 
   const handleComplete = (results?: { correct: number; total: number }) => {
@@ -132,29 +132,29 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
         }
         break;
       }
-     case "speed-challenge": {
-       const flashcards = parseFlashcards(result);
-       if (flashcards.length > 0) {
-         return (
+      case "speed-challenge": {
+        const flashcards = parseFlashcards(result);
+        if (flashcards.length > 0) {
+          return (
             <SpeedChallenge
               flashcards={flashcards}
               onComplete={(score, total) => handleComplete({ correct: score, total })}
               topic={topic}
               disableSmartLearning={isManual}
             />
-         );
-       }
-       break;
-     }
-       case "elaborative-interrogation": {
-         return (
-           <ElaborativeInterrogation
-             result={result}
-             topic={topic || "Study Topic"}
-             onClose={onClose}
-           />
-         );
-       }
+          );
+        }
+        break;
+      }
+      case "elaborative-interrogation": {
+        return (
+          <ElaborativeInterrogation
+            result={result}
+            topic={topic || "Study Topic"}
+            onClose={onClose}
+          />
+        );
+      }
       case "worksheet": {
         const questions = parseWorksheet(result);
         if (questions.length > 0) {
@@ -185,13 +185,12 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">Problem {index + 1}</CardTitle>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        problem.difficulty === "easy" 
-                          ? "bg-primary/20 text-primary" 
+                      <span className={`text-xs px-2 py-1 rounded-full ${problem.difficulty === "easy"
+                          ? "bg-primary/20 text-primary"
                           : problem.difficulty === "medium"
                             ? "bg-accent/20 text-accent-foreground"
                             : "bg-destructive/20 text-destructive"
-                      }`}>
+                        }`}>
                         {problem.difficulty}
                       </span>
                     </div>
@@ -240,8 +239,8 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
       case "study-runner": return "Study Runner";
       case "worksheet": return "Worksheet";
       case "matching-game": return "Matching Game";
-       case "speed-challenge": return "Speed Challenge";
-       case "elaborative-interrogation": return "Elaborative Interrogation";
+      case "speed-challenge": return "Speed Challenge";
+      case "elaborative-interrogation": return "Elaborative Interrogation";
       case "explain-concept": return "Concept Explanation";
       case "create-study-plan": return "Study Schedule";
       case "summarize": return "Summary";
@@ -251,7 +250,7 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
   };
 
   // For interactive modes, use full height
-   const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation"].includes(action);
+  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation"].includes(action);
 
   return (
     <Card className="h-full">
@@ -269,7 +268,10 @@ export function ResultsViewer({ action, result, onClose, topic, isManual }: Resu
       <CardContent>
         {!isManual && (
           <div className="mb-3">
-            <div className="inline-block rounded px-2 py-1 bg-yellow-50 text-yellow-800 text-xs">⚠️ AI may be inaccurate — please double-check sources before studying.</div>
+            <div className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs border border-amber-200 dark:border-amber-800/50">
+              <span>⚠️</span>
+              <span>AI may be inaccurate — please double-check sources before studying.</span>
+            </div>
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useStudyTemplates } from "@/hooks/useStudyTemplates";
 import { STUDY_TEMPLATES } from "@/lib/study-templates";

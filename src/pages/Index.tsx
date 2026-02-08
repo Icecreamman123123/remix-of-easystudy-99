@@ -17,12 +17,12 @@ import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
 import { useAuth } from "@/hooks/useAuth";
 import { useStudySessions } from "@/hooks/useStudySessions";
 import { useI18n } from "@/lib/i18n";
-import { 
-  GraduationCap, 
-  Sparkles, 
-  BookOpen, 
-  Brain, 
-  Target, 
+import {
+  GraduationCap,
+  Sparkles,
+  BookOpen,
+  Brain,
+  Target,
   Repeat,
   LogOut,
   LogIn,
@@ -50,7 +50,7 @@ const Index = () => {
   const [showChat, setShowChat] = useState(false);
   const [chatGradeLevel, setChatGradeLevel] = useState("8");
   const [manualEditor, setManualEditor] = useState<ManualEditorMode>(null);
-  
+
   const { user, signOut, loading } = useAuth();
   const { recordSession } = useStudySessions();
   const { toast } = useToast();
@@ -69,7 +69,7 @@ const Index = () => {
     if (topic) {
       setCurrentTopic(topic);
     }
-    
+
     // Parse flashcards for potential saving (for all flashcard-based modes)
     if (["generate-flashcards", "leitner-system", "practice-test", "study-runner", "matching-game"].includes(action)) {
       const cards = parseFlashcards(result);
@@ -109,7 +109,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b">
+      <header className="border-b gradient-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -133,9 +133,9 @@ const Index = () => {
                     <User className="h-4 w-4" />
                     <span>{user.email}</span>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleSignOut}
                     className="transition-all duration-200 hover:scale-105"
                   >
@@ -173,8 +173,8 @@ const Index = () => {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Study Input - Takes 2 columns on large screens */}
           <div className="lg:col-span-2 space-y-6">
-            <StudyInput 
-              onResult={handleResultWithChat} 
+            <StudyInput
+              onResult={handleResultWithChat}
               onManualCreate={(mode) => setManualEditor(mode)}
             />
 
@@ -203,7 +203,7 @@ const Index = () => {
                 )}
               </div>
             )}
-            
+
             {currentResult && (
               <div className="relative">
                 {["generate-flashcards", "leitner-system", "practice-test", "mind-map", "study-runner", "matching-game"].includes(currentResult.action) && flashcardsToSave.length > 0 && (
@@ -214,8 +214,8 @@ const Index = () => {
                     </Button>
                   </div>
                 )}
-                <ResultsViewer 
-                  action={currentResult.action} 
+                <ResultsViewer
+                  action={currentResult.action}
                   result={currentResult.result}
                   topic={currentTopic}
                   onClose={() => setCurrentResult(null)}
@@ -234,12 +234,12 @@ const Index = () => {
             {!showChat ? (
               <Button
                 onClick={() => setShowChat(true)}
-                className="w-full gap-2 h-auto py-4 bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/30 hover:border-primary/50 hover:bg-primary/10"
+                className="w-full gap-2 h-auto py-4 glass-card hover-glow border-2 border-primary/30 hover:border-primary/50"
                 variant="outline"
               >
                 <div className="flex items-center gap-2 flex-1">
-                  <div className="p-2 bg-primary/20 rounded-full">
-                    <MessageCircle className="h-5 w-5 text-primary" />
+                  <div className="p-2 icon-gradient rounded-full animate-pulse-glow">
+                    <MessageCircle className="h-5 w-5 text-white" />
                   </div>
                   <div className="text-left">
                     <p className="font-semibold">AI Study Chat</p>
@@ -261,10 +261,10 @@ const Index = () => {
             )}
 
             <StudyTimer />
-            
+
             {/* Show detailed analytics for logged-in users */}
             {user && <LearningAnalytics />}
-            
+
             {/* Study Tips Card */}
             <div className="bg-card border rounded-lg p-4">
               <h3 className="font-semibold flex items-center gap-2 mb-3">
@@ -311,21 +311,21 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t mt-auto">
+      <footer className="border-t gradient-border mt-auto bg-muted/30">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
           <p>{t("footer.builtWith")}</p>
           <p className="mt-2 text-xs opacity-70">Made by Daniel Yu</p>
 
-          <div className="mt-3 flex items-center justify-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => setTemplatesManagerOpen(true)}>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Button size="sm" variant="outline" onClick={() => setTemplatesManagerOpen(true)} className="hover-glow">
               Manage templates
             </Button>
-            <Button size="sm" variant="outline" asChild>
+            <Button size="sm" variant="outline" asChild className="hover-glow">
               <a href="/explore">Explore Sets</a>
             </Button>
           </div>
 
-          <div className="mt-3 text-xs text-muted-foreground">© Daniel Yu. All rights reserved.</div>
+          <div className="mt-4 text-xs text-muted-foreground">© Daniel Yu. All rights reserved.</div>
         </div>
       </footer>
 
@@ -343,24 +343,24 @@ const Index = () => {
   );
 };
 
-function FeatureCard({ 
-  icon: Icon, 
-  title, 
+function FeatureCard({
+  icon: Icon,
+  title,
   description,
   index = 0
-}: { 
-  icon: typeof Sparkles; 
-  title: string; 
+}: {
+  icon: typeof Sparkles;
+  title: string;
   description: string;
   index?: number;
 }) {
   return (
-    <div 
-      className="flex items-start gap-3 p-3 bg-background rounded-lg border transition-all duration-300 hover:shadow-md hover:scale-[1.02] animate-in fade-in-50 slide-in-from-bottom-2"
+    <div
+      className="flex items-start gap-3 p-3 bg-background rounded-lg border card-hover-glow animate-in fade-in-50 slide-in-from-bottom-2 group"
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <div className="p-2 bg-primary/10 rounded-md shrink-0 transition-colors duration-200 group-hover:bg-primary/20">
-        <Icon className="h-4 w-4 text-primary" />
+      <div className="p-2 icon-gradient rounded-md shrink-0 transition-transform duration-200 group-hover:scale-110">
+        <Icon className="h-4 w-4 text-white" />
       </div>
       <div>
         <h3 className="font-medium text-sm">{title}</h3>

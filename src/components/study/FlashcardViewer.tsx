@@ -25,7 +25,7 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [results, setResults] = useState<boolean[]>([]);
-  
+
   // AI marking state
   const [typeMode, setTypeMode] = useState(false);
   const [userAnswer, setUserAnswer] = useState("");
@@ -45,10 +45,10 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
     if (!userAnswer.trim() || isChecking) return;
 
     setIsChecking(true);
-    
+
     // First try local check for instant feedback
     const localResult = localAnswerCheck(userAnswer, currentCard.answer);
-    
+
     if (localResult.isCorrect) {
       setFeedback({ isCorrect: true, message: "Correct!" });
       setIsChecking(false);
@@ -60,20 +60,20 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
           currentCard.answer,
           currentCard.question
         );
-        setFeedback({ 
-          isCorrect: aiResult.isCorrect, 
-          message: aiResult.feedback 
+        setFeedback({
+          isCorrect: aiResult.isCorrect,
+          message: aiResult.feedback
         });
       } catch {
-        setFeedback({ 
-          isCorrect: localResult.isCorrect, 
-          message: localResult.isCorrect ? "Correct!" : "Not quite right." 
+        setFeedback({
+          isCorrect: localResult.isCorrect,
+          message: localResult.isCorrect ? "Correct!" : "Not quite right."
         });
       } finally {
         setIsChecking(false);
       }
     }
-    
+
     setIsFlipped(true);
   };
 
@@ -166,35 +166,37 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
       </div>
 
       {/* Progress dots */}
-      <div className="flex gap-1 justify-center">
+      <div className="flex gap-1.5 justify-center">
         {results.map((r, i) => (
-          <div 
-            key={i} 
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${r ? 'bg-primary scale-110' : 'bg-destructive'}`}
+          <div
+            key={i}
+            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${r
+                ? 'bg-gradient-to-r from-primary to-blue-500 scale-110 glow-sm'
+                : 'bg-destructive'
+              }`}
           />
         ))}
       </div>
 
-      <Card 
-        className={`min-h-[250px] transition-all duration-500 hover:shadow-lg group ${!typeMode ? 'cursor-pointer' : ''}`}
+      <Card
+        className={`min-h-[250px] transition-all duration-500 card-hover-glow group ${!typeMode ? 'cursor-pointer' : ''}`}
         onClick={handleFlip}
       >
-        <CardContent className="p-6 flex flex-col items-center justify-center min-h-[250px] relative">
-          <div 
-            className={`text-center transition-all duration-500 w-full ${
-              isFlipped 
-                ? 'animate-in fade-in-0 zoom-in-95' 
+        <CardContent className="p-6 flex flex-col items-center justify-center min-h-[250px] relative overflow-hidden">
+          <div
+            className={`text-center transition-all duration-500 w-full ${isFlipped
+                ? 'animate-in fade-in-0 zoom-in-95'
                 : 'animate-in fade-in-0 zoom-in-95'
-            }`}
+              }`}
           >
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
               {isFlipped ? "Answer" : "Question"}
             </p>
-            
+
             {!isFlipped ? (
               <>
                 <p className="text-lg font-medium">{currentCard.question}</p>
-                
+
                 {/* Type mode input */}
                 {typeMode && (
                   <div className="mt-6 space-y-3" onClick={(e) => e.stopPropagation()}>
@@ -212,8 +214,8 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
                       }}
                       disabled={isChecking || !!feedback}
                     />
-                    <Button 
-                      onClick={handleCheckAnswer} 
+                    <Button
+                      onClick={handleCheckAnswer}
                       disabled={!userAnswer.trim() || isChecking || !!feedback}
                       className="w-full"
                     >
@@ -231,7 +233,7 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
                     </Button>
                   </div>
                 )}
-                
+
                 {!isFlipped && showHint && currentCard.hint && (
                   <p className="mt-4 text-sm text-muted-foreground italic animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
                     💡 {currentCard.hint}
@@ -241,14 +243,13 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
             ) : (
               <>
                 <p className="text-lg font-medium">{currentCard.answer}</p>
-                
+
                 {/* AI Feedback for type mode */}
                 {typeMode && feedback && (
-                  <div className={`mt-4 p-3 rounded-lg animate-in fade-in-50 ${
-                    feedback.isCorrect 
-                      ? "bg-primary/10 border border-primary/30" 
+                  <div className={`mt-4 p-3 rounded-lg animate-in fade-in-50 ${feedback.isCorrect
+                      ? "bg-primary/10 border border-primary/30"
                       : "bg-destructive/10 border border-destructive/30"
-                  }`}>
+                    }`}>
                     <p className="text-sm flex items-center gap-2 justify-center">
                       {feedback.isCorrect ? (
                         <Check className="h-4 w-4 text-primary" />
@@ -270,7 +271,7 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
               </>
             )}
           </div>
-          
+
           {!typeMode && (
             <div className="absolute bottom-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               Click to flip
@@ -280,10 +281,10 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
       </Card>
 
       <div className="flex items-center justify-between gap-2">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={handlePrevious} 
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handlePrevious}
           disabled={currentIndex === 0}
           className="transition-transform hover:scale-105"
         >
@@ -292,9 +293,9 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
 
         <div className="flex gap-2">
           {!isFlipped && currentCard.hint && !typeMode && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowHint(!showHint)}
               className="transition-all duration-200 hover:scale-105"
             >
@@ -302,11 +303,11 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
               Hint
             </Button>
           )}
-          
+
           {isFlipped && (
             typeMode && feedback ? (
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={handleTypeSubmit}
                 className="transition-all duration-200 hover:scale-105"
               >
@@ -324,17 +325,17 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
               </Button>
             ) : (
               <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => handleNext(false)} 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleNext(false)}
                   className="text-destructive transition-all duration-200 hover:scale-105 hover:bg-destructive/10"
                 >
                   <X className="h-4 w-4 mr-2" />
                   Missed
                 </Button>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={() => handleNext(true)}
                   className="transition-all duration-200 hover:scale-105"
                 >
@@ -346,9 +347,9 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
           )}
         </div>
 
-        <Button 
-          variant="outline" 
-          size="icon" 
+        <Button
+          variant="outline"
+          size="icon"
           onClick={handleReset}
           className="transition-transform hover:scale-105"
         >

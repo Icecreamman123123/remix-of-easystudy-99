@@ -19,7 +19,7 @@ export default function Auth() {
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  
+
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ export default function Auth() {
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
-    
+
     try {
       emailSchema.parse(email);
     } catch (e) {
@@ -40,7 +40,7 @@ export default function Auth() {
         newErrors.email = e.errors[0].message;
       }
     }
-    
+
     try {
       passwordSchema.parse(password);
     } catch (e) {
@@ -48,7 +48,7 @@ export default function Auth() {
         newErrors.password = e.errors[0].message;
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -56,7 +56,7 @@ export default function Auth() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setLoading(true);
     const { error } = await signIn(email, password);
     setLoading(false);
@@ -83,7 +83,7 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setLoading(true);
     const { error } = await signUp(email, password, displayName);
     setLoading(false);
@@ -115,16 +115,21 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Background gradient pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-blue-500/5" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+
+      <div className="w-full max-w-md relative z-10">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="p-2 bg-primary rounded-lg">
-            <GraduationCap className="h-6 w-6 text-primary-foreground" />
+          <div className="p-2 icon-gradient rounded-lg glow-sm">
+            <GraduationCap className="h-6 w-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">StudyAce</h1>
         </div>
 
-        <Card>
+        <Card className="glass-card hover-glow">
           <CardHeader className="text-center">
             <CardTitle>Welcome to StudyAce</CardTitle>
             <CardDescription>
