@@ -64,7 +64,7 @@ export default function ExploreSets() {
             <Card key={t.id}>
               <CardHeader>
                 <CardTitle>{t.name}</CardTitle>
-                <div className="text-xs text-muted-foreground">by {t.profiles && t.profiles[0] && t.profiles[0].display_name ? t.profiles[0].display_name : "Anonymous"}</div>
+                <div className="text-xs text-muted-foreground">by {(t as any).profiles?.[0]?.display_name || "Anonymous"}</div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{t.description}</p>
