@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { ChevronLeft, ChevronRight, RotateCcw, Lightbulb, Check, X, Keyboard, Loader2, Brain } from "lucide-react";
 import type { Flashcard } from "@/lib/study-api";
 import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
-import { WrongAnswer } from "@/hooks/useSmartLearning";
+import { useSmartLearning, WrongAnswer } from "@/hooks/useSmartLearning";
+import { SmartLearningInsights } from "./SmartLearningInsights";
 
 interface ExtendedFlashcard extends Flashcard {
   id?: string;
@@ -20,11 +21,22 @@ interface FlashcardViewerProps {
   onWrongAnswer?: (answer: WrongAnswer) => void;
 }
 
-export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongAnswer }: FlashcardViewerProps) {
+export function FlashcardViewer({ flashcards, onComplete, onCardResult }: FlashcardViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [results, setResults] = useState<boolean[]>([]);
+  const [isComplete, setIsComplete] = useState(false);
+  const [resetKey, setResetKey] = useState(0); // Force re-render on reset
+
+  const {
+    wrongAnswers,
+    insights,
+    isAnalyzing,
+    recordWrongAnswer,
+    clearWrongAnswers,
+    analyzeWeaknesses,
+  } = useSmartLearning();
 
   // AI marking state
   const [typeMode, setTypeMode] = useState(false);
@@ -86,8 +98,8 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
     setFeedback(null);
 
     // Record wrong answer for smart learning
-    if (!gotIt && onWrongAnswer) {
-      onWrongAnswer({
+    if (!gotIt) {
+      recordWrongAnswer({
         question: currentCard.question,
         correctAnswer: currentCard.answer,
         userAnswer: typeMode ? userAnswer : "(self-marked as missed)",
@@ -102,6 +114,7 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
+      setIsComplete(true);
       const correct = newResults.filter(Boolean).length;
       onComplete?.({ correct, total: flashcards.length });
     }
@@ -130,12 +143,51 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
     setResults([]);
     setUserAnswer("");
     setFeedback(null);
+    setIsComplete(false);
+    clearWrongAnswers();
+    setResetKey(prev => prev + 1);
   };
 
   if (!currentCard) {
     return (
       <div className="text-center p-8 animate-in fade-in-50 duration-300">
         <p className="text-muted-foreground">No flashcards available</p>
+      </div>
+    );
+  }
+
+  if (isComplete) {
+    const correctCount = results.filter(Boolean).length;
+    const accuracy = Math.round((correctCount / flashcards.length) * 100);
+
+    return (
+      <div className="space-y-6 animate-in fade-in-50 zoom-in-95">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-full mb-4">
+            <Brain className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-2xl font-bold mb-2">Session Complete!</h3>
+          <p className="text-3xl font-bold text-primary mb-2">{accuracy}%</p>
+          <p className="text-muted-foreground">
+            {correctCount} of {flashcards.length} cards correct
+          </p>
+        </div>
+
+        {/* Smart Learning Insights */}
+        <SmartLearningInsights
+          insights={insights}
+          wrongAnswers={wrongAnswers}
+          isAnalyzing={isAnalyzing}
+          onAnalyze={() => analyzeWeaknesses()}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <Button variant="outline" onClick={handleReset} className="w-full">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Study Again
+          </Button>
+          {/* Context-aware button for next action could go here */}
+        </div>
       </div>
     );
   }
@@ -171,8 +223,8 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
           <div
             key={i}
             className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${r
-                ? 'bg-gradient-to-r from-primary to-blue-500 scale-110 glow-sm'
-                : 'bg-destructive'
+              ? 'bg-gradient-to-r from-primary to-blue-500 scale-110 glow-sm'
+              : 'bg-destructive'
               }`}
           />
         ))}
@@ -185,8 +237,8 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
         <CardContent className="p-6 flex flex-col items-center justify-center min-h-[250px] relative overflow-hidden">
           <div
             className={`text-center transition-all duration-500 w-full ${isFlipped
-                ? 'animate-in fade-in-0 zoom-in-95'
-                : 'animate-in fade-in-0 zoom-in-95'
+              ? 'animate-in fade-in-0 zoom-in-95'
+              : 'animate-in fade-in-0 zoom-in-95'
               }`}
           >
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
@@ -247,8 +299,8 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult, onWrongA
                 {/* AI Feedback for type mode */}
                 {typeMode && feedback && (
                   <div className={`mt-4 p-3 rounded-lg animate-in fade-in-50 ${feedback.isCorrect
-                      ? "bg-primary/10 border border-primary/30"
-                      : "bg-destructive/10 border border-destructive/30"
+                    ? "bg-primary/10 border border-primary/30"
+                    : "bg-destructive/10 border border-destructive/30"
                     }`}>
                     <p className="text-sm flex items-center gap-2 justify-center">
                       {feedback.isCorrect ? (

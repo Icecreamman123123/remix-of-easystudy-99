@@ -11,6 +11,7 @@ import { StudyChat } from "@/components/study/StudyChat";
 import { ManualFlashcardEditor } from "@/components/study/ManualFlashcardEditor";
 import { ManualQuizEditor } from "@/components/study/ManualQuizEditor";
 import { ManualWorksheetEditor } from "@/components/study/ManualWorksheetEditor";
+import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAndAchievements";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
@@ -230,6 +231,9 @@ const Index = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Streak Display - Top of Sidebar */}
+            {user && <StreakDisplay />}
+
             {/* AI Chat - Always visible */}
             {!showChat ? (
               <Button
@@ -263,7 +267,12 @@ const Index = () => {
             <StudyTimer />
 
             {/* Show detailed analytics for logged-in users */}
-            {user && <LearningAnalytics />}
+            {user && (
+              <>
+                <LearningAnalytics />
+                <AchievementsDisplay />
+              </>
+            )}
 
             {/* Study Tips Card */}
             <div className="bg-card border rounded-lg p-4">
