@@ -6,6 +6,7 @@ import { StudyTimer } from "@/components/study/StudyTimer";
 import { MyDecks } from "@/components/study/MyDecks";
 import { LearningAnalytics } from "@/components/study/LearningAnalytics";
 import { SaveDeckDialog } from "@/components/study/SaveDeckDialog";
+import { TemplatesManager } from "@/components/study/TemplatesManager";
 import { StudyChat } from "@/components/study/StudyChat";
 import { ManualFlashcardEditor } from "@/components/study/ManualFlashcardEditor";
 import { ManualQuizEditor } from "@/components/study/ManualQuizEditor";
@@ -43,6 +44,7 @@ interface StudyResult {
 const Index = () => {
   const [currentResult, setCurrentResult] = useState<StudyResult | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [templatesManagerOpen, setTemplatesManagerOpen] = useState(false);
   const [flashcardsToSave, setFlashcardsToSave] = useState<Flashcard[]>([]);
   const [currentTopic, setCurrentTopic] = useState<string>("");
   const [showChat, setShowChat] = useState(false);
@@ -313,6 +315,12 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
           <p>{t("footer.builtWith")}</p>
           <p className="mt-2 text-xs opacity-70">Made by Daniel Yu</p>
+
+          <div className="mt-3">
+            <Button size="sm" variant="outline" onClick={() => setTemplatesManagerOpen(true)}>
+              Templates
+            </Button>
+          </div>
         </div>
       </footer>
 
@@ -323,6 +331,9 @@ const Index = () => {
         flashcards={flashcardsToSave}
         topic={currentTopic}
       />
+
+      {/* Templates Manager (accessible from footer) */}
+      <TemplatesManager open={templatesManagerOpen} onOpenChange={setTemplatesManagerOpen} />
     </div>
   );
 };
