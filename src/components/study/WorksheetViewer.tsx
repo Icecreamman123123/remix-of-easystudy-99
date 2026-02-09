@@ -8,11 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { 
-  FileText, 
-  Check, 
-  X, 
-  ChevronLeft, 
+import {
+  FileText,
+  Check,
+  X,
+  ChevronLeft,
   ChevronRight,
   RotateCcw,
   Trophy,
@@ -42,7 +42,7 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
   const [submitted, setSubmitted] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  
+
   const questionsPerPage = 5;
   const totalPages = Math.ceil(questions.length / questionsPerPage);
   const currentQuestions = questions.slice(
@@ -57,25 +57,25 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
   const calculateScore = () => {
     let earned = 0;
     let total = 0;
-    
+
     questions.forEach(q => {
       total += q.points;
       const userAnswer = answers[q.id];
-      
+
       if (Array.isArray(q.correctAnswer)) {
-        if (Array.isArray(userAnswer) && 
-            q.correctAnswer.length === userAnswer.length &&
-            q.correctAnswer.every(a => userAnswer.includes(a))) {
+        if (Array.isArray(userAnswer) &&
+          q.correctAnswer.length === userAnswer.length &&
+          q.correctAnswer.every(a => userAnswer.includes(a))) {
           earned += q.points;
         }
       } else {
-        if (typeof userAnswer === "string" && 
-            userAnswer.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim()) {
+        if (typeof userAnswer === "string" &&
+          userAnswer.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim()) {
           earned += q.points;
         }
       }
     });
-    
+
     return { earned, total };
   };
 
@@ -100,13 +100,13 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
   const isCorrect = (question: WorksheetQuestion) => {
     const userAnswer = answers[question.id];
     if (!userAnswer) return false;
-    
+
     if (Array.isArray(question.correctAnswer)) {
-      return Array.isArray(userAnswer) && 
+      return Array.isArray(userAnswer) &&
         question.correctAnswer.length === userAnswer.length &&
         question.correctAnswer.every(a => userAnswer.includes(a));
     }
-    return typeof userAnswer === "string" && 
+    return typeof userAnswer === "string" &&
       userAnswer.toLowerCase().trim() === question.correctAnswer.toLowerCase().trim();
   };
 
@@ -116,17 +116,16 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
     const correct = isCorrect(question);
 
     return (
-      <Card 
-        key={question.id} 
-        className={`transition-all duration-200 ${
-          submitted 
-            ? correct 
-              ? "border-green-500/50 bg-green-500/5" 
-              : userAnswer 
+      <Card
+        key={question.id}
+        className={`transition-all duration-200 ${(submitted || showAnswers)
+            ? correct
+              ? "border-green-500/50 bg-green-500/5"
+              : userAnswer
                 ? "border-red-500/50 bg-red-500/5"
                 : "border-yellow-500/50 bg-yellow-500/5"
             : ""
-        }`}
+          }`}
       >
         <CardContent className="pt-4">
           <div className="flex items-start gap-3">
@@ -149,15 +148,14 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
                   disabled={submitted}
                 >
                   {question.options.map((option, i) => (
-                    <div key={i} className={`flex items-center space-x-2 p-2 rounded ${
-                      submitted && showAnswers
-                        ? option === question.correctAnswer
-                          ? "bg-green-500/20"
-                          : userAnswer === option
-                            ? "bg-red-500/20"
-                            : ""
-                        : ""
-                    }`}>
+                    <div key={i} className={`flex items-center space-x-2 p-2 rounded ${submitted && showAnswers
+                      ? option === question.correctAnswer
+                        ? "bg-green-500/20"
+                        : userAnswer === option
+                          ? "bg-red-500/20"
+                          : ""
+                      : ""
+                      }`}>
                       <RadioGroupItem value={option} id={`${question.id}-${i}`} />
                       <Label htmlFor={`${question.id}-${i}`} className="flex-1 cursor-pointer">
                         {option}
@@ -179,15 +177,14 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
                   className="flex gap-4"
                 >
                   {["True", "False"].map((option) => (
-                    <div key={option} className={`flex items-center space-x-2 p-2 rounded ${
-                      submitted && showAnswers
-                        ? option === question.correctAnswer
-                          ? "bg-green-500/20"
-                          : userAnswer === option
-                            ? "bg-red-500/20"
-                            : ""
-                        : ""
-                    }`}>
+                    <div key={option} className={`flex items-center space-x-2 p-2 rounded ${submitted && showAnswers
+                      ? option === question.correctAnswer
+                        ? "bg-green-500/20"
+                        : userAnswer === option
+                          ? "bg-red-500/20"
+                          : ""
+                      : ""
+                      }`}>
                       <RadioGroupItem value={option} id={`${question.id}-${option}`} />
                       <Label htmlFor={`${question.id}-${option}`} className="cursor-pointer">
                         {option}
@@ -242,19 +239,18 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
                 <div className="space-y-2">
                   {question.options.map((option, i) => {
                     const selected = Array.isArray(userAnswer) && userAnswer.includes(option);
-                    const isCorrectOption = Array.isArray(question.correctAnswer) && 
+                    const isCorrectOption = Array.isArray(question.correctAnswer) &&
                       question.correctAnswer.includes(option);
-                    
+
                     return (
-                      <div key={i} className={`flex items-center space-x-2 p-2 rounded ${
-                        submitted && showAnswers
-                          ? isCorrectOption
-                            ? "bg-green-500/20"
-                            : selected
-                              ? "bg-red-500/20"
-                              : ""
-                          : ""
-                      }`}>
+                      <div key={i} className={`flex items-center space-x-2 p-2 rounded ${submitted && showAnswers
+                        ? isCorrectOption
+                          ? "bg-green-500/20"
+                          : selected
+                            ? "bg-red-500/20"
+                            : ""
+                        : ""
+                        }`}>
                         <Checkbox
                           id={`${question.id}-${i}`}
                           checked={selected}
@@ -347,9 +343,9 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
               <div className="text-center">
                 <p className="text-3xl font-bold">{percentage}%</p>
                 <p className="text-muted-foreground">
-                  {percentage >= 90 ? "Excellent!" : 
-                   percentage >= 70 ? "Good job!" : 
-                   percentage >= 50 ? "Keep practicing!" : "Review the material"}
+                  {percentage >= 90 ? "Excellent!" :
+                    percentage >= 70 ? "Good job!" :
+                      percentage >= 50 ? "Keep practicing!" : "Review the material"}
                 </p>
               </div>
             </div>
@@ -395,13 +391,23 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
               Try Again
             </Button>
           ) : (
-            <Button 
-              onClick={handleSubmit}
-              disabled={answeredCount === 0}
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Submit Worksheet
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setShowAnswers(prev => !prev)}
+                disabled={answeredCount === 0}
+              >
+                {showAnswers ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {showAnswers ? "Hide" : "Check"} Progress
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={answeredCount === 0}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Submit Worksheet
+              </Button>
+            </>
           )}
         </div>
       </div>

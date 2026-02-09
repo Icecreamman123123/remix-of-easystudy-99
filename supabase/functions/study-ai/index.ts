@@ -147,13 +147,14 @@ Requirements:
 - Are appropriate for ${gradeLevelText} comprehension and vocabulary
 - Difficulty: ${difficulty || 'medium'} - adjust question complexity accordingly
 - Test understanding, not just memorization
-- Use clear, concise questions
-- Have specific, accurate answers
+- Use clear, concise questions. Avoid "True/False" or "Yes/No" questions unless absolutely necessary for the concept.
+- Answers must be distinct and accurate.
 - Include hints when helpful
+- VARIETY: Mix definitions, cause-and-effect, and application questions.
 
 Return a JSON array of flashcards with this structure: [{"question": "...", "answer": "...", "hint": "..."}]
 IMPORTANT: Generate exactly ${requestedCount} flashcards about the user's topic.`;
-        userPrompt = `Create exactly ${requestedCount} flashcards at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Focus ONLY on this specific topic/content - cover it thoroughly:\n\n${content || topic}`;
+        userPrompt = `Create exactly ${requestedCount} high-quality active recall flashcards at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Focus ONLY on this specific topic/content - cover it thoroughly:\n\n${content || topic}`;
         break;
 
       case "generate-concepts":
@@ -183,11 +184,13 @@ Requirements:
 - Focus exclusively on the topic/content provided by the user
 - Test understanding at the ${difficulty || 'medium'} difficulty level appropriate for ${gradeLevelText}
 - Create varied question types with age-appropriate vocabulary
+- DISTRACTORS: Ensure wrong answers (distractors) are plausible and common misconceptions, not obviously wrong answers.
+- Avoid "All of the above" or "None of the above" unless used sparingly and effectively.
 
 Return a JSON array with this structure: [{"question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "..."}]
 The correctAnswer is the index (0-3) of the correct option.
 IMPORTANT: Generate exactly ${requestedCount} questions about the user's topic.`;
-        userPrompt = `Create a quiz with ${requestedCount} questions at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
+        userPrompt = `Create a high-quality quiz with ${requestedCount} questions at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
       case "worksheet":
@@ -215,10 +218,11 @@ Return a JSON array with this structure:
 
 IMPORTANT: 
 - Generate exactly ${requestedCount} questions about the user's topic
-- Use at least 3 different question types
+- STRICTLY mix the question types. Do NOT output only multiple choice.
 - Assign 1-3 points based on difficulty
-- Make questions appropriate for ${gradeLevelText}`;
-        userPrompt = `Create a comprehensive worksheet with ${requestedCount} varied questions at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
+- Make questions appropriate for ${gradeLevelText}
+- For "fill-blank", ensure the blank is a single key term.`;
+        userPrompt = `Create a comprehensive, varied worksheet with ${requestedCount} questions at ${gradeLevelText}. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
         break;
 
       case "explain-concept":
@@ -254,6 +258,7 @@ Requirements:
 - Focus exclusively on the topic/content provided
 - Assign a difficulty level (1-10) to each session based on complexity
 - Estimate time in minutes for each session
+- Activities must be ACTIONABLE (e.g., "Read pages 10-15 about X", "Complete 3 practice problems on Y"). Avoid generic "Study" or "Read".
 
 Return a JSON array with this structure:
 [

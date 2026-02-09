@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, RotateCcw, Lightbulb, Check, X, Keyboard, Loader2, Brain } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Lightbulb, Check, X, Keyboard, Loader2, Brain, Flag } from "lucide-react";
 import type { Flashcard } from "@/lib/study-api";
 import { localAnswerCheck, checkAnswerWithAI } from "@/lib/answer-checker";
 import { useSmartLearning, WrongAnswer } from "@/hooks/useSmartLearning";
@@ -27,6 +27,7 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult }: Flashc
   const [showHint, setShowHint] = useState(false);
   const [results, setResults] = useState<boolean[]>([]);
   const [isComplete, setIsComplete] = useState(false);
+  const [markedHard, setMarkedHard] = useState<Set<number>>(new Set());
   const [resetKey, setResetKey] = useState(0); // Force re-render on reset
 
   const {
@@ -145,7 +146,19 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult }: Flashc
     setFeedback(null);
     setIsComplete(false);
     clearWrongAnswers();
+    setMarkedHard(new Set());
     setResetKey(prev => prev + 1);
+  };
+
+  const toggleFormattedHard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newMarked = new Set(markedHard);
+    if (newMarked.has(currentIndex)) {
+      newMarked.delete(currentIndex);
+    } else {
+      newMarked.add(currentIndex);
+    }
+    setMarkedHard(newMarked);
   };
 
   if (!currentCard) {
@@ -231,9 +244,20 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult }: Flashc
       </div>
 
       <Card
-        className={`min-h-[250px] transition-all duration-500 card-hover-glow group ${!typeMode ? 'cursor-pointer' : ''}`}
+        className={`min-h-[250px] transition-all duration-500 card-hover-glow group ${!typeMode ? 'cursor-pointer' : ''} transform-style-3d perspective-1000 relative overflow-hidden`}
         onClick={handleFlip}
       >
+        <div className={`absolute inset-0 opacity-10 bg-gradient-to-br from-primary/20 via-transparent to-primary/20 pointer-events-none`} />
+
+        {/* Mark as Hard Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`absolute top-2 right-2 z-10 hover:bg-transparent ${markedHard.has(currentIndex) ? 'text-destructive' : 'text-muted-foreground/30 hover:text-destructive/70'}`}
+          onClick={toggleFormattedHard}
+        >
+          <Flag className={`h-5 w-5 ${markedHard.has(currentIndex) ? 'fill-current' : ''}`} />
+        </Button>
         <CardContent className="p-6 flex flex-col items-center justify-center min-h-[250px] relative overflow-hidden">
           <div
             className={`text-center transition-all duration-500 w-full ${isFlipped
