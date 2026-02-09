@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -337,7 +338,7 @@ Return JSON: [{"problem": "...", "solution": "...", "difficulty": "easy|medium|h
  IMPORTANT: Generate exactly ${requestedCount} elaborative questions about the user's topic.`;
         userPrompt = `Create exactly ${requestedCount} elaborative interrogation questions at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Include a mix of "why" and "how" questions. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
       case "create-cornell-notes":
-        systemPrompt = `You are an expert academic tutor who creates perfect Cornell Notes for ${gradeLevelText} students. ${expertiseApproach}
+        systemPrompt = `You are an expert academic tutor who creates perfect Cornell Notes for ${gradeLevelText} students at a ${difficulty || "medium"} difficulty level. ${expertiseApproach}
 
 CRITICAL: Your PRIMARY focus is creating structured Cornell Notes for the user's specific topic/content.
 
@@ -353,6 +354,8 @@ Requirements:
 - Notes must be detailed and informative, using bullet points where appropriate
 - Summary must synthesized the core message in 2-3 sentences
 - Appropriate vocabulary for ${gradeLevelText}
+- Complexity should match ${difficulty || "medium"} level (Easy: simple terms; Expert: deep analysis)
+- IF the user provides specific instructions in the content (e.g., "Focus on dates", "Use simple language"), PRIORITIZE them.
 
 Return a JSON object with this structure:
 {
@@ -363,7 +366,7 @@ Return a JSON object with this structure:
   ],
   "summary": "This topic covers..."
 }`;
-        userPrompt = `Create structured Cornell Notes for a ${gradeLevelText} student. Focus ONLY on this specific topic/content:\n\n${content || topic}\n\nReturn ONLY the JSON object.`;
+        userPrompt = `Create structured Cornell Notes for a ${gradeLevelText} student at ${difficulty || "medium"} difficulty. Focus ONLY on this specific topic/content:\n\n${content || topic}\n\nPAY ATTENTION to any "[Instructions: ...]" block if present.\n\nReturn ONLY the JSON object.`;
         break;
 
       default:

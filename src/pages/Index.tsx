@@ -135,7 +135,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background animate-fade-in">
       {/* Header */}
       <header className="border-b gradient-border">
         <div className="container mx-auto px-4 py-4">
@@ -400,15 +400,15 @@ function FeatureCard({
 }) {
   return (
     <div
-      className="flex items-start gap-3 p-3 bg-background rounded-lg border card-hover-glow animate-in fade-in-50 slide-in-from-bottom-2 group"
+      className="flex items-start gap-4 p-5 bg-card rounded-xl border border-border/50 apple-card hover-scale animate-in fade-in-50 slide-in-from-bottom-4 group cursor-default"
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <div className="p-2 icon-gradient rounded-md shrink-0 transition-transform duration-200 group-hover:scale-110">
-        <Icon className="h-4 w-4 text-white" />
+      <div className="p-3 bg-secondary rounded-lg shrink-0 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+        <Icon className="h-5 w-5" />
       </div>
       <div>
-        <h3 className="font-medium text-sm">{title}</h3>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">{title}</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
       </div>
     </div>
   );

@@ -46,14 +46,14 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
     };
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto print:max-w-none print:p-0">
+        <div className="space-y-6 max-w-4xl mx-auto print:max-w-none print:p-0 animate-slide-up">
             {/* Controls Header - Hidden when printing */}
             <div className="flex items-center justify-between print:hidden">
                 <div className="flex items-center gap-2">
                     <Button
                         variant={quizMode ? "default" : "outline"}
                         onClick={() => setQuizMode(!quizMode)}
-                        className="gap-2"
+                        className="gap-2 transition-all duration-300"
                     >
                         {quizMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         {quizMode ? "Exit Quiz Mode" : "Quiz Mode"}
@@ -77,10 +77,10 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
             </div>
 
             {/* Cornell Notes Paper */}
-            <div className="bg-background border-2 border-primary/20 shadow-lg min-h-[800px] flex flex-col relative print:shadow-none print:border-none">
+            <div className="bg-background border border-border shadow-sm rounded-lg min-h-[800px] flex flex-col relative print:shadow-none print:border-none overflow-hidden transition-all duration-500">
 
                 {/* Header Section */}
-                <div className="border-b-2 border-primary/20 p-6 flex justify-between items-start bg-muted/10 print:bg-transparent">
+                <div className="border-b border-border p-6 flex justify-between items-start bg-muted/10 print:bg-transparent">
                     <div className="space-y-1">
                         <Label className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Topic</Label>
                         {editing ? (
@@ -90,7 +90,7 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
                                 className="font-bold text-2xl h-auto py-1 px-2 border-dashed"
                             />
                         ) : (
-                            <h1 className="text-3xl font-bold text-primary">{data.topic}</h1>
+                            <h1 className="text-3xl font-bold text-primary tracking-tight">{data.topic}</h1>
                         )}
                     </div>
                     <div className="text-right space-y-1 print:hidden">
@@ -102,13 +102,13 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
                 {/* Main Body */}
                 <div className="flex-1 flex flex-col md:flex-row print:flex-row relative">
                     {/* Cues Column (Left) */}
-                    <div className="w-full md:w-[30%] print:w-[30%] border-b md:border-b-0 md:border-r-2 border-primary/20 p-6 bg-muted/5 print:bg-transparent">
+                    <div className="w-full md:w-[30%] print:w-[30%] border-b md:border-b-0 md:border-r border-border p-6 bg-muted/5 print:bg-transparent">
                         <Label className="text-xs uppercase text-muted-foreground font-bold tracking-wider mb-4 block">
                             Cues / Questions
                         </Label>
                         <div className="space-y-8">
                             {data.mainIdeas.map((item, i) => (
-                                <div key={i} className="min-h-[100px]">
+                                <div key={i} className="min-h-[100px] animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
                                     {editing ? (
                                         <Textarea
                                             value={item.cue}
@@ -117,7 +117,7 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
                                             rows={3}
                                         />
                                     ) : (
-                                        <div className="font-semibold text-lg text-foreground/90">{item.cue}</div>
+                                        <div className="font-semibold text-lg text-foreground/90 leading-tight">{item.cue}</div>
                                     )}
                                 </div>
                             ))}
@@ -137,7 +137,7 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
 
                         <div className="space-y-8">
                             {data.mainIdeas.map((item, i) => (
-                                <div key={i} className="relative min-h-[100px] group">
+                                <div key={i} className="relative min-h-[100px] group animate-slide-up" style={{ animationDelay: `${i * 100 + 100}ms` }}>
                                     {editing && (
                                         <div className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => removeItem(i)}>
@@ -167,7 +167,7 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
                 </div>
 
                 {/* Summary Footer */}
-                <div className="border-t-2 border-primary/20 p-6 bg-muted/10 print:bg-transparent min-h-[150px]">
+                <div className="border-t border-border p-6 bg-muted/10 print:bg-transparent min-h-[150px]">
                     <Label className="text-xs uppercase text-muted-foreground font-bold tracking-wider mb-2 block">
                         Summary
                     </Label>
@@ -179,7 +179,7 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
                             rows={4}
                         />
                     ) : (
-                        <div className="prose prose-sm dark:prose-invert max-w-none italic text-muted-foreground">
+                        <div className="prose prose-sm dark:prose-invert max-w-none italic text-muted-foreground/80">
                             {quizMode ? (
                                 <div className="blur-sm select-none">
                                     {data.summary}

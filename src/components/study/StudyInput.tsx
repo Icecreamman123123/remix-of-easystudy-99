@@ -443,10 +443,10 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>What would you like to study?</CardTitle>
-        <CardDescription>
+    <Card className="apple-card border-none shadow-lg">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-3xl font-bold tracking-tight text-gradient">What would you like to study?</CardTitle>
+        <CardDescription className="text-base">
           Enter a topic or add multiple sources, then choose a study method
         </CardDescription>
       </CardHeader>
@@ -710,22 +710,25 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {ACTIONS.map(({ action, icon: Icon, label, description }) => (
             <Button
               key={action}
               variant="outline"
-              className="h-auto py-3 flex flex-col items-center gap-1"
+              className="h-auto py-6 flex flex-col items-center gap-2 apple-button hover-scale border-muted-foreground/10 bg-card hover:bg-accent/50 hover:border-primary/20 relative overflow-hidden group"
               onClick={() => handleAction(action)}
               disabled={loading !== null}
             >
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               {loading === action ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               ) : (
-                <Icon className="h-5 w-5" />
+                <Icon className="h-8 w-8 text-primary/80 group-hover:text-primary group-hover:scale-110 transition-all duration-300" strokeWidth={1.5} />
               )}
-              <span className="font-medium text-xs">{label}</span>
-              <span className="text-[10px] text-muted-foreground hidden sm:block">{description}</span>
+              <div className="flex flex-col items-center gap-0.5 z-10">
+                <span className="font-semibold text-sm tracking-tight">{label}</span>
+                <span className="text-[10px] text-muted-foreground hidden sm:block text-center px-1 leading-tight">{description}</span>
+              </div>
             </Button>
           ))}
         </div>

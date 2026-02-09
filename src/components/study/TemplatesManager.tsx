@@ -14,16 +14,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStudyTemplates } from "@/hooks/useStudyTemplates";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { STUDY_TEMPLATES } from "@/lib/study-templates";
-import { Globe, UploadCloud } from "lucide-react";
+import { Globe, UploadCloud, User, Sparkles } from "lucide-react";
 
 interface TemplatesManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // If true, pre-fill create form to publish (used when uploading from Explore page)
   defaultIsPublic?: boolean;
-  // Pre-fill data for creating a new template
   prefillData?: {
     name?: string;
     description?: string;
@@ -34,6 +33,7 @@ interface TemplatesManagerProps {
 
 export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, prefillData = null }: TemplatesManagerProps) {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useStudyTemplates();
+  const { user, publisherName, setPublisherName } = useAuth();
   const { toast } = useToast();
 
   const [editing, setEditing] = React.useState<string | null>(null);
@@ -45,6 +45,13 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
     estimated_count: 10,
     is_public: false,
   });
+
+  const [localPublisherName, setLocalPublisherName] = React.useState(publisherName);
+
+  // Sync local state with context when context changes or dialog opens
+  React.useEffect(() => {
+    setLocalPublisherName(publisherName);
+  }, [publisherName, open]);
 
   const [payloadError, setPayloadError] = React.useState<string | null>(null);
 
@@ -87,7 +94,6 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
     setPayloadError(null);
   };
 
-  // If the dialog was opened with defaultIsPublic, start create and prefill public flag
   React.useEffect(() => {
     if (open) {
       if (prefillData) {
@@ -120,6 +126,11 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
   };
 
   const handleSave = async () => {
+    // Save publisher name if provided and changed
+    if (localPublisherName && localPublisherName !== publisherName) {
+      setPublisherName(localPublisherName);
+    }
+
     try {
       const parsed = JSON.parse(form.payload || "{}");
       if (editing) {
@@ -167,10 +178,19 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
   };
 
   const handlePublish = async (id: string, publish: boolean) => {
+    // If local template, cannot publish directly without backend support for upgrading
+    if (id.startsWith("local-")) {
+      toast({
+        title: "Feature unavailable",
+        description: "Local templates cannot be published globally yet.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       await updateTemplate(id, { is_public: publish });
       toast({ title: publish ? "Published" : "Unpublished" });
-      // Refresh list is handled by updateTemplate
     } catch (err) {
       console.error(err);
       toast({ title: "Publish failed", description: String((err as Error).message || "Error"), variant: "destructive" });
@@ -179,146 +199,150 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <div className="p-1.5 icon-gradient rounded-md">
-              <UploadCloud className="h-4 w-4 text-white" />
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 gap-0 border-none shadow-2xl bg-background/95 backdrop-blur-xl">
+        <DialogHeader className="p-6 pb-2 border-b bg-muted/20">
+          <DialogTitle className="flex items-center gap-3 text-2xl font-bold tracking-tight">
+            <div className="p-2 bg-primary/10 rounded-xl text-primary">
+              <Sparkles className="h-6 w-6" />
             </div>
-            Manage Study Templates
+            Study Templates
           </DialogTitle>
-          <DialogDescription>Create or edit your reusable study templates.</DialogDescription>
+          <DialogDescription className="text-base text-muted-foreground ml-11">
+            Create, manage and share your custom study workflows.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-5 gap-6 overflow-hidden">
+        <div className="grid md:grid-cols-5 h-[calc(90vh-130px)] divide-x divide-border/50">
           {/* Left Sidebar - Template List */}
-          <div className="md:col-span-2 space-y-4 overflow-y-auto max-h-[60vh] pr-2">
-            {/* Sample Templates */}
-            <details className="group" open>
-              <summary className="font-semibold text-sm cursor-pointer flex items-center gap-2 py-2 px-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                <span className="flex-1">Sample Templates</span>
-                <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded">Examples</span>
-              </summary>
-              <div className="space-y-2 mt-3 pl-1">
-                {STUDY_TEMPLATES.map((t) => (
-                  <div key={t.id} className="p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors card-hover">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{t.name}</div>
-                        <div className="text-xs text-muted-foreground line-clamp-2">{t.description}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{t.defaultCount || "—"} cards</div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0 hover-glow"
-                        onClick={() => {
-                          setEditing(null);
-                          const payloadObj: any = {};
-                          if (t.defaultCount) payloadObj.defaultCount = t.defaultCount;
-                          if (t.difficulty) payloadObj.difficulty = t.difficulty;
-                          setForm({
-                            name: t.name,
-                            description: t.description,
-                            action: t.action,
-                            payload: JSON.stringify(payloadObj, null, 2),
-                            estimated_count: t.defaultCount || 10,
-                            is_public: false,
-                          });
-                          setPayloadError(null);
-                        }}
-                      >
-                        Use
-                      </Button>
-                    </div>
+          <div className="md:col-span-2 flex flex-col overflow-hidden bg-muted/10">
+            <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background/50 backdrop-blur z-10">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">My Library</h4>
+              <Button size="sm" onClick={() => startCreate(false)} className="rounded-full h-8 px-4 text-xs font-semibold shadow-none">
+                + New Template
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Publisher Identity (Guest) */}
+              {!user && (
+                <div className="p-4 rounded-xl bg-card border shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                    <User className="h-4 w-4" />
+                    Guest Identity
                   </div>
-                ))}
-              </div>
-            </details>
-
-            {/* Your Templates */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
-                <h4 className="font-semibold text-sm">Your Templates</h4>
-                <div className="flex items-center gap-1">
-                  <Button size="sm" variant="default" onClick={() => startCreate(false)} className="h-7 text-xs">
-                    New
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => startCreate(true)} title="Upload and publish" className="h-7 text-xs">
-                    <Globe className="h-3 w-3 mr-1" />
-                    Publish
-                  </Button>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Publisher Name</Label>
+                    <Input
+                      value={localPublisherName}
+                      onChange={(e) => setLocalPublisherName(e.target.value)}
+                      placeholder="e.g. StudyMaster99"
+                      className="h-8 text-sm bg-background"
+                    />
+                    <p className="text-[10px] text-muted-foreground">This name will appear on your local templates.</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="space-y-2">
+              {/* Your Templates */}
+              <div>
                 {loading ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">Loading...</div>
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    Loading...
+                  </div>
                 ) : templates.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
-                    <p>No templates yet</p>
-                    <p className="text-xs mt-1">Create one to get started</p>
+                  <div className="text-center py-10 px-4 rounded-xl border border-dashed bg-muted/20">
+                    <p className="font-medium text-muted-foreground">No templates yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Create one to get started</p>
+                    <Button variant="link" size="sm" onClick={() => startCreate(false)}>Create New</Button>
                   </div>
                 ) : (
-                  templates.map((t) => (
-                    <div
-                      key={t.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all ${editing === t.id
-                        ? "bg-primary/10 border-primary/50 ring-1 ring-primary/30"
-                        : "bg-card hover:bg-muted/30"
-                        }`}
-                      onClick={() => startEdit(t)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate flex items-center gap-2">
-                            {t.name}
-                            {t.is_public && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-primary/20 text-primary">
-                                <Globe className="h-2.5 w-2.5 mr-0.5" />
-                                Public
-                              </span>
-                            )}
+                  <div className="space-y-3">
+                    {templates.map((t) => (
+                      <div
+                        key={t.id}
+                        className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer group relative ${editing === t.id
+                            ? "bg-primary/5 border-primary shadow-sm"
+                            : "bg-card hover:bg-muted/50 hover:border-primary/50 hover:shadow-md"
+                          }`}
+                        onClick={() => startEdit(t)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="font-semibold text-base truncate flex items-center gap-2">
+                              {t.name}
+                              {t.is_public && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-sky-500/10 text-sky-600 border border-sky-200">
+                                  Public
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{t.description}</div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                              <span className="px-2 py-0.5 rounded-md bg-muted font-medium">{t.estimated_count || "—"} cards</span>
+                              {/* Show publisher name if available */}
+                              {(t as any).profiles?.display_name && (
+                                <span className="flex items-center gap-1 text-primary/70">
+                                  <User className="h-3 w-3" />
+                                  {(t as any).profiles.display_name}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">{t.description}</div>
-                          <div className="text-xs text-muted-foreground mt-1">{t.estimated_count || "—"} cards</div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant={t.is_public ? "outline" : "default"}
-                          className="h-7 text-xs shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePublish(t.id, !t.is_public);
-                          }}
-                        >
-                          {t.is_public ? "Unpublish" : "Publish"}
-                        </Button>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
+              </div>
+
+              {/* Sample Templates Section moved to bottom or separate tab if needed, keeping it here for now */}
+              <div className="pt-4 border-t">
+                <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider mb-3">Community Examples</h5>
+                <div className="space-y-2">
+                  {STUDY_TEMPLATES.slice(0, 3).map((t) => (
+                    <div key={t.id} className="p-3 rounded-xl border bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
+                      setEditing(null);
+                      setForm({
+                        name: t.name,
+                        description: t.description,
+                        action: t.action,
+                        payload: JSON.stringify({ defaultCount: t.defaultCount, difficulty: t.difficulty }, null, 2),
+                        estimated_count: t.defaultCount || 10,
+                        is_public: false,
+                      });
+                    }}>
+                      <div className="font-medium text-sm">{t.name}</div>
+                      <div className="text-xs text-muted-foreground line-clamp-1">{t.description}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right Panel - Editor */}
-          <div className="md:col-span-3 space-y-4 overflow-y-auto max-h-[60vh] pr-2">
-            <div className="p-4 border rounded-lg bg-card/50 space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
+          <div className="md:col-span-3 flex flex-col bg-background h-full overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold">{editing ? "Edit Template" : "New Template"}</h3>
+                <p className="text-sm text-muted-foreground">Configure how your content is generated.</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium">Name</Label>
+                  <Label>Template Name</Label>
                   <Input
                     value={form.name}
                     onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="Template name..."
-                    className="h-9"
+                    placeholder="e.g., AP Biology Flashcards"
+                    className="bg-muted/10"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium">Action Type</Label>
+                  <Label>Action Type</Label>
                   <Select value={form.action} onValueChange={(v) => setForm((s) => ({ ...s, action: v }))}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="bg-muted/10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -332,103 +356,84 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-medium">Description</Label>
+                <Label>Description</Label>
                 <Input
                   value={form.description}
                   onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                  placeholder="Brief description..."
-                  className="h-9"
+                  placeholder="What does this template do?"
+                  className="bg-muted/10"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-4 pt-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Payload (JSON)</Label>
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="ghost" onClick={formatPayload} className="h-6 text-xs px-2">
-                      Format
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => { navigator.clipboard?.writeText(form.payload || ""); toast({ title: "Copied" }); }}
-                      className="h-6 text-xs px-2"
-                    >
-                      Copy
-                    </Button>
+                  <Label>Configuration (JSON Payload)</Label>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setForm(s => ({ ...s, payload: JSON.stringify(JSON.parse(s.payload || "{}"), null, 2) }))}>Format</Button>
                   </div>
                 </div>
-                <Textarea
-                  value={form.payload}
-                  onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))}
-                  className="font-mono text-xs min-h-[80px]"
-                  placeholder='{ "defaultCount": 10 }'
-                />
-                {payloadError && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
-                    <span>⚠️</span> {payloadError}
-                  </p>
-                )}
+                <div className="relative">
+                  <Textarea
+                    value={form.payload}
+                    onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))}
+                    className="font-mono text-sm min-h-[200px] bg-muted/10 resize-none"
+                    placeholder='{ "defaultCount": 10 }'
+                  />
+                  {payloadError && (
+                    <div className="absolute bottom-4 right-4 text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded shadow-sm animate-in fade-in slide-in-from-bottom-1">
+                      Invalid JSON
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-6 pt-2">
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium">Card Count</Label>
+                  <Label>Est. Cards/Items</Label>
                   <Input
                     type="number"
                     value={String(form.estimated_count)}
                     onChange={(e) => setForm((s) => ({ ...s, estimated_count: Number(e.target.value || 0) }))}
-                    className="h-9"
+                    className="bg-muted/10"
                   />
                 </div>
-                <div className="space-y-2 col-span-2">
-                  <Label className="text-xs font-medium">Visibility</Label>
-                  <div className="flex items-center gap-3 h-9">
+
+                {!user && (
+                  <div className="p-3 rounded-lg bg-muted/30 border text-xs text-muted-foreground flex items-center justify-center text-center">
+                    Local templates are private to this device.
+                  </div>
+                )}
+
+                {user && (
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Public Template</Label>
+                      <p className="text-xs text-muted-foreground">Share with the community</p>
+                    </div>
                     <Switch
                       checked={form.is_public}
                       onCheckedChange={(v) => setForm((s) => ({ ...s, is_public: !!v }))}
                     />
-                    <span className="text-sm text-muted-foreground">
-                      {form.is_public ? "Public (visible to everyone)" : "Private (only you)"}
-                    </span>
                   </div>
-                </div>
+                )}
               </div>
-
-              {/* Preview */}
-              <details className="group">
-                <summary className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-                  Preview JSON →
-                </summary>
-                <div className="mt-2 p-3 rounded-lg bg-muted/50 border">
-                  <pre className="text-xs font-mono whitespace-pre-wrap text-muted-foreground max-h-[100px] overflow-auto">
-                    {parsedPayload ? JSON.stringify(parsedPayload, null, 2) : "{}"}
-                  </pre>
-                </div>
-              </details>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-2">
-              <Button
-                onClick={handleSave}
-                disabled={!form.name.trim() || !!payloadError}
-                className="hover-glow"
-              >
-                {editing ? "Update Template" : "Create Template"}
-              </Button>
+            <div className="p-6 border-t bg-muted/10 flex items-center justify-between">
               {editing && (
-                <Button variant="destructive" onClick={() => handleDelete(editing)}>
-                  Delete
+                <Button variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(editing)}>
+                  Delete Template
                 </Button>
               )}
+              <div className="flex gap-3 ml-auto">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button onClick={handleSave} disabled={!!payloadError || !form.name.trim()} className="min-w-[120px]">
+                  {editing ? "Save Changes" : "Create Template"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-
-        <DialogFooter className="border-t pt-4 mt-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

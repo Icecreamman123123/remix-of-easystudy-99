@@ -235,19 +235,19 @@ export function FlashcardViewer({ flashcards, onComplete, onCardResult }: Flashc
         {results.map((r, i) => (
           <div
             key={i}
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${r
-              ? 'bg-gradient-to-r from-primary to-blue-500 scale-110 glow-sm'
-              : 'bg-destructive'
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${r
+              ? 'bg-primary scale-110'
+              : 'bg-muted-foreground/30'
               }`}
           />
         ))}
       </div>
 
       <Card
-        className={`min-h-[250px] transition-all duration-500 card-hover-glow group ${!typeMode ? 'cursor-pointer' : ''} transform-style-3d perspective-1000 relative overflow-hidden`}
+        className={`min-h-[250px] transition-all duration-500 apple-card group ${!typeMode ? 'cursor-pointer' : ''} transform-style-3d perspective-1000 relative overflow-hidden bg-card hover:shadow-xl`}
         onClick={handleFlip}
       >
-        <div className={`absolute inset-0 opacity-10 bg-gradient-to-br from-primary/20 via-transparent to-primary/20 pointer-events-none`} />
+        <div className={`absolute inset-0 opacity-[0.03] bg-gradient-to-br from-black via-transparent to-black dark:from-white dark:to-white pointer-events-none`} />
 
         {/* Mark as Hard Button */}
         <Button
