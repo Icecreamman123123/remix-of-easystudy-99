@@ -15,7 +15,8 @@ export type StudyAction =
   | "generate-concepts"
   | "matching-game"
   | "speed-challenge"
-  | "elaborative-interrogation";
+  | "elaborative-interrogation"
+  | "create-cornell-notes";
 
 export type AIModel =
   | "gemini-flash"
@@ -76,6 +77,17 @@ export interface WorksheetQuestion {
   correctAnswer: string | string[];
   explanation: string;
   points: number;
+}
+
+export interface CornellNoteItem {
+  cue: string;
+  note: string;
+}
+
+export interface CornellNotesData {
+  topic: string;
+  mainIdeas: CornellNoteItem[];
+  summary: string;
 }
 
 export async function callStudyAI(
@@ -224,6 +236,26 @@ export function parseWorksheet(response: string): WorksheetQuestion[] {
     return [];
   } catch {
     return [];
+  }
+}
+
+export function parseCornellNotes(response: string): CornellNotesData | null {
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/); // Match the outer JSON object
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (
+        typeof parsed.topic === "string" && // Make topic optional check if needed, but safe to check
+        Array.isArray(parsed.mainIdeas) &&
+        typeof parsed.summary === "string"
+      ) {
+        return parsed as CornellNotesData;
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error("parseCornellNotes: Failed to parse response", e);
+    return null;
   }
 }
 export interface StudyPlanItem {

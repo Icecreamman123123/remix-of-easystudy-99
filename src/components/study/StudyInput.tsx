@@ -8,12 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  BookOpen, 
-  Brain, 
-  ClipboardList, 
-  FileText, 
-  Lightbulb, 
+import {
+  BookOpen,
+  Brain,
+  ClipboardList,
+  FileText,
+  Lightbulb,
   Loader2,
   Network,
   Target,
@@ -28,24 +28,25 @@ import {
   FileEdit,
   Puzzle,
   Star,
-   Trash2,
-    Zap,
-    HelpCircle
+  Trash2,
+  Zap,
+  HelpCircle,
+  ScrollText
 } from "lucide-react";
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
 
 // Manual editor mode types
-export type ManualEditorMode = 
+export type ManualEditorMode =
   | null
   | { type: "flashcard"; action: StudyAction; label: string }
   | { type: "quiz" }
   | { type: "worksheet" };
 
 interface StudyInputProps {
-   onResult: (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => void;
-   onManualCreate?: (mode: ManualEditorMode) => void;
+  onResult: (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => void;
+  onManualCreate?: (mode: ManualEditorMode) => void;
 }
 
 interface Source {
@@ -128,9 +129,9 @@ const LENGTH_OPTIONS = [
 const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; description: string }[] = [
   { action: "generate-flashcards", icon: BookOpen, label: "Flashcards", description: "Create active recall cards" },
   { action: "matching-game", icon: Puzzle, label: "Matching", description: "Match Q&A pairs" },
-   { action: "speed-challenge", icon: Zap, label: "Speed Challenge", description: "Timed blitz mode" },
+  { action: "speed-challenge", icon: Zap, label: "Speed Challenge", description: "Timed blitz mode" },
   { action: "practice-test", icon: Target, label: "Practice Test", description: "Mixed question types" },
-   { action: "elaborative-interrogation", icon: HelpCircle, label: "Why/How", description: "Deep understanding" },
+  { action: "elaborative-interrogation", icon: HelpCircle, label: "Why/How", description: "Deep understanding" },
   { action: "worksheet", icon: FileEdit, label: "Worksheet", description: "Printable worksheet" },
   { action: "study-runner", icon: Gamepad2, label: "Study Runner", description: "Endless runner game" },
   { action: "mind-map", icon: Network, label: "Mind Map", description: "Visual concept mapping" },
@@ -138,17 +139,18 @@ const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; desc
   { action: "explain-concept", icon: Lightbulb, label: "Explain", description: "Simple explanations" },
   { action: "create-study-plan", icon: Brain, label: "Study Plan", description: "Weekly schedule" },
   { action: "summarize", icon: FileText, label: "Summarize", description: "Key points summary" },
+  { action: "create-cornell-notes", icon: ScrollText, label: "Cornell Notes", description: "Structured notes & cues" },
 ];
 
 // Draggable Slider Component with smooth mouse following
-function DraggableSlider({ 
-  value, 
-  onChange, 
-  max, 
-  labels 
-}: { 
-  value: number; 
-  onChange: (v: number) => void; 
+function DraggableSlider({
+  value,
+  onChange,
+  max,
+  labels
+}: {
+  value: number;
+  onChange: (v: number) => void;
   max: number;
   labels: string[];
 }) {
@@ -217,30 +219,28 @@ function DraggableSlider({
       >
         {/* Track background */}
         <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-secondary" />
-        
+
         {/* Filled track */}
-        <div 
+        <div
           className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-primary transition-all duration-75 ease-out"
           style={{ width: `${percentage}%` }}
         />
-        
+
         {/* Thumb */}
         <div
-          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-primary bg-background shadow-lg transition-transform duration-75 ease-out ${
-            isDragging ? "scale-110 ring-2 ring-primary/50" : ""
-          }`}
+          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-primary bg-background shadow-lg transition-transform duration-75 ease-out ${isDragging ? "scale-110 ring-2 ring-primary/50" : ""
+            }`}
           style={{ left: `calc(${percentage}% - 10px)` }}
         />
       </div>
-      
+
       {/* Labels below */}
       <div className="flex justify-between mt-1 px-0.5">
         {labels.map((label, i) => (
-          <div 
+          <div
             key={label}
-            className={`w-2 h-2 rounded-full transition-all duration-200 ${
-              i <= value ? "bg-primary scale-100" : "bg-muted-foreground/30 scale-75"
-            }`}
+            className={`w-2 h-2 rounded-full transition-all duration-200 ${i <= value ? "bg-primary scale-100" : "bg-muted-foreground/30 scale-75"
+              }`}
           />
         ))}
       </div>
@@ -291,14 +291,14 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const addToFavorites = () => {
     const expertiseLabel = AI_EXPERTISE.find(e => e.value === aiExpertise)?.label || aiExpertise;
     const modelLabel = AI_MODELS.find(m => m.value === aiModel)?.label || aiModel;
-    
+
     const newFavorite: FavoritePreset = {
       id: `fav-${Date.now()}`,
       name: `${modelLabel} + ${expertiseLabel}`,
       model: aiModel,
       expertise: aiExpertise,
     };
-    
+
     // Check if already exists
     const exists = favorites.some(f => f.model === aiModel && f.expertise === aiExpertise);
     if (exists) {
@@ -308,7 +308,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
       });
       return;
     }
-    
+
     const updated = [...favorites, newFavorite];
     setFavorites(updated);
     saveFavorites(updated);
@@ -381,7 +381,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
 
   const handleAction = async (action: StudyAction) => {
     const combinedContent = getCombinedContent();
-    
+
     if (!topic.trim() && !combinedContent.trim()) {
       toast({
         title: "Enter content",
@@ -400,34 +400,33 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
         effectiveAction = "generate-flashcards";
       } else if (action === "mind-map") {
         effectiveAction = "generate-concepts";
-       } else if (action === "elaborative-interrogation") {
-         effectiveAction = "elaborative-interrogation";
+      } else if (action === "elaborative-interrogation") {
+        effectiveAction = "elaborative-interrogation";
       }
-      
+
       // Build instructions with difficulty and count
       const difficultyText = DIFFICULTY_LABELS[difficulty].toLowerCase();
       const countInstruction = `Generate exactly ${questionCount} items.`;
-      const difficultyInstruction = `Difficulty level: ${difficultyText}. ${
-        difficulty === 0 ? "Use simple vocabulary and basic concepts." :
+      const difficultyInstruction = `Difficulty level: ${difficultyText}. ${difficulty === 0 ? "Use simple vocabulary and basic concepts." :
         difficulty === 1 ? "Use standard complexity appropriate for the grade level." :
-        difficulty === 2 ? "Include challenging questions that require deeper understanding." :
-        "Include highly complex questions requiring expert-level analysis and synthesis."
-      }`;
-      
+          difficulty === 2 ? "Include challenging questions that require deeper understanding." :
+            "Include highly complex questions requiring expert-level analysis and synthesis."
+        }`;
+
       // Combine content with custom instructions if provided
       const allInstructions = [
         countInstruction,
         difficultyInstruction,
         customInstructions.trim()
       ].filter(Boolean).join("\n");
-      
-       // IMPORTANT: Include topic in content if no sources added
-       const topicContent = topic.trim() ? `Topic: ${topic.trim()}` : "";
-       const fullContent = [topicContent, combinedContent].filter(Boolean).join("\n\n");
-       const contentWithInstructions = `${fullContent}\n\n[Instructions: ${allInstructions}]`;
-      
+
+      // IMPORTANT: Include topic in content if no sources added
+      const topicContent = topic.trim() ? `Topic: ${topic.trim()}` : "";
+      const fullContent = [topicContent, combinedContent].filter(Boolean).join("\n\n");
+      const contentWithInstructions = `${fullContent}\n\n[Instructions: ${allInstructions}]`;
+
       const result = await callStudyAI(effectiveAction, contentWithInstructions, topic, difficultyText, gradeLevel, aiModel, aiExpertise, includeWikipedia);
-       onResult(action, result, topic, gradeLevel);
+      onResult(action, result, topic, gradeLevel);
       toast({
         title: "Success!",
         description: `Generated ${action.replace(/-/g, " ")} successfully.`,
@@ -590,8 +589,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             <Label className="text-sm font-medium">Sources ({sources.length})</Label>
             <div className="flex flex-wrap gap-2">
               {sources.map(source => (
-                <Badge 
-                  key={source.id} 
+                <Badge
+                  key={source.id}
                   variant="secondary"
                   className="flex items-center gap-1 pr-1"
                 >
@@ -634,8 +633,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               onChange={(e) => setCurrentTextContent(e.target.value)}
               className="min-h-[120px]"
             />
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               onClick={addTextSource}
               disabled={!currentTextContent.trim()}
@@ -656,14 +655,14 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               <Gauge className="h-4 w-4" />
               Difficulty: <span className="font-bold text-primary transition-all duration-300">{DIFFICULTY_LABELS[difficulty]}</span>
             </Label>
-            <DraggableSlider 
-              value={difficulty} 
-              onChange={setDifficulty} 
-              max={3} 
-              labels={DIFFICULTY_LABELS} 
+            <DraggableSlider
+              value={difficulty}
+              onChange={setDifficulty}
+              max={3}
+              labels={DIFFICULTY_LABELS}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label className="flex items-center gap-2 text-sm">
               <Hash className="h-4 w-4" />
@@ -686,30 +685,30 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
         </div>
 
         {/* Custom Instructions Collapsible */}
-         {/* Custom Instructions - Always Visible */}
-         <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
-           <div className="flex items-center justify-between">
-             <Label className="text-sm font-medium flex items-center gap-2">
-               <Settings2 className="h-4 w-4 text-primary" />
-               Custom Instructions
-             </Label>
-             {customInstructions && (
-               <Badge variant="secondary" className="text-xs">
-                 Active
-               </Badge>
-             )}
-           </div>
-           <Textarea
-             placeholder="Tell the AI exactly what you want! Examples:
+        {/* Custom Instructions - Always Visible */}
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-primary" />
+              Custom Instructions
+            </Label>
+            {customInstructions && (
+              <Badge variant="secondary" className="text-xs">
+                Active
+              </Badge>
+            )}
+          </div>
+          <Textarea
+            placeholder="Tell the AI exactly what you want! Examples:
 • 'Focus on practical real-world examples'
 • 'Include memory tricks and mnemonics'
 • 'Make questions more challenging'
 • 'Add step-by-step explanations'"
-             value={customInstructions}
-             onChange={(e) => setCustomInstructions(e.target.value)}
-             className="min-h-[80px] bg-background"
-           />
-         </div>
+            value={customInstructions}
+            onChange={(e) => setCustomInstructions(e.target.value)}
+            className="min-h-[80px] bg-background"
+          />
+        </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {ACTIONS.map(({ action, icon: Icon, label, description }) => (

@@ -336,6 +336,34 @@ Return JSON: [{"problem": "...", "solution": "...", "difficulty": "easy|medium|h
  
  IMPORTANT: Generate exactly ${requestedCount} elaborative questions about the user's topic.`;
         userPrompt = `Create exactly ${requestedCount} elaborative interrogation questions at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Include a mix of "why" and "how" questions. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
+      case "create-cornell-notes":
+        systemPrompt = `You are an expert academic tutor who creates perfect Cornell Notes for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Your PRIMARY focus is creating structured Cornell Notes for the user's specific topic/content.
+
+Cornell Notes Structure:
+1. **Topic**: The main subject.
+2. **Main Ideas / Cues**: Key questions, keywords, or big ideas (Left column).
+3. **Notes / Details**: Detailed explanations, definitions, and supporting facts corresponding to the cues (Right column).
+4. **Summary**: A concise summary of the entire topic (Bottom section).
+
+Requirements:
+- Focus exclusively on the topic/content provided
+- Extract 5-10 key main ideas/cues
+- Notes must be detailed and informative, using bullet points where appropriate
+- Summary must synthesized the core message in 2-3 sentences
+- Appropriate vocabulary for ${gradeLevelText}
+
+Return a JSON object with this structure:
+{
+  "topic": "The Topic Name",
+  "mainIdeas": [
+    { "cue": "What is X?", "note": "X is..." },
+    { "cue": "Key Principle", "note": "The principle states that..." }
+  ],
+  "summary": "This topic covers..."
+}`;
+        userPrompt = `Create structured Cornell Notes for a ${gradeLevelText} student. Focus ONLY on this specific topic/content:\n\n${content || topic}\n\nReturn ONLY the JSON object.`;
         break;
 
       default:

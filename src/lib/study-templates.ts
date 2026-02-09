@@ -7,7 +7,7 @@ export interface StudyTemplate {
   description: string;
   preview?: string;
   defaultTitle: string;
-  action: "generate-flashcards" | "generate-quiz" | "create-study-plan";
+  action: "generate-flashcards" | "generate-quiz" | "create-study-plan" | "create-cornell-notes";
   defaultCount?: number;
   difficulty?: string;
   gradeLevel?: string;
@@ -159,6 +159,17 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     defaultCount: 4,
     difficulty: "medium",
   },
+  // === CORNELL NOTES TEMPLATE ===
+  {
+    id: "cornell-notes",
+    name: "📝 Cornell Notes",
+    description: "Structured notes with cues, main points, and summary method.",
+    preview: "Cues | Notes | Summary layout",
+    defaultTitle: "Cornell Notes: {{topic}}",
+    action: "create-cornell-notes",
+    defaultCount: 1, // One document
+    difficulty: "medium",
+  },
 ];
 
 /**
@@ -251,6 +262,18 @@ export async function generateTemplateDeck(
     // For study plans, we return the raw text/JSON to be parsed by results viewer
     // We only create flashcards as a fallback or for other views
     return { title, flashcards: [], rawResult: text };
+  }
+
+  if (template.action === "create-cornell-notes") {
+    const ai = await callStudyAIWithFallback(
+      "create-cornell-notes",
+      undefined,
+      topic,
+      template.difficulty,
+      gradeLevel
+    );
+
+    return { title, flashcards: [], rawResult: ai.result };
   }
 
   throw new Error("Unsupported template action");

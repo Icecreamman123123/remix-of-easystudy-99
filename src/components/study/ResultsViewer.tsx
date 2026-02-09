@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X } from "lucide-react";
-import { StudyAction, parseFlashcards, parseQuiz, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, Flashcard, Concept } from "@/lib/study-api";
+import { StudyAction, parseFlashcards, parseQuiz, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, parseCornellNotes, Flashcard, Concept } from "@/lib/study-api";
 import { FlashcardViewer } from "./FlashcardViewer";
 import { QuizViewer } from "./QuizViewer";
 import { PracticeTest } from "./PracticeTest";
@@ -13,6 +13,7 @@ import { WorksheetViewer } from "./WorksheetViewer";
 import { MatchingGame } from "./MatchingGame";
 import { SpeedChallenge } from "./SpeedChallenge";
 import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
+import { CornellNotesViewer } from "./CornellNotesViewer";
 import { ExportPdfButton } from "./ExportPdfButton";
 import { StudyPlanViewer } from "./StudyPlanViewer";
 import ReactMarkdown from "react-markdown";
@@ -190,6 +191,17 @@ export function ResultsViewer({ action, result, onClose, topic, isManual, onSave
         }
         break;
       }
+      case "create-cornell-notes": {
+        const cornellData = parseCornellNotes(result);
+        if (cornellData) {
+          return (
+            <CornellNotesViewer
+              data={cornellData}
+            />
+          );
+        }
+        break;
+      }
       case "practice-problems": {
         const problems = parsePracticeProblems(result);
         if (problems.length > 0) {
@@ -259,13 +271,14 @@ export function ResultsViewer({ action, result, onClose, topic, isManual, onSave
       case "explain-concept": return "Concept Explanation";
       case "create-study-plan": return "Study Schedule";
       case "summarize": return "Summary";
+      case "create-cornell-notes": return "Cornell Notes";
       case "practice-problems": return "Practice Problems";
       default: return "Results";
     }
   };
 
   // For interactive modes, use full height
-  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation"].includes(action);
+  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes"].includes(action);
 
   return (
     <Card className="h-full">
