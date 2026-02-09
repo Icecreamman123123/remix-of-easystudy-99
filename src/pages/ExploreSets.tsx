@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useStudyTemplates } from "@/hooks/useStudyTemplates";
+import { useStudyTemplates } from "@/hooks/useStudyTemplates-simple";
 import { STUDY_TEMPLATES } from "@/lib/study-templates";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";

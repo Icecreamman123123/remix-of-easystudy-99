@@ -15,8 +15,8 @@ import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAnd
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
-import { useAuth } from "@/hooks/useAuth";
-import { useStudySessions } from "@/hooks/useStudySessions";
+import { useAuth } from "@/hooks/useAuth-simple";
+import { useStudySessions } from "@/hooks/useStudySessions-simple";
 import { useI18n } from "@/lib/i18n";
 import {
   GraduationCap,
