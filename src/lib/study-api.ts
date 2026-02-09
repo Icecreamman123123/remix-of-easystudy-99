@@ -24,9 +24,10 @@ export type AIModel =
   | "gemini-3-pro"
   | "gemini-2.5-flash"
   | "gemini-flash-lite"
-  | "huggingface-mistral"
-  | "huggingface-llama"
-  | "huggingface-gemma"
+  | "gpt-5-nano"
+  | "gpt-5-mini"
+  | "gpt-5"
+  | "gpt-5.2"
   | "wikipedia"; // Use Wikipedia API as source content
 
 export type AIExpertise =
