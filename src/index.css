@@ -276,3 +276,24 @@ button {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* Premium Apple-style Components */
+.apple-card {
+  @apply bg-card/80 backdrop-blur-xl border border-white/20 shadow-lg transition-all duration-300;
+}
+
+.dark .apple-card {
+  @apply bg-zinc-900/80 border-white/10 shadow-[0_8px_32px_rgba(0, 0, 0, 0.5)];
+}
+
+.apple-button {
+  @apply transition-all duration-300 active:scale-95;
+}
+
+.hover-scale {
+  @apply transition-transform duration-300 cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hover-scale:hover {
+  @apply transform scale-[1.02];
+}
