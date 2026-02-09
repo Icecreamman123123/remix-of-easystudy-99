@@ -11,6 +11,10 @@ import { StudyChat } from "@/components/study/StudyChat";
 import { ManualFlashcardEditor } from "@/components/study/ManualFlashcardEditor";
 import { ManualQuizEditor } from "@/components/study/ManualQuizEditor";
 import { ManualWorksheetEditor } from "@/components/study/ManualWorksheetEditor";
+import { ManualCornellNotesEditor } from "@/components/study/ManualCornellNotesEditor";
+import { ManualStudyPlanEditor } from "@/components/study/ManualStudyPlanEditor";
+import { ManualMindMapEditor } from "@/components/study/ManualMindMapEditor";
+import { ManualTextStudyEditor } from "@/components/study/ManualTextStudyEditor";
 import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAndAchievements";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -225,6 +229,32 @@ const Index = () => {
                 )}
                 {manualEditor.type === "worksheet" && (
                   <ManualWorksheetEditor
+                    onSubmit={handleManualResult}
+                    onCancel={() => setManualEditor(null)}
+                  />
+                )}
+                {manualEditor.type === "cornell-notes" && (
+                  <ManualCornellNotesEditor
+                    onSubmit={handleManualResult}
+                    onCancel={() => setManualEditor(null)}
+                  />
+                )}
+                {manualEditor.type === "study-plan" && (
+                  <ManualStudyPlanEditor
+                    onSubmit={handleManualResult}
+                    onCancel={() => setManualEditor(null)}
+                  />
+                )}
+                {manualEditor.type === "mind-map" && (
+                  <ManualMindMapEditor
+                    onSubmit={handleManualResult}
+                    onCancel={() => setManualEditor(null)}
+                  />
+                )}
+                {manualEditor.type === "text-study" && (
+                  <ManualTextStudyEditor
+                    action={manualEditor.action}
+                    label={manualEditor.label}
                     onSubmit={handleManualResult}
                     onCancel={() => setManualEditor(null)}
                   />

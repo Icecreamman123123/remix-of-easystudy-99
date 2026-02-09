@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X } from "lucide-react";
@@ -281,15 +281,18 @@ export function ResultsViewer({ action, result, onClose, topic, isManual, onSave
   const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes"].includes(action);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle>{getTitle()}</CardTitle>
-        <div className="flex items-center gap-2">
+    <Card className="h-full border-none shadow-none bg-transparent">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b px-0">
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">{getTitle()}</CardTitle>
+          {topic && <CardDescription className="text-sm text-muted-foreground">{topic}</CardDescription>}
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
           {flashcards.length > 0 && (
             <ExportPdfButton flashcards={flashcards} title={topic || getTitle()} />
           )}
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-destructive/10 hover:text-destructive">
+            <X className="h-5 w-5" />
           </Button>
         </div>
       </CardHeader>

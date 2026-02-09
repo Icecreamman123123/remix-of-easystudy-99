@@ -119,12 +119,12 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
       <Card
         key={question.id}
         className={`transition-all duration-200 ${(submitted || showAnswers)
-            ? correct
-              ? "border-green-500/50 bg-green-500/5"
-              : userAnswer
-                ? "border-red-500/50 bg-red-500/5"
-                : "border-yellow-500/50 bg-yellow-500/5"
-            : ""
+          ? correct
+            ? "border-green-500/50 bg-green-500/5"
+            : userAnswer
+              ? "border-red-500/50 bg-red-500/5"
+              : "border-yellow-500/50 bg-yellow-500/5"
+          : ""
           }`}
       >
         <CardContent className="pt-4">
@@ -291,25 +291,28 @@ export function WorksheetViewer({ questions, title, onComplete }: WorksheetViewe
     <div className="space-y-4">
       {/* Header */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3 px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5 text-primary" />
-              <CardTitle>{title}</CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <CardTitle className="text-xl font-bold">{title}</CardTitle>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAnswers(!showAnswers)}
                 disabled={!submitted}
+                className="shadow-sm"
               >
-                {showAnswers ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                {showAnswers ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                 {showAnswers ? "Hide" : "Show"} Answers
               </Button>
-              <Button variant="outline" size="sm" onClick={() => window.print()}>
-                <Printer className="h-4 w-4 mr-1" />
-                Print
+              <Button variant="outline" size="sm" onClick={() => window.print()} className="shadow-sm">
+                <Printer className="h-4 w-4 mr-2" />
+                Print / PDF
               </Button>
             </div>
           </div>

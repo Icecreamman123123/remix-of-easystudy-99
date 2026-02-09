@@ -48,27 +48,29 @@ export function CornellNotesViewer({ data: initialData, onSave }: CornellNotesVi
     return (
         <div className="space-y-6 max-w-4xl mx-auto print:max-w-none print:p-0 animate-slide-up">
             {/* Controls Header - Hidden when printing */}
-            <div className="flex items-center justify-between print:hidden">
-                <div className="flex items-center gap-2">
+            {/* Controls Header - Hidden when printing */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden bg-muted/30 p-4 rounded-lg border border-border/50">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button
                         variant={quizMode ? "default" : "outline"}
                         onClick={() => setQuizMode(!quizMode)}
-                        className="gap-2 transition-all duration-300"
+                        className="gap-2 transition-all duration-300 shadow-sm"
+                        size="sm"
                     >
                         {quizMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         {quizMode ? "Exit Quiz Mode" : "Quiz Mode"}
                     </Button>
-                    <Button variant="outline" onClick={() => setEditing(!editing)}>
+                    <Button variant="outline" size="sm" onClick={() => setEditing(!editing)} className="shadow-sm">
                         {editing ? "View Mode" : "Edit Mode"}
                     </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handlePrint}>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <Button variant="outline" size="sm" onClick={handlePrint} className="shadow-sm">
                         <Printer className="h-4 w-4 mr-2" />
                         Print / PDF
                     </Button>
                     {onSave && (
-                        <Button onClick={() => onSave(data)}>
+                        <Button size="sm" onClick={() => onSave(data)} className="shadow-sm">
                             <Save className="h-4 w-4 mr-2" />
                             Save
                         </Button>
