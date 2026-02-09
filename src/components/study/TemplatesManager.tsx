@@ -223,22 +223,20 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {/* Publisher Identity (Guest) */}
+              {/* Sign In Prompt (Guest) */}
               {!user && (
-                <div className="p-4 rounded-xl bg-card border shadow-sm space-y-3">
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 shadow-sm space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-primary">
                     <User className="h-4 w-4" />
-                    Guest Identity
+                    Sign In Required
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Publisher Name</Label>
-                    <Input
-                      value={localPublisherName}
-                      onChange={(e) => setLocalPublisherName(e.target.value)}
-                      placeholder="e.g. StudyMaster99"
-                      className="h-8 text-sm bg-background"
-                    />
-                    <p className="text-[10px] text-muted-foreground">This name will appear on your local templates.</p>
+                    <p className="text-xs text-muted-foreground">
+                      You must be signed in to create and save study templates to the cloud.
+                    </p>
+                    <Button size="sm" className="w-full text-xs" onClick={() => (window.location.href = "/auth")}>
+                      Sign In / Sign Up
+                    </Button>
                   </div>
                 </div>
               )}
@@ -252,9 +250,15 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                   </div>
                 ) : templates.length === 0 ? (
                   <div className="text-center py-10 px-4 rounded-xl border border-dashed bg-muted/20">
-                    <p className="font-medium text-muted-foreground">No templates yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Create one to get started</p>
-                    <Button variant="link" size="sm" onClick={() => startCreate(false)}>Create New</Button>
+                    <p className="font-medium text-muted-foreground">No templates found</p>
+                    {user ? (
+                      <>
+                        <p className="text-xs text-muted-foreground mt-1">Create one to get started</p>
+                        <Button variant="link" size="sm" onClick={() => startCreate(false)}>Create New</Button>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">Sign in to view your templates</p>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -262,8 +266,8 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                       <div
                         key={t.id}
                         className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer group relative ${editing === t.id
-                            ? "bg-primary/5 border-primary shadow-sm"
-                            : "bg-card hover:bg-muted/50 hover:border-primary/50 hover:shadow-md"
+                          ? "bg-primary/5 border-primary shadow-sm"
+                          : "bg-card hover:bg-muted/50 hover:border-primary/50 hover:shadow-md"
                           }`}
                         onClick={() => startEdit(t)}
                       >
@@ -285,6 +289,12 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                                 <span className="flex items-center gap-1 text-primary/70">
                                   <User className="h-3 w-3" />
                                   {(t as any).profiles.display_name}
+                                </span>
+                              )}
+                              {/* Date */}
+                              {t.created_at && (
+                                <span className="text-muted-foreground/50 ml-auto">
+                                  {new Date(t.created_at).toLocaleDateString()}
                                 </span>
                               )}
                             </div>
@@ -329,105 +339,124 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                 <p className="text-sm text-muted-foreground">Configure how your content is generated.</p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Template Name</Label>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="e.g., AP Biology Flashcards"
-                    className="bg-muted/10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Action Type</Label>
-                  <Select value={form.action} onValueChange={(v) => setForm((s) => ({ ...s, action: v }))}>
-                    <SelectTrigger className="bg-muted/10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="generate-flashcards">Generate Flashcards</SelectItem>
-                      <SelectItem value="generate-quiz">Generate Quiz</SelectItem>
-                      <SelectItem value="create-study-plan">Create Study Plan</SelectItem>
-                      <SelectItem value="create-cornell-notes">Generate Cornell Notes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Input
-                  value={form.description}
-                  onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-                  placeholder="What does this template do?"
-                  className="bg-muted/10"
-                />
-              </div>
-
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between">
-                  <Label>Configuration (JSON Payload)</Label>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setForm(s => ({ ...s, payload: JSON.stringify(JSON.parse(s.payload || "{}"), null, 2) }))}>Format</Button>
+              {!user && !editing && (
+                <div className="p-6 rounded-xl bg-muted/30 border border-dashed flex flex-col items-center justify-center text-center gap-4">
+                  <div className="p-4 bg-background rounded-full shadow-sm">
+                    <User className="h-8 w-8 text-muted-foreground" />
                   </div>
-                </div>
-                <div className="relative">
-                  <Textarea
-                    value={form.payload}
-                    onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))}
-                    className="font-mono text-sm min-h-[200px] bg-muted/10 resize-none"
-                    placeholder='{ "defaultCount": 10 }'
-                  />
-                  {payloadError && (
-                    <div className="absolute bottom-4 right-4 text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded shadow-sm animate-in fade-in slide-in-from-bottom-1">
-                      Invalid JSON
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 pt-2">
-                <div className="space-y-2">
-                  <Label>Est. Cards/Items</Label>
-                  <Input
-                    type="number"
-                    value={String(form.estimated_count)}
-                    onChange={(e) => setForm((s) => ({ ...s, estimated_count: Number(e.target.value || 0) }))}
-                    className="bg-muted/10"
-                  />
-                </div>
-
-                {!user && (
-                  <div className="p-3 rounded-lg bg-muted/30 border text-xs text-muted-foreground flex items-center justify-center text-center">
-                    Local templates are private to this device.
+                  <div className="space-y-2 max-w-sm">
+                    <h4 className="font-medium">Sign in to Create Templates</h4>
+                    <p className="text-sm text-muted-foreground">
+                      You need to be signed in to create, save, and share your own study templates.
+                    </p>
                   </div>
-                )}
+                  <Button onClick={() => (window.location.href = "/auth")}>
+                    Sign In
+                  </Button>
+                </div>
+              )}
 
-                {user && (
-                  <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Public Template</Label>
-                      <p className="text-xs text-muted-foreground">Share with the community</p>
+              {(user || editing) && (
+                <>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Template Name</Label>
+                      <Input
+                        value={form.name}
+                        onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                        placeholder="e.g., AP Biology Flashcards"
+                        className="bg-muted/10"
+                        disabled={!user}
+                      />
                     </div>
-                    <Switch
-                      checked={form.is_public}
-                      onCheckedChange={(v) => setForm((s) => ({ ...s, is_public: !!v }))}
+                    <div className="space-y-2">
+                      <Label>Action Type</Label>
+                      <Select value={form.action} onValueChange={(v) => setForm((s) => ({ ...s, action: v }))} disabled={!user}>
+                        <SelectTrigger className="bg-muted/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="generate-flashcards">Generate Flashcards</SelectItem>
+                          <SelectItem value="generate-quiz">Generate Quiz</SelectItem>
+                          <SelectItem value="create-study-plan">Create Study Plan</SelectItem>
+                          <SelectItem value="create-cornell-notes">Generate Cornell Notes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Input
+                      value={form.description}
+                      onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+                      placeholder="What does this template do?"
+                      className="bg-muted/10"
+                      disabled={!user}
                     />
                   </div>
-                )}
-              </div>
+
+                  <div className="space-y-4 pt-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Configuration (JSON Payload)</Label>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setForm(s => ({ ...s, payload: JSON.stringify(JSON.parse(s.payload || "{}"), null, 2) }))} disabled={!user}>Format</Button>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <Textarea
+                        value={form.payload}
+                        onChange={(e) => setForm((s) => ({ ...s, payload: e.target.value }))}
+                        className="font-mono text-sm min-h-[200px] bg-muted/10 resize-none"
+                        placeholder='{ "defaultCount": 10 }'
+                        disabled={!user}
+                      />
+                      {payloadError && (
+                        <div className="absolute bottom-4 right-4 text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded shadow-sm animate-in fade-in slide-in-from-bottom-1">
+                          Invalid JSON
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6 pt-2">
+                    <div className="space-y-2">
+                      <Label>Est. Cards/Items</Label>
+                      <Input
+                        type="number"
+                        value={String(form.estimated_count)}
+                        onChange={(e) => setForm((s) => ({ ...s, estimated_count: Number(e.target.value || 0) }))}
+                        className="bg-muted/10"
+                        disabled={!user}
+                      />
+                    </div>
+
+                    {user && (
+                      <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Public Template</Label>
+                          <p className="text-xs text-muted-foreground">Share with the community</p>
+                        </div>
+                        <Switch
+                          checked={form.is_public}
+                          onCheckedChange={(v) => setForm((s) => ({ ...s, is_public: !!v }))}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="p-6 border-t bg-muted/10 flex items-center justify-between">
-              {editing && (
+              {editing && user && (
                 <Button variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(editing)}>
                   Delete Template
                 </Button>
               )}
               <div className="flex gap-3 ml-auto">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button onClick={handleSave} disabled={!!payloadError || !form.name.trim()} className="min-w-[120px]">
+                <Button onClick={handleSave} disabled={!!payloadError || !form.name.trim() || !user} className="min-w-[120px]">
                   {editing ? "Save Changes" : "Create Template"}
                 </Button>
               </div>

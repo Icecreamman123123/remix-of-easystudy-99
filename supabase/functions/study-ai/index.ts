@@ -6,20 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Model mapping - all available Lovable AI models
+// Google Gemini API Models
 const MODEL_MAP: Record<string, string> = {
   // Fast & Efficient
-  "gemini-flash-lite": "google/gemini-2.5-flash-lite",
-  "gpt-5-nano": "openai/gpt-5-nano",
+  "gemini-flash-lite": "gemini-2.5-flash-lite",
   // Balanced
-  "gemini-flash": "google/gemini-3-flash-preview",
-  "gemini-2.5-flash": "google/gemini-2.5-flash",
-  "gpt-5-mini": "openai/gpt-5-mini",
+  "gemini-flash": "gemini-2.5-flash",
+  "gemini-2.5-flash": "gemini-2.5-flash",
   // Most Capable
-  "gemini-pro": "google/gemini-2.5-pro",
-  "gemini-3-pro": "google/gemini-3-pro-preview",
-  "gpt-5": "openai/gpt-5",
-  "gpt-5.2": "openai/gpt-5.2",
+  "gemini-pro": "gemini-2.5-pro",
+  "gemini-3-pro": "gemini-2.5-pro",
+  // Hugging Face Models (fallback)
+  "huggingface-mistral": "mistralai/Mistral-7B-Instruct-v0.2",
+  "huggingface-llama": "meta-llama/Llama-3.2-3B-Instruct",
+  "huggingface-gemma": "google/gemma-2-2b-it",
 };
 
 // Expertise teaching approach hints (NOT topic overrides - the user's topic is ALWAYS primary)
@@ -58,10 +58,12 @@ serve(async (req) => {
       return undefined;
     };
 
-    const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
+    // API Keys from environment
+    const GEMINI_API_KEY = getEnv("GEMINI_API_KEY");
+    const HUGGINGFACE_API_KEY = getEnv("HUGGINGFACE_API_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!GEMINI_API_KEY && !HUGGINGFACE_API_KEY) {
+      throw new Error("Neither GEMINI_API_KEY nor HUGGINGFACE_API_KEY is configured");
     }
 
     // Select model (default to gemini-flash)
@@ -381,21 +383,52 @@ Return a JSON object with this structure:
 
     console.log(`Processing ${action} request with model ${selectedModel}`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        stream: false,
-      }),
-    });
+    // Determine which API to use based on model selection
+    const isHuggingFaceModel = selectedModel.includes("/");
+    
+    let response: Response;
+    
+    if (isHuggingFaceModel && HUGGINGFACE_API_KEY) {
+      // Use Hugging Face API
+      response = await fetch(`https://api-inference.huggingface.co/models/${selectedModel}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${HUGGINGFACE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: `${systemPrompt}\n\n${userPrompt}`,
+          parameters: {
+            max_new_tokens: 2048,
+            temperature: 0.7,
+            do_sample: true,
+          },
+        }),
+      });
+    } else if (GEMINI_API_KEY) {
+      // Use Google Gemini API
+      const geminiModel = selectedModel.includes("gemini") ? selectedModel : "gemini-2.5-flash";
+      
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `${systemPrompt}\n\n${userPrompt}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          },
+        }),
+      });
+    } else {
+      throw new Error("No suitable API key available for the selected model");
+    }
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -415,8 +448,25 @@ Return a JSON object with this structure:
       throw new Error(`AI request failed: ${response.status}`);
     }
 
-    const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content || "";
+    let aiResponse = "";
+    
+    if (isHuggingFaceModel) {
+      // Parse Hugging Face response
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(`Hugging Face API error: ${data.error}`);
+      }
+      aiResponse = data[0]?.generated_text || "";
+      // Remove the prompt from the response
+      aiResponse = aiResponse.replace(`${systemPrompt}\n\n${userPrompt}`, "").trim();
+    } else {
+      // Parse Gemini response
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(`Gemini API error: ${data.error.message}`);
+      }
+      aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    }
 
     console.log(`Successfully processed ${action}`);
 

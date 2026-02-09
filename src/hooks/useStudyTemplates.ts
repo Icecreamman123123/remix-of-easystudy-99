@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useToast } from "./use-toast";
 
 export interface StudyTemplateRecord {
   id: string;
@@ -18,54 +19,40 @@ export interface StudyTemplateRecord {
 export function useStudyTemplates() {
   const [templates, setTemplates] = useState<StudyTemplateRecord[]>([]);
   const [loading, setLoading] = useState(true);
-
-
-
-  const { user, publisherName } = useAuth();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const fetchTemplates = async () => {
     setLoading(true);
-    let allTemplates: StudyTemplateRecord[] = [];
-
-    // 1. Fetch public templates from Supabase
-    const { data, error } = await (supabase as any)
-      .from("study_templates")
-      .select("*, profiles(display_name)")
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      allTemplates = [...data];
-    } else {
-      console.error("Error fetching remote templates:", error);
-    }
-
-    // 2. Fetch local templates from localStorage
     try {
-      const localData = localStorage.getItem("local_study_templates");
-      if (localData) {
-        const localTemplates: StudyTemplateRecord[] = JSON.parse(localData);
-        // Combine, prioritizing local ones if they exist (though IDs should differ)
-        allTemplates = [...localTemplates, ...allTemplates];
-      }
-    } catch (e) {
-      console.error("Error fetching local templates:", e);
+      // Fetch public templates or user's own templates
+      let query = (supabase as any)
+        .from("study_templates")
+        .select("*, profiles(display_name)")
+        .order("created_at", { ascending: false });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Deduplicate by ID
+      const uniqueTemplates = Array.from(new Map((data || []).map(item => [item.id, item])).values());
+      setTemplates(uniqueTemplates as StudyTemplateRecord[]);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      toast({
+        title: "Error loading templates",
+        description: "Could not load templates from the server.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    // Deduplicate by ID just in case
-    const uniqueTemplates = Array.from(new Map(allTemplates.map(item => [item.id, item])).values());
-
-    // Sort combined results
-    uniqueTemplates.sort((a, b) =>
-      new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-    );
-
-    setTemplates(uniqueTemplates);
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchTemplates();
-  }, []);
+  }, [user]); // Refetch when user changes
 
   const createTemplate = async (t: {
     name: string;
@@ -75,8 +62,16 @@ export function useStudyTemplates() {
     estimated_count?: number;
     is_public?: boolean;
   }) => {
-    // If user is logged in, try to save to Supabase
-    if (user) {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save templates.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    try {
       const { data, error } = await (supabase as any).from("study_templates").insert({
         name: t.name,
         description: t.description || null,
@@ -88,73 +83,77 @@ export function useStudyTemplates() {
       }).select().single();
 
       if (error) throw error;
+
       await fetchTemplates();
+      toast({
+        title: "Template Saved",
+        description: "Your study template has been saved to the cloud.",
+      });
       return data as StudyTemplateRecord;
-    } else {
-      // Local Storage Fallback
-      const newTemplate: StudyTemplateRecord = {
-        id: `local-${Date.now()}`,
-        name: t.name,
-        description: t.description || null,
-        action: t.action,
-        payload: t.payload || {},
-        estimated_count: t.estimated_count || null,
-        is_public: false, // Local templates are always private/local
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        // Augment with publisher name if available for display
-        // @ts-ignore
-        profiles: publisherName ? { display_name: publisherName } : undefined
-      };
-
-      const localData = localStorage.getItem("local_study_templates");
-      const localTemplates: StudyTemplateRecord[] = localData ? JSON.parse(localData) : [];
-      localTemplates.push(newTemplate);
-      localStorage.setItem("local_study_templates", JSON.stringify(localTemplates));
-
-      await fetchTemplates(); // Refresh list
-      return newTemplate;
+    } catch (error) {
+      console.error("Error creating template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save template.",
+        variant: "destructive",
+      });
+      return null;
     }
   };
 
   const updateTemplate = async (id: string, updates: Partial<StudyTemplateRecord>) => {
-    if (id.startsWith("local-")) {
-      // Local Update
-      const localData = localStorage.getItem("local_study_templates");
-      let localTemplates: StudyTemplateRecord[] = localData ? JSON.parse(localData) : [];
+    if (!user) return null;
 
-      const index = localTemplates.findIndex(t => t.id === id);
-      if (index !== -1) {
-        localTemplates[index] = { ...localTemplates[index], ...updates, updated_at: new Date().toISOString() };
-        localStorage.setItem("local_study_templates", JSON.stringify(localTemplates));
-        await fetchTemplates();
-        return localTemplates[index];
-      }
-      throw new Error("Template not found locally");
-    } else {
-      // Remote Update
-      const { data, error } = await (supabase as any).from("study_templates").update(updates).eq("id", id).select().single();
+    try {
+      const { data, error } = await supabase
+        .from("study_templates")
+        .update(updates)
+        .eq("id", id)
+        .eq("user_id", user.id) // Security check
+        .select()
+        .single();
+
       if (error) throw error;
+
       await fetchTemplates();
       return data as StudyTemplateRecord;
+    } catch (error) {
+      console.error("Error updating template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update template.",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
   const deleteTemplate = async (id: string) => {
-    if (id.startsWith("local-")) {
-      // Local Delete
-      const localData = localStorage.getItem("local_study_templates");
-      let localTemplates: StudyTemplateRecord[] = localData ? JSON.parse(localData) : [];
-      localTemplates = localTemplates.filter(t => t.id !== id);
-      localStorage.setItem("local_study_templates", JSON.stringify(localTemplates));
-      await fetchTemplates();
-      return true;
-    } else {
-      // Remote Delete
-      const { error } = await (supabase as any).from("study_templates").delete().eq("id", id);
+    if (!user) return false;
+
+    try {
+      const { error } = await supabase
+        .from("study_templates")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id); // Security check
+
       if (error) throw error;
+
       await fetchTemplates();
+      toast({
+        title: "Template Deleted",
+        description: "Template removed successfully.",
+      });
       return true;
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete template.",
+        variant: "destructive",
+      });
+      return false;
     }
   };
 

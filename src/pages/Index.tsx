@@ -400,15 +400,15 @@ function FeatureCard({
 }) {
   return (
     <div
-      className="flex items-start gap-4 p-5 bg-card rounded-xl border border-border/50 apple-card hover-scale animate-in fade-in-50 slide-in-from-bottom-4 group cursor-default"
+      className="flex items-start gap-6 p-8 bg-card rounded-2xl border border-border/50 apple-card hover-scale animate-in fade-in-50 slide-in-from-bottom-4 group cursor-default"
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <div className="p-3 bg-secondary rounded-lg shrink-0 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
-        <Icon className="h-5 w-5" />
+      <div className="p-4 bg-secondary rounded-xl shrink-0 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+        <Icon className="h-7 w-7" />
       </div>
       <div>
-        <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">{title}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+        <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">{title}</h3>
+        <p className="text-base text-muted-foreground leading-relaxed">{description}</p>
       </div>
     </div>
   );
