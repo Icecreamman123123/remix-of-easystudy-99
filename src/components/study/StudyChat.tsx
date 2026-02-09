@@ -9,7 +9,7 @@
  import ReactMarkdown from "react-markdown";
  import { useVoiceInput } from "@/hooks/useVoiceInput";
  import { useChatConversations } from "@/hooks/useChatConversations";
- import { useAuth } from "@/hooks/useAuth";
+ import { useAuth } from "@/hooks/useAuth-simple";
  import { useToast } from "@/hooks/use-toast";
  
  interface Message {
