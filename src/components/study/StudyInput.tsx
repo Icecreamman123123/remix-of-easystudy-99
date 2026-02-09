@@ -710,7 +710,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {ACTIONS.map(({ action, icon: Icon, label, description }) => (
             <Button
               key={action}
@@ -741,7 +741,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Or create manually</span>
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {[
                 { action: "generate-flashcards" as StudyAction, label: "Flashcards", icon: BookOpen },
                 { action: "practice-test" as StudyAction, label: "Practice Test", icon: Target },
