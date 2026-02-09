@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useAuth } from "./useAuth";
+import { useAuth } from "./useAuth-simple";
 import { useToast } from "./use-toast";
 import {
   getPendingInvitations,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
+import { useAuth } from "./useAuth-simple";
 import { useFlashcardDecks } from "./useFlashcardDecks";
 import type { Flashcard } from "@/lib/study-api";
 
