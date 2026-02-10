@@ -20,11 +20,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { STUDY_TEMPLATES } from "@/lib/study-templates";
 import { TemplatesManager } from "@/components/study/TemplatesManager";
-import { useStudyTemplates } from "@/hooks/useStudyTemplates-simple";
+import { useStudyTemplates } from "@/hooks/useStudyTemplates";
 import { Plus, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save } from "lucide-react";
-import { useFlashcardDecks } from "@/hooks/useFlashcardDecks-simple";
+import { useFlashcardDecks } from "@/hooks/useFlashcardDecks";
 import { useToast } from "@/hooks/use-toast";
 import type { Flashcard } from "@/lib/study-api";
 
@@ -117,7 +117,7 @@ export function SaveDeckDialog({
 
     setSaving(true);
     try {
-      const deck = (await saveDeckWithFlashcards(previewTitle.trim(), previewCards, topic || previewTitle)) as any;
+      const deck = await saveDeckWithFlashcards(previewTitle.trim(), previewCards, topic || previewTitle);
       if (deck && deck.error === "limit_reached") {
         toast({ title: "Deck limit reached", description: deck.message, variant: "destructive" });
       } else if (deck && !deck.error) {
@@ -148,7 +148,7 @@ export function SaveDeckDialog({
     }
 
     setSaving(true);
-    const deck = (await saveDeckWithFlashcards(title, flashcards, topic)) as any;
+    const deck = await saveDeckWithFlashcards(title, flashcards, topic);
     setSaving(false);
 
     if (deck && deck.error === "limit_reached") {

@@ -42,11 +42,7 @@ export type ManualEditorMode =
   | null
   | { type: "flashcard"; action: StudyAction; label: string }
   | { type: "quiz" }
-  | { type: "worksheet" }
-  | { type: "cornell-notes" }
-  | { type: "study-plan" }
-  | { type: "mind-map" }
-  | { type: "text-study"; action: StudyAction; label: string };
+  | { type: "worksheet" };
 
 interface StudyInputProps {
   onResult: (action: StudyAction, result: string, topic?: string, gradeLevel?: string) => void;
@@ -754,12 +750,6 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 { action: "matching-game" as StudyAction, label: "Matching Game", icon: Puzzle },
                 { action: "generate-quiz" as StudyAction, label: "Quiz", icon: ClipboardList },
                 { action: "worksheet" as StudyAction, label: "Worksheet", icon: FileEdit },
-                { action: "create-cornell-notes" as StudyAction, label: "Cornell Notes", icon: ScrollText },
-                { action: "create-study-plan" as StudyAction, label: "Study Plan", icon: Brain },
-                { action: "mind-map" as StudyAction, label: "Mind Map", icon: Network },
-                { action: "summarize" as StudyAction, label: "Summarize", icon: FileText },
-                { action: "explain-concept" as StudyAction, label: "Explain", icon: Lightbulb },
-                { action: "elaborative-interrogation" as StudyAction, label: "Why/How", icon: HelpCircle },
               ].map(({ action, label, icon: Icon }) => (
                 <Button
                   key={`manual-${action}`}
@@ -770,14 +760,6 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                       onManualCreate({ type: "quiz" });
                     } else if (action === "worksheet") {
                       onManualCreate({ type: "worksheet" });
-                    } else if (action === "create-cornell-notes") {
-                      onManualCreate({ type: "cornell-notes" });
-                    } else if (action === "create-study-plan") {
-                      onManualCreate({ type: "study-plan" });
-                    } else if (action === "mind-map") {
-                      onManualCreate({ type: "mind-map" });
-                    } else if (["summarize", "explain-concept", "elaborative-interrogation"].includes(action)) {
-                      onManualCreate({ type: "text-study", action, label });
                     } else {
                       onManualCreate({ type: "flashcard", action, label });
                     }

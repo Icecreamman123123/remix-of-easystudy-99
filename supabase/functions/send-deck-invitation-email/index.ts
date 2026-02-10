@@ -1,0 +1,208 @@
+// @ts-ignore - Deno module resolution, not compatible with TypeScript compiler
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface InvitationRequest {
+  email: string;
+  deckTitle: string;
+  inviterName: string;
+  accessLevel: string;
+}
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const body = (await req.json()) as InvitationRequest;
+    const { email, deckTitle, inviterName, accessLevel } = body;
+    
+    // Validate input
+    if (!email || !deckTitle || !inviterName || !accessLevel) {
+      return new Response(
+        JSON.stringify({
+          error: "Missing required fields: email, deckTitle, inviterName, accessLevel",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
+    
+    // Generate email HTML
+    const emailHtml = generateInvitationEmail(inviterName, deckTitle, accessLevel);
+    
+    console.log("Sending deck invitation email:", {
+      to: email,
+      subject: `${inviterName} shared a study deck with you - "${deckTitle}"`,
+      inviterName,
+      deckTitle,
+      accessLevel,
+    });
+    // Deno environment access
+    const getEnv = (key: string): string | undefined => {
+      try {
+        return Deno.env.get(key);
+      } catch (e) {
+        console.warn("getEnv error:", e);
+      }
+      return undefined;
+    };
+
+    const SENDGRID_API_KEY = getEnv("SENDGRID_API_KEY");
+
+    if (SENDGRID_API_KEY) {
+      const payload = {
+        personalizations: [
+          {
+            to: [{ email }],
+            subject: `${inviterName} shared "${deckTitle}" with you`,
+          },
+        ],
+        from: { email: "invitations@easierstudying.com", name: "EasierStudying" },
+        content: [{ type: "text/html", value: emailHtml }],
+      };
+
+      const sgResp = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SENDGRID_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!sgResp.ok) {
+        const text = await sgResp.text().catch(() => "");
+        console.error("SendGrid failed:", sgResp.status, text);
+        return new Response(
+          JSON.stringify({ error: "Email service failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Invitation email sent via SendGrid" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Resend support (alternative provider) - uses Resend HTTP API
+    const RESEND_API_KEY = getEnv("RESEND_API_KEY");
+    if (RESEND_API_KEY) {
+      const resendPayload = {
+        from: "invitations@easierstudying.com",
+        to: email,
+        subject: `${inviterName} shared \"${deckTitle}\" with you`,
+        html: emailHtml,
+      };
+
+      const resendResp = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(resendPayload),
+      });
+
+      if (!resendResp.ok) {
+        const text = await resendResp.text().catch(() => "");
+        console.error("Resend failed:", resendResp.status, text);
+        return new Response(
+          JSON.stringify({ error: "Email service failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Invitation email sent via Resend" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // If no email provider configured, return a prepared preview so callers can inspect
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Invitation email prepared successfully (preview)",
+        preview: {
+          to: email,
+          subject: `${inviterName} shared "${deckTitle}" with you`,
+          htmlPreview: emailHtml.substring(0, 200) + "...",
+        },
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error("Error sending invitation:", error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
+  }
+});
+
+function generateInvitationEmail(
+  inviterName: string,
+  deckTitle: string,
+  accessLevel: string
+): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; }
+          .content { margin: 20px 0; }
+          .button { background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 20px 0; }
+          .footer { color: #666; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>You've been invited to a study deck! 🎓</h2>
+          </div>
+          
+          <div class="content">
+            <p>Hi there!</p>
+            
+            <p><strong>${inviterName}</strong> has shared the study deck <strong>"${deckTitle}"</strong> with you on EasierStudying!</p>
+            
+            <p>With <strong>${accessLevel}</strong> access, you can:</p>
+            <ul>
+              <li>Study the flashcards</li>
+              ${accessLevel !== "view" ? "<li>Edit and improve the cards</li>" : ""}
+              ${accessLevel === "admin" ? "<li>Manage who has access to the deck</li>" : ""}
+            </ul>
+            
+            <p>
+              <a href="https://easierstudying.com/accept-invitation" class="button">Open Your Invitation</a>
+            </p>
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated message from EasierStudying. If you didn't expect this, you can safely ignore it.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}

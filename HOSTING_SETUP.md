@@ -7,10 +7,10 @@ This guide explains how to host your EasierStudying app and what to watch out fo
 Your app is fully optimized for serverless hosting platforms:
 
 - **Frontend Framework**: Vite + React (static build output)
-- **Backend**: Lovable AI Gateway (external AI service)
+- **Backend**: Supabase (external database/auth service)
 - **Client-side Storage**: localStorage only (browser-based)
 - **No Server-side Code Required**: All Node.js code is dev-only (Vite build, ESLint, testing)
-- **No File System Writes**: All data persists to localStorage in the browser
+- **No File System Writes**: All data persists to Supabase
 - **No Long-running Processes**: All API calls are async to remote services
 - **Environment Variables**: Properly configured with `VITE_` prefix for client-side access
 
@@ -35,8 +35,10 @@ Your app is fully optimized for serverless hosting platforms:
 
 3. **Add Environment Variables**
    - In Vercel dashboard: Settings → Environment Variables
-   - Add this variable (from your `.env` file):
-     - `VITE_LOVABLE_API_KEY`
+   - Add these three variables (from your `.env` file):
+     - `VITE_SUPABASE_PROJECT_ID`
+     - `VITE_SUPABASE_URL`
+     - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 4. **Deploy**
    - Click "Deploy"
@@ -60,7 +62,7 @@ Your app is fully optimized for serverless hosting platforms:
 
 3. **Add Environment Variables**
    - In Netlify dashboard: Site settings → Build & deploy → Environment
-   - Add the same VITE_ variable
+   - Add the same three VITE_ variables
    - Trigger a redeploy
 
 4. **Configure Redirects**
@@ -85,7 +87,7 @@ Your app is fully optimized for serverless hosting platforms:
 
 3. **Add Environment Variables**
    - In Railway dashboard: Go to Variables tab
-   - Add `VITE_LOVABLE_API_KEY`
+   - Add the three VITE_ variables
 
 4. **Set Build Command**
    - Variables tab: `RAILWAY_CMD` → `npm run build`
@@ -140,12 +142,16 @@ sudo cp -r dist /var/www/html/easierstudying
 - Use `.env.example` as template for others
 - Set variables in hosting platform's dashboard, NOT in code
 
-### 2. Lovable API Key
-- `VITE_LOVABLE_API_KEY` is used client-side
-- Treat it as sensitive (rotate if exposed)
+### 2. Supabase Publishable Key
+- The `VITE_SUPABASE_PUBLISHABLE_KEY` is safe to expose
+- It can only perform operations allowed by RLS (Row Level Security) policies
+- Your RLS policies protect the database
+- Users can only access their own data
 
 ### 3. CORS Configuration
-- Standard browser CORS rules apply
+- Supabase automatically allows CORS requests
+- No additional CORS setup needed
+- Edge Functions inherit Supabase's CORS settings
 
 ---
 
@@ -171,9 +177,11 @@ No manual deploy steps needed after initial setup!
 - [ ] `.env` file is in `.gitignore`
 - [ ] `.env.example` has placeholder values
 - [ ] No hardcoded URLs in code (all use environment variables)
-- [ ] All AI calls use VITE_LOVABLE_API_KEY
+- [ ] All API calls use VITE_SUPABASE_URL
+- [ ] Database migrations applied to Supabase
+- [ ] Supabase edge functions deployed
 - [ ] Tested locally with `npm run build && npm run preview`
-- [ ] Tested all features work with Lovable + localStorage
+- [ ] Tested all features work with remote Supabase
 
 ---
 
@@ -187,14 +195,18 @@ No manual deploy steps needed after initial setup!
 **App loads but shows blank page**
 - Check browser console for errors (F12)
 - Verify VITE_ variables are set on hosting platform
-- Check Lovable API key is set
+- Check Supabase connection is working
 
-**Lovable AI requests fail**
-- Verify VITE_LOVABLE_API_KEY is set
-- Check browser console/network logs
+**Supabase connection fails**
+- Verify VITE_SUPABASE_URL is correct
+- Verify VITE_SUPABASE_PUBLISHABLE_KEY is correct
+- Check Supabase status at status.supabase.com
+- Verify RLS policies allow the operation
 
-**API requests return 401/403**
-- Verify VITE_LOVABLE_API_KEY is correct
+**Edge functions return 404**
+- Ensure edge functions are deployed to Supabase
+- Check function names match exactly
+- Verify Authorization header is correct
 
 ---
 
@@ -203,21 +215,36 @@ No manual deploy steps needed after initial setup!
 If your project is managed or deployed via Lovable, follow these guidelines:
 
 - Open your project on Lovable and go to the Project Settings or Environment/Secrets section.
-- Add the same environment variable listed above:
-   - `VITE_LOVABLE_API_KEY`
+- Add the same environment variables listed above:
+   - `VITE_SUPABASE_PROJECT_ID`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+- For server-only secrets (e.g., `SENDGRID_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`), store them in Lovable's secret manager and ensure they are not written into repository files.
 - If Lovable provides a build configuration panel, set the build command to `npm run build` and the output directory to `dist`.
 - Trigger a deployment via Lovable or push to GitHub (Lovable may auto-deploy repository updates).
 
 ### Email provider keys
 
-- If you add email-sending in the future, store provider keys in your hosting platform's secret manager (do NOT expose in client build).
+- For sending invitation emails from the edge function, add your email provider key in the Supabase Function environment or Lovable secrets (do NOT expose in client build):
+   - `SENDGRID_API_KEY` — SendGrid API key (preferred for this project)
+   - `RESEND_API_KEY` — alternative provider
+
+- Example: In Supabase dashboard → Functions → your function → Environment variables, add `SENDGRID_API_KEY`.
+
+Notes:
+- The edge function will attempt to use `SENDGRID_API_KEY` automatically; if unset the function will return an email preview instead of sending.
+- Store these keys in Lovable or your hosting provider's secret manager and never commit them to the repository.
+
+Notes:
+- Do not paste secrets into code edited via Lovable; use the platform's secret management to avoid committing sensitive values.
+- If you rely on Supabase edge functions, deploy them from the Supabase dashboard or CLI and configure their environment variables there.
 
 
 ## 📊 Typical Performance (after deployment)
 
 - **First Load**: 2-5 seconds
 - **Subsequent Loads**: <1 second (cached)
-- **API Calls**: 100-500ms (typical external API latency)
+- **API Calls**: 100-500ms (Supabase latency)
 - **Database Queries**: 10-100ms
 
 ---
@@ -227,6 +254,7 @@ If your project is managed or deployed via Lovable, follow these guidelines:
 - [Vercel Docs](https://vercel.com/docs)
 - [Netlify Docs](https://docs.netlify.com)
 - [Railway Docs](https://docs.railway.app)
+- [Supabase Docs](https://supabase.com/docs)
 - [Vite Build Documentation](https://vitejs.dev/guide/build.html)
 
 ---

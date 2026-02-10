@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useFlashcardDecks, type FlashcardDeck, type SavedFlashcard } from "@/hooks/useFlashcardDecks-simple";
+import { useFlashcardDecks, type FlashcardDeck, type SavedFlashcard } from "@/hooks/useFlashcardDecks";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Loader2, Edit3 } from "lucide-react";
 import {

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useStudySessions } from "@/hooks/useStudySessions-simple";
+import { useStudySessions } from "@/hooks/useStudySessions";
 import { TrendingUp, Target, Flame, BookOpen, Loader2 } from "lucide-react";
 
 export function StudyStats() {

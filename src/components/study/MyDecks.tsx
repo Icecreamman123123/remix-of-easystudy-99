@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useFlashcardDecks, type FlashcardDeck, type SavedFlashcard } from "@/hooks/useFlashcardDecks-simple";
+import { useFlashcardDecks, type FlashcardDeck, type SavedFlashcard } from "@/hooks/useFlashcardDecks";
 import { FlashcardViewer } from "./FlashcardViewer";
 import { PracticeTest } from "./PracticeTest";
 import { MindMap } from "./MindMap";
 import { ShareDeckDialog } from "./ShareDeckDialog";
 import { EditDeckDialog } from "./EditDeckDialog";
-import { useStudySessions } from "@/hooks/useStudySessions-simple";
+import { useStudySessions } from "@/hooks/useStudySessions";
 import { calculateNextReview, booleanToQuality } from "@/lib/spaced-repetition";
 import { 
   BookOpen, 

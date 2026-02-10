@@ -1,0 +1,12 @@
+{
+  "imports": {
+    "std/": "https://deno.land/std@0.168.0/"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "skipLibCheck": true
+  }
+}
