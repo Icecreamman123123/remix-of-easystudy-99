@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useAuth } from "./useAuth";
+import { useAuth } from "./useAuth-simple";
 import { getUserStreak, getStreakStatus, getDaysUntilStreakReset } from "@/lib/streak-management";
 import { getUserAchievements, getAchievementProgress, getNextMilestones } from "@/lib/achievement-system";
 import { useToast } from "./use-toast";
