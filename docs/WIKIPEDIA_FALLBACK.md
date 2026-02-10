@@ -43,14 +43,9 @@ await call(
 );
 ```
 
-### 4. Server-Side Handler (`supabase/functions/wikipedia-fallback/handler.ts`)
+### 4. Client-Side Fallback Notes
 
-Server-side utilities for edge functions:
-
-- **`searchWikipediaServer(query)`** - Server-side Wikipedia search
-- **`fetchWikipediaExtractServer(pageTitle)`** - Server-side extract fetching
-- **`tryWikipediaFallback(topic)`** - Automatic fallback with retry logic
-- **`formatWikipediaForAction(action, content)`** - Format content based on action type
+This project runs in pure Lovable/localStorage mode, so fallback logic is client-side.
 
 ## Usage Examples
 
@@ -119,29 +114,7 @@ results.forEach(r => {
 const references = await getWikipediaStudyReferences("evolution");
 ```
 
-### Server-Side Fallback (in Supabase Functions)
 
-```typescript
-import { tryWikipediaFallback, formatWikipediaForAction } from "../wikipedia-fallback/handler.ts";
-
-// In your Supabase function:
-try {
-  // Try primary API
-  const result = await primaryAIService.call(action, content);
-  return { success: true, result, source: "primary" };
-} catch (error) {
-  console.log("Primary API failed, trying Wikipedia");
-  
-  const fallback = await tryWikipediaFallback(topic, { retries: 2 });
-  
-  if (fallback.success) {
-    const formatted = formatWikipediaForAction(action, fallback.content, fallback.source);
-    return { success: true, result: formatted, source: "wikipedia" };
-  }
-  
-  throw new Error("All sources failed");
-}
-```
 
 ## Benefits
 
@@ -242,7 +215,7 @@ To test the fallback system:
 // Test with primary API unavailable
 import { callStudyAIWithFallback } from "@/lib/study-api";
 
-// Simulate primary API failure by mocking supabase.functions.invoke
+// Simulate primary API failure by mocking the Lovable gateway fetch
 const testResult = await callStudyAIWithFallback(
   "explain-concept",
   undefined,

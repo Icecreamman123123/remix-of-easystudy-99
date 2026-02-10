@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileUp, File, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { lovableChatCompletion } from "@/lib/lovable-ai";
 
 interface FileDropzoneProps {
   onTextExtracted: (text: string, fileName: string) => void;
@@ -64,23 +64,23 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
     
     setProgress(30);
     
-    // Use Lovable AI to extract text from image
-    const { data, error } = await supabase.functions.invoke("extract-image-text", {
-      body: { imageBase64: base64, mimeType: file.type },
-    });
-    
-    setProgress(90);
-    
-    if (error) {
-      throw new Error(error.message || "Failed to extract text from image");
-    }
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
-    
+    // Use Lovable AI to attempt extraction from base64 (best-effort)
+    const text = await lovableChatCompletion([
+      {
+        role: "system",
+        content:
+          "Extract the readable text content from the provided image. " +
+          "Return ONLY the extracted text, no formatting, no explanations.",
+      },
+      {
+        role: "user",
+        content:
+          `MIME_TYPE: ${file.type}\nIMAGE_BASE64:\n${base64}`,
+      },
+    ], { maxTokens: 2048 });
+
     setProgress(100);
-    return data.text || "";
+    return (text || "").trim();
   };
 
   const handleFile = useCallback(async (file: File) => {

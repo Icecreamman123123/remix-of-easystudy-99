@@ -4,9 +4,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "./useAuth-simple";
-import { getUserStreak, getStreakStatus, getDaysUntilStreakReset } from "@/lib/streak-management";
-import { getUserAchievements, getAchievementProgress, getNextMilestones } from "@/lib/achievement-system";
 import { useToast } from "./use-toast";
+import { getSessions } from "@/lib/storage-simple";
 
 export function useStreakAndAchievements() {
   const { user } = useAuth();
@@ -33,41 +32,26 @@ export function useStreakAndAchievements() {
     const fetchStreakData = async () => {
       setStreakLoading(true);
       try {
-        const streak = await getUserStreak(user.id);
-        const status = await getStreakStatus(user.id);
+        const stored = (getSessions() as any[]) || [];
+        const days = new Set(stored.map((s) => (s.completedAt || s.completed_at || "").split("T")[0]).filter(Boolean));
+        const todayKey = new Date().toISOString().split("T")[0];
+        const studiedToday = days.has(todayKey);
 
-        if (streak && !status.studiedToday && streak.last_study_date) {
-          const daysUntilReset = getDaysUntilStreakReset(new Date(streak.last_study_date));
-          setStreakData({
-            currentStreak: streak.current_streak,
-            longestStreak: streak.longest_streak,
-            studiedToday: status.studiedToday,
-            daysUntilReset,
-          });
-        } else {
-          setStreakData({
-            currentStreak: streak?.current_streak || 0,
-            longestStreak: streak?.longest_streak || 0,
-            studiedToday: status.studiedToday,
-          });
-        }
-
-        // Show streak notification if it's about to reset
-        if (
-          streak &&
-          !status.studiedToday &&
-          streak.last_study_date &&
-          streak.current_streak > 0
-        ) {
-          const daysUntilReset = getDaysUntilStreakReset(new Date(streak.last_study_date));
-          if (daysUntilReset <= 1) {
-            toast({
-              title: "Your streak is about to reset!",
-              description: `Study today to keep your ${streak.current_streak}-day streak alive! ⏰`,
-              variant: "default",
-            });
+        let currentStreak = 0;
+        for (let i = 0; i < 365; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const key = d.toISOString().split("T")[0];
+          if (days.has(key)) currentStreak++;
+          else {
+            if (i === 0) continue;
+            break;
           }
         }
+
+        // Approximate longest streak from history (simple: current streak as longest)
+        const longestStreak = currentStreak;
+        setStreakData({ currentStreak, longestStreak, studiedToday });
       } catch (error) {
         console.error("Error fetching streak data:", error);
         // Set default data on error so UI doesn't stick on loading
@@ -84,16 +68,20 @@ export function useStreakAndAchievements() {
     const fetchAchievements = async () => {
       setAchievementLoading(true);
       try {
-        const [earned, progress, nextMilestones] = await Promise.all([
-          getUserAchievements(user.id),
-          getAchievementProgress(user.id),
-          getNextMilestones(user.id),
-        ]);
-
         setAchievements({
-          earned,
-          progress,
-          nextMilestones,
+          earned: [],
+          progress: {
+            completedCount: 0,
+            totalCount: 0,
+            percentComplete: 0,
+            categories: {
+              streak: { completed: 0, total: 0 },
+              cards: { completed: 0, total: 0 },
+              accuracy: { completed: 0, total: 0 },
+              social: { completed: 0, total: 0 },
+            },
+          },
+          nextMilestones: [],
         });
       } catch (error) {
         console.error("Error fetching achievements:", error);
@@ -142,22 +130,21 @@ export function useStreakAndAchievements() {
       setAchievementLoading(true);
 
       try {
-        const streak = await getUserStreak(user.id);
-        const status = await getStreakStatus(user.id);
-        const earnedAchievements = await getUserAchievements(user.id);
-        const progress = await getAchievementProgress(user.id);
-        const nextMilestones = await getNextMilestones(user.id);
-
-        setStreakData({
-          currentStreak: streak?.current_streak || 0,
-          longestStreak: streak?.longest_streak || 0,
-          studiedToday: status.studiedToday,
-        });
-
+        setStreakData({ currentStreak: 0, longestStreak: 0, studiedToday: false });
         setAchievements({
-          earned: earnedAchievements,
-          progress,
-          nextMilestones,
+          earned: [],
+          progress: {
+            completedCount: 0,
+            totalCount: 0,
+            percentComplete: 0,
+            categories: {
+              streak: { completed: 0, total: 0 },
+              cards: { completed: 0, total: 0 },
+              accuracy: { completed: 0, total: 0 },
+              social: { completed: 0, total: 0 },
+            },
+          },
+          nextMilestones: [],
         });
       } catch (error) {
         console.error("Error refetching data:", error);

@@ -1,6 +1,5 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
   publish = "dist"
 
 [build.environment]
@@ -13,16 +12,10 @@
   status = 200
 
 [context.production.environment]
-  VITE_SUPABASE_PROJECT_ID = ""
-  VITE_SUPABASE_URL = ""
-  VITE_SUPABASE_PUBLISHABLE_KEY = ""
+  VITE_LOVABLE_API_KEY = ""
 
 [context.deploy-preview.environment]
-  VITE_SUPABASE_PROJECT_ID = ""
-  VITE_SUPABASE_URL = ""
-  VITE_SUPABASE_PUBLISHABLE_KEY = ""
+  VITE_LOVABLE_API_KEY = ""
 
 [context.branch-deploy.environment]
-  VITE_SUPABASE_PROJECT_ID = ""
-  VITE_SUPABASE_URL = ""
-  VITE_SUPABASE_PUBLISHABLE_KEY = ""
+  VITE_LOVABLE_API_KEY = ""

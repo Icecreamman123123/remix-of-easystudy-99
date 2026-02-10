@@ -1,29 +1,84 @@
-import { useState, useEffect } from "react";
-import { StudySession, saveSession, getSessions } from "@/lib/storage-simple";
+import { useEffect, useState } from "react";
+import { getSessions, saveSession } from "@/lib/storage-simple";
 import { useAuth } from "./useAuth-simple";
+
+export interface StudySession {
+  id: string;
+  deck_id: string | null;
+  session_type: string;
+  cards_studied: number;
+  correct_answers: number;
+  total_questions: number;
+  duration_seconds: number | null;
+  completed_at: string;
+}
 
 export interface StudyStats {
   totalSessions: number;
   totalCardsStudied: number;
+  totalCorrect: number;
   averageAccuracy: number;
   streakDays: number;
+  recentSessions: StudySession[];
+}
+
+type StoredSession = {
+  id: string;
+  deckId?: string;
+  sessionType: string;
+  cardsStudied: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  durationSeconds?: number;
+  completedAt: string;
+};
+
+function toSessionView(s: StoredSession): StudySession {
+  return {
+    id: s.id,
+    deck_id: s.deckId || null,
+    session_type: s.sessionType,
+    cards_studied: s.cardsStudied,
+    correct_answers: s.correctAnswers,
+    total_questions: s.totalQuestions,
+    duration_seconds: typeof s.durationSeconds === "number" ? s.durationSeconds : null,
+    completed_at: s.completedAt,
+  };
+}
+
+function calculateStreak(sessionList: StudySession[]): number {
+  if (sessionList.length === 0) return 0;
+
+  const days = new Set(sessionList.map((s) => s.completed_at.split("T")[0]));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    if (days.has(key)) {
+      streak++;
+    } else {
+      if (i === 0) continue;
+      break;
+    }
+  }
+  return streak;
 }
 
 export function useStudySessions() {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
-  const fetchSessions = () => {
+  const fetchSessions = async () => {
     setLoading(true);
     try {
-      const allSessions = getSessions();
-      // Filter by user if logged in
-      const userSessions = user ? allSessions : allSessions.slice(0, 10); // Show limited sessions for demo
-      setSessions(userSessions);
-    } catch (error) {
-      console.error("Error fetching sessions:", error);
-      setSessions([]);
+      const stored = (getSessions() as unknown as StoredSession[]) || [];
+      const mapped = stored.map(toSessionView).sort((a, b) => b.completed_at.localeCompare(a.completed_at));
+      setSessions(mapped);
     } finally {
       setLoading(false);
     }
@@ -33,18 +88,28 @@ export function useStudySessions() {
     fetchSessions();
   }, [user]);
 
-  const recordSession = async (sessionData: {
-    deckId?: string;
-    sessionType: string;
-    cardsStudied: number;
-    correctAnswers: number;
-    totalQuestions: number;
-    durationSeconds?: number;
-  }) => {
+  const recordSession = async (
+    sessionType: string,
+    cardsStudied: number,
+    correctAnswers: number,
+    totalQuestions: number,
+    durationSeconds?: number,
+    deckId?: string
+  ) => {
+    if (!user) return null;
+
     try {
-      const newSession = saveSession(sessionData);
+      const created = saveSession({
+        deckId,
+        sessionType,
+        cardsStudied,
+        correctAnswers,
+        totalQuestions,
+        durationSeconds,
+      } as any) as unknown as StoredSession;
+
       await fetchSessions();
-      return newSession;
+      return toSessionView(created);
     } catch (error) {
       console.error("Error recording session:", error);
       return null;
@@ -55,58 +120,26 @@ export function useStudySessions() {
     if (sessions.length === 0) return null;
 
     const totalSessions = sessions.length;
-    const totalCardsStudied = sessions.reduce((sum, session) => sum + session.cardsStudied, 0);
-    const totalCorrect = sessions.reduce((sum, session) => sum + session.correctAnswers, 0);
-    const totalQuestions = sessions.reduce((sum, session) => sum + session.totalQuestions, 0);
-    
+    const totalCardsStudied = sessions.reduce((sum, s) => sum + s.cards_studied, 0);
+    const totalCorrect = sessions.reduce((sum, s) => sum + s.correct_answers, 0);
+    const totalQuestions = sessions.reduce((sum, s) => sum + s.total_questions, 0);
     const averageAccuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
-    
-    // Simple streak calculation (consecutive days with sessions)
     const streakDays = calculateStreak(sessions);
 
     return {
       totalSessions,
       totalCardsStudied,
+      totalCorrect,
       averageAccuracy,
-      streakDays
+      streakDays,
+      recentSessions: sessions.slice(0, 10),
     };
   };
 
-  const calculateStreak = (sessionList: StudySession[]): number => {
-    if (sessionList.length === 0) return 0;
-
-    const today = new Date();
-    const sortedSessions = sessionList
-      .map(s => new Date(s.completedAt))
-      .sort((a, b) => b.getTime() - a.getTime());
-
-    let streak = 0;
-    let currentDate = new Date(today);
-    currentDate.setHours(0, 0, 0, 0);
-
-    for (const sessionDate of sortedSessions) {
-      const sessionDay = new Date(sessionDate);
-      sessionDay.setHours(0, 0, 0, 0);
-
-      const diffDays = Math.floor((currentDate.getTime() - sessionDay.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === streak) {
-        streak++;
-        currentDate = new Date(sessionDay);
-        currentDate.setDate(currentDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-
-    return streak;
-  };
-
   return {
-    sessions,
+    stats: getStats(),
     loading,
-    fetchSessions,
     recordSession,
-    stats: getStats()
+    refetch: fetchSessions,
   };
 }

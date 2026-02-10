@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useStudySessions, StudySession } from "@/hooks/useStudySessions";
+import { useStudySessions } from "@/hooks/useStudySessions-simple";
 import { 
   TrendingUp, 
   Target, 
@@ -43,7 +43,7 @@ export function LearningAnalytics() {
   const modeStats = useMemo(() => {
     if (!stats?.recentSessions) return {};
     
-    const byMode: Record<string, StudySession[]> = {};
+    const byMode: Record<string, any[]> = {};
     
     stats.recentSessions.forEach(session => {
       const mode = session.session_type || "unknown";

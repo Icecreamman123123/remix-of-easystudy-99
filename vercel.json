@@ -4,8 +4,6 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "env": {
-    "VITE_SUPABASE_PROJECT_ID": "@vite_supabase_project_id",
-    "VITE_SUPABASE_URL": "@vite_supabase_url",
-    "VITE_SUPABASE_PUBLISHABLE_KEY": "@vite_supabase_publishable_key"
+    "VITE_LOVABLE_API_KEY": "@vite_lovable_api_key"
   }
 }

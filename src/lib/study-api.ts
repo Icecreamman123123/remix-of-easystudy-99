@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import { searchWikipedia, fetchStudyContentWithFallback } from "./wikipedia-fallback";
+import { lovableChatCompletion } from "./lovable-ai";
 
 export type StudyAction =
   | "generate-flashcards"
@@ -90,6 +90,114 @@ export interface CornellNotesData {
   summary: string;
 }
 
+ const MODEL_MAP: Record<Exclude<AIModel, "wikipedia">, string> = {
+   "gemini-flash-lite": "google/gemini-2.5-flash-lite",
+   "gemini-flash": "google/gemini-3-flash-preview",
+   "gemini-2.5-flash": "google/gemini-2.5-flash",
+   "gemini-pro": "google/gemini-2.5-pro",
+   "gemini-3-pro": "google/gemini-3-pro-preview",
+   "gpt-5-nano": "openai/gpt-5-nano",
+   "gpt-5-mini": "openai/gpt-5-mini",
+   "gpt-5": "openai/gpt-5",
+   "gpt-5.2": "openai/gpt-5.2",
+ };
+
+ function buildPrompts(params: {
+   action: StudyAction;
+   content?: string;
+   topic?: string;
+   difficulty?: string;
+   gradeLevel?: string;
+   expertise?: AIExpertise;
+ }) {
+   const { action, content, topic, difficulty, gradeLevel, expertise } = params;
+
+   const grade = gradeLevel ? `Target grade level: ${gradeLevel}. ` : "";
+   const diff = difficulty ? `Difficulty: ${difficulty}. ` : "";
+   const exp = expertise ? `Expertise focus: ${expertise}. ` : "";
+
+   const systemBase =
+     `You are an expert tutor. ${grade}${diff}${exp}` +
+     "Follow the user's topic/content. When asked for structured output, output only valid JSON.";
+
+   const userBase = content?.trim()
+     ? `CONTENT:\n${content.trim()}`
+     : topic?.trim()
+       ? `TOPIC: ${topic.trim()}`
+       : "";
+
+   switch (action) {
+     case "generate-flashcards":
+       return {
+         system: systemBase + " Generate flashcards as a JSON array of objects with keys: question, answer, hint (optional).",
+         user: `${userBase}\n\nCreate 10-20 flashcards.`,
+       };
+     case "generate-quiz":
+       return {
+         system: systemBase + " Generate a multiple choice quiz as JSON array with keys: question, options (string[]), correctAnswer (number index), explanation.",
+         user: `${userBase}\n\nCreate 8-12 questions.`,
+       };
+     case "practice-problems":
+       return {
+         system: systemBase + " Generate practice problems as JSON array with keys: problem, solution, difficulty (easy|medium|hard), tip (optional).",
+         user: `${userBase}\n\nCreate 6-10 problems.`,
+       };
+     case "worksheet":
+       return {
+         system: systemBase + " Generate a worksheet as JSON array with keys: id, type, question, options(optional), correctAnswer, explanation, points.",
+         user: `${userBase}\n\nCreate 8-15 questions.`,
+       };
+     case "create-study-plan":
+       return {
+         system: systemBase + " Create a study plan as JSON array with keys: day, topic, activities (string[]), difficulty (number 1-10), timeMinutes (number), description.",
+         user: `${userBase}\n\nCreate a 7-day plan.`,
+       };
+     case "create-cornell-notes":
+       return {
+         system: systemBase + " Create Cornell notes as a JSON object with keys: topic, mainIdeas (array of {cue,note}), summary.",
+         user: `${userBase}\n\nCreate Cornell notes.`,
+       };
+     case "mind-map":
+       return {
+         system: systemBase + " Create a concise mind map in markdown bullet format.",
+         user: `${userBase}\n\nCreate a mind map.`,
+       };
+     case "summarize":
+       return {
+         system: systemBase + " Summarize concisely.",
+         user: `${userBase}\n\nSummarize.`,
+       };
+     case "explain-concept":
+       return {
+         system: systemBase + " Explain clearly with examples.",
+         user: `${userBase}\n\nExplain the concept.`,
+       };
+     case "practice-test":
+       return {
+         system: systemBase + " Generate a practice test as markdown with answers at the end.",
+         user: `${userBase}\n\nCreate a practice test.`,
+       };
+     case "generate-concepts":
+       return {
+         system: systemBase + " Extract key concepts as JSON array with keys: concept, definition, example(optional).",
+         user: `${userBase}\n\nList 10-20 key concepts.`,
+       };
+     case "study-runner":
+     case "matching-game":
+     case "speed-challenge":
+     case "elaborative-interrogation":
+       return {
+         system: systemBase + " Provide a helpful, structured response appropriate for the requested study activity.",
+         user: `${userBase}\n\nGenerate the activity content for: ${action}.`,
+       };
+     default:
+       return {
+         system: systemBase,
+         user: userBase || "Help me study.",
+       };
+   }
+ }
+
 export async function callStudyAI(
   action: StudyAction,
   content?: string,
@@ -100,19 +208,31 @@ export async function callStudyAI(
   expertise?: AIExpertise,
   includeWikipedia?: boolean
 ): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("study-ai", {
-    body: { action, content, topic, difficulty, gradeLevel, model, expertise, includeWikipedia },
-  });
-
-  if (error) {
-    throw new Error(error.message || "Failed to call study AI");
+  if (model === "wikipedia" || includeWikipedia) {
+    const query = (topic || content || "").trim();
+    if (!query) {
+      throw new Error("Wikipedia requires a topic or content");
+    }
+    const results = await searchWikipedia(query, 1);
+    if (results.length === 0) {
+      return "";
+    }
+    const top = results[0];
+    return `# ${top.title}\n\n${top.extract}\n\n**Source:** Wikipedia\n${top.url}`;
   }
 
-  if (data.error) {
-    throw new Error(data.error);
-  }
+  const prompts = buildPrompts({ action, content, topic, difficulty, gradeLevel, expertise });
+  const selectedModel = (model ? MODEL_MAP[model as Exclude<AIModel, "wikipedia">] : undefined) || MODEL_MAP["gemini-flash"];
 
-  return data.result;
+  const result = await lovableChatCompletion(
+    [
+      { role: "system", content: prompts.system },
+      { role: "user", content: prompts.user },
+    ],
+    { model: selectedModel }
+  );
+
+  return result;
 }
 
 export function parseFlashcards(response: string): Flashcard[] {

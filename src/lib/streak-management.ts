@@ -3,7 +3,7 @@
  * Handles user study streaks and milestone tracking
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { getSessions } from "@/lib/storage-simple";
 
 export interface DailyStreak {
   id: string;
@@ -27,21 +27,41 @@ export interface StreakStats {
  */
 export async function getUserStreak(userId: string): Promise<DailyStreak | null> {
   try {
-    const { data, error } = await (supabase as any)
-      .from("daily_streaks")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    const stored = (getSessions() as any[]) || [];
+    const dayKeys = stored
+      .map((s) => (s.completedAt || s.completed_at || "").split("T")[0])
+      .filter(Boolean);
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        // No row found, return null
-        return null;
+    if (dayKeys.length === 0) return null;
+
+    const days = new Set(dayKeys);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let current = 0;
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      if (days.has(key)) current++;
+      else {
+        if (i === 0) continue;
+        break;
       }
-      throw error;
     }
 
-    return data as DailyStreak;
+    const last_study_date = dayKeys.sort().at(-1) || null;
+    const now = new Date().toISOString();
+
+    return {
+      id: `local_${userId}`,
+      user_id: userId,
+      current_streak: current,
+      longest_streak: current,
+      last_study_date,
+      created_at: now,
+      updated_at: now,
+    };
   } catch (error) {
     console.error("Error fetching user streak:", error);
     return null;
@@ -52,24 +72,16 @@ export async function getUserStreak(userId: string): Promise<DailyStreak | null>
  * Initialize streak for new user
  */
 export async function initializeUserStreak(userId: string): Promise<DailyStreak | null> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from("daily_streaks")
-      .insert({
-        user_id: userId,
-        current_streak: 0,
-        longest_streak: 0,
-        last_study_date: null,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as DailyStreak;
-  } catch (error) {
-    console.error("Error initializing streak:", error);
-    return null;
-  }
+  const now = new Date().toISOString();
+  return {
+    id: `local_${userId}`,
+    user_id: userId,
+    current_streak: 0,
+    longest_streak: 0,
+    last_study_date: null,
+    created_at: now,
+    updated_at: now,
+  };
 }
 
 /**

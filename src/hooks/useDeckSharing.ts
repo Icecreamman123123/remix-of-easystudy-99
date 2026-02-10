@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth-simple";
 import { useFlashcardDecks } from "./useFlashcardDecks";
 import type { Flashcard } from "@/lib/study-api";
@@ -14,48 +13,85 @@ export interface SharedDeck {
   expires_at: string | null;
 }
 
+type StoredShare = {
+  share_code: string;
+  created_at: string;
+  shared_by: string;
+  deck_id: string;
+  deck: { title: string; topic: string | null; description: string | null };
+  flashcards: Array<{ question: string; answer: string; hint?: string }>;
+};
+
+const STORAGE_KEY = "lovable_shared_decks_v1";
+
+function loadShares(): StoredShare[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as StoredShare[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveShares(shares: StoredShare[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(shares));
+}
+
+function genShareCode() {
+  return Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8);
+}
+
 export function useDeckSharing() {
   const { user } = useAuth();
-  const { saveDeckWithFlashcards } = useFlashcardDecks();
+  const { saveDeckWithFlashcards, getDeckFlashcards, decks } = useFlashcardDecks();
   const [loading, setLoading] = useState(false);
+
+  const getDeckSnapshot = async (deckId: string) => {
+    const deck = decks.find((d) => d.id === deckId);
+    if (!deck) return null;
+    const cards = await getDeckFlashcards(deckId);
+    return {
+      deck: {
+        title: deck.title,
+        topic: deck.topic ?? null,
+        description: deck.description ?? null,
+      },
+      flashcards: cards.map((c) => ({ question: c.question, answer: c.answer, hint: c.hint || undefined })),
+    };
+  };
 
   const createShareLink = async (deckId: string): Promise<string | null> => {
     if (!user) return null;
     setLoading(true);
 
     try {
-      // Check if share already exists
-      const { data: existing } = await supabase
-        .from("shared_decks")
-        .select("share_code")
-        .eq("deck_id", deckId)
-        .eq("shared_by", user.id)
-        .single();
-
+      const shares = loadShares();
+      const existing = shares.find((s) => s.shared_by === user.id && s.deck_id === deckId);
       if (existing) {
         setLoading(false);
         return existing.share_code;
       }
 
-      // Create new share
-      const { data, error } = await supabase
-        .from("shared_decks")
-        .insert({
-          deck_id: deckId,
-          shared_by: user.id,
-          is_public: true,
-        })
-        .select("share_code")
-        .single();
-
-      if (error) {
-        console.error("Error creating share:", error);
+      const snap = await getDeckSnapshot(deckId);
+      if (!snap) {
         setLoading(false);
         return null;
       }
 
+      const share_code = genShareCode();
+      const created_at = new Date().toISOString();
+      shares.push({
+        share_code,
+        created_at,
+        shared_by: user.id,
+        deck_id: deckId,
+        deck: snap.deck,
+        flashcards: snap.flashcards,
+      });
+      saveShares(shares);
       setLoading(false);
-      return data.share_code;
+      return share_code;
     } catch (error) {
       console.error("Error in createShareLink:", error);
       setLoading(false);
@@ -67,50 +103,18 @@ export function useDeckSharing() {
     setLoading(true);
 
     try {
-      // Get the shared deck info
-      const { data: shareData, error: shareError } = await supabase
-        .from("shared_decks")
-        .select("*")
-        .eq("share_code", shareCode)
-        .eq("is_public", true)
-        .single();
-
-      if (shareError || !shareData) {
-        console.error("Shared deck not found:", shareError);
-        setLoading(false);
-        return null;
-      }
-
-      // Get the deck details
-      const { data: deckData, error: deckError } = await supabase
-        .from("flashcard_decks")
-        .select("*")
-        .eq("id", shareData.deck_id)
-        .single();
-
-      if (deckError || !deckData) {
-        console.error("Deck not found:", deckError);
-        setLoading(false);
-        return null;
-      }
-
-      // Get the flashcards
-      const { data: flashcards, error: cardsError } = await supabase
-        .from("flashcards")
-        .select("*")
-        .eq("deck_id", shareData.deck_id);
-
-      if (cardsError) {
-        console.error("Error fetching flashcards:", cardsError);
+      const shares = loadShares();
+      const share = shares.find((s) => s.share_code === shareCode);
+      if (!share) {
         setLoading(false);
         return null;
       }
 
       setLoading(false);
       return {
-        deck: deckData,
-        flashcards: flashcards || [],
-        shareInfo: shareData,
+        deck: share.deck,
+        flashcards: share.flashcards,
+        shareInfo: { share_code: share.share_code, shared_by: share.shared_by, created_at: share.created_at },
       };
     } catch (error) {
       console.error("Error in getSharedDeck:", error);
@@ -151,13 +155,6 @@ export function useDeckSharing() {
         return false;
       }
 
-      // Record the copy
-      await supabase.from("deck_copies").insert({
-        original_deck_id: deck.id,
-        copied_deck_id: newDeck.id,
-        copied_by: user.id,
-      });
-
       setLoading(false);
       return true;
     } catch (error) {
@@ -170,13 +167,10 @@ export function useDeckSharing() {
   const deleteShare = async (deckId: string): Promise<boolean> => {
     if (!user) return false;
 
-    const { error } = await supabase
-      .from("shared_decks")
-      .delete()
-      .eq("deck_id", deckId)
-      .eq("shared_by", user.id);
-
-    return !error;
+    const shares = loadShares();
+    const filtered = shares.filter((s) => !(s.shared_by === user.id && s.deck_id === deckId));
+    saveShares(filtered);
+    return true;
   };
 
   return {
