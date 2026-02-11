@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X } from "lucide-react";
-import { StudyAction, parseFlashcards, parseQuiz, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, parseCornellNotes, Flashcard, Concept, type StudyPlanItem } from "@/lib/study-api";
+import { StudyAction, parseFlashcards, parseQuiz, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, parseCornellNotes, Flashcard, Concept } from "@/lib/study-api";
 import { FlashcardViewer } from "./FlashcardViewer";
 import { QuizViewer } from "./QuizViewer";
 import { PracticeTest } from "./PracticeTest";
@@ -24,7 +24,7 @@ interface ResultsViewerProps {
   onClose: () => void;
   topic?: string;
   isManual?: boolean;
-  onSavePlan?: (plan: StudyPlanItem[]) => void;
+  onSavePlan?: (plan: any) => void;
 }
 
 // Convert Flashcard to SavedFlashcard-like format for study components

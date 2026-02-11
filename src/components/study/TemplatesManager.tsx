@@ -27,15 +27,9 @@ interface TemplatesManagerProps {
     name?: string;
     description?: string;
     action?: string;
-    payload?: unknown;
+    payload?: any;
   } | null;
 }
-
-type TemplateWithOptionalProfile = {
-  profiles?: {
-    display_name?: string | null;
-  } | null;
-};
 
 export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, prefillData = null }: TemplatesManagerProps) {
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useStudyTemplates();
@@ -119,7 +113,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
     }
   }, [open, defaultIsPublic, prefillData]);
 
-  const startEdit = (t: (typeof templates)[number] & TemplateWithOptionalProfile) => {
+  const startEdit = (t: any) => {
     setEditing(t.id);
     setForm({
       name: t.name || "",
@@ -291,10 +285,10 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                               <span className="px-2 py-0.5 rounded-md bg-muted font-medium">{t.estimated_count || "—"} cards</span>
                               {/* Show publisher name if available */}
-                              {t.profiles?.display_name && (
+                              {(t as any).profiles?.display_name && (
                                 <span className="flex items-center gap-1 text-primary/70">
                                   <User className="h-3 w-3" />
-                                  {t.profiles.display_name}
+                                  {(t as any).profiles.display_name}
                                 </span>
                               )}
                               {/* Date */}

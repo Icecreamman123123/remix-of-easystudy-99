@@ -38,7 +38,7 @@ export interface StudyTemplate {
   name: string;
   description?: string;
   action: string;
-  payload?: unknown;
+  payload?: any;
   estimatedCount?: number;
   isPublic?: boolean;
   createdAt: string;

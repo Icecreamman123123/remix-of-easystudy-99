@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { StudyTemplate, saveTemplate, getTemplates, updateTemplate, deleteTemplate as deleteTemplateStorage } from "@/lib/storage-simple";
+import { StudyTemplate, saveTemplate, getTemplates, updateTemplate, deleteTemplate } from "@/lib/storage-simple";
 import { useAuth } from "./useAuth-simple";
 import { useToast } from "./use-toast";
 
@@ -9,12 +9,9 @@ export interface StudyTemplateRecord {
   name: string;
   description?: string | null;
   action: string;
-  payload?: unknown;
+  payload?: any;
   estimated_count?: number | null;
   is_public?: boolean;
-  profiles?: {
-    display_name?: string | null;
-  } | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -60,7 +57,7 @@ export function useStudyTemplates() {
     name: string;
     description?: string;
     action: string;
-    payload?: unknown;
+    payload?: any;
     estimated_count?: number;
     is_public?: boolean;
   }) => {
@@ -160,7 +157,7 @@ export function useStudyTemplates() {
     if (!user) return false;
 
     try {
-      const success = deleteTemplateStorage(id);
+      const success = deleteTemplate(id);
       if (success) {
         await fetchTemplates();
         toast({

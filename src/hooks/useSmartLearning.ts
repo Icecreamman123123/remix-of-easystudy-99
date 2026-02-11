@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { lovableChatCompletion } from "@/lib/lovable-ai";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface WrongAnswer {
   question: string;
@@ -36,22 +36,27 @@ export function useSmartLearning() {
 
     setIsAnalyzing(true);
     try {
-      const raw = await lovableChatCompletion(
-        [
-          {
-            role: "system",
-            content:
-              "You are a study coach. Return ONLY valid JSON with keys: weakAreas (string[]), recommendations (string[]), focusTopics (string[]), studyTips (string[]).",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({ wrongAnswers, topic }),
-          },
-        ],
-        { model: "google/gemini-2.5-flash", temperature: 0.4, maxTokens: 1024 }
-      );
+      const { data, error } = await supabase.functions.invoke("smart-learning", {
+        body: { 
+          wrongAnswers,
+          topic,
+          action: "analyze"
+        },
+      });
 
-      const data = JSON.parse(raw) as SmartLearningInsight;
+      if (error) {
+        console.error("Smart learning analysis error:", error);
+        // Fallback insights
+        const fallbackInsights: SmartLearningInsight = {
+          weakAreas: wrongAnswers.slice(0, 3).map(w => w.question),
+          recommendations: ["Review the questions you missed", "Practice similar problems"],
+          focusTopics: topic ? [topic] : [],
+          studyTips: ["Take breaks between study sessions", "Use active recall techniques"],
+        };
+        setInsights(fallbackInsights);
+        return fallbackInsights;
+      }
+
       setInsights(data);
       return data;
     } catch (error) {
@@ -68,21 +73,21 @@ export function useSmartLearning() {
     }
 
     try {
-      const text = await lovableChatCompletion(
-        [
-          {
-            role: "system",
-            content:
-              "Generate a focused practice test in plain text with an answer key at the end.",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({ topic, wrongAnswers, insights }),
-          },
-        ],
-        { model: "google/gemini-2.5-flash", temperature: 0.5, maxTokens: 2048 }
-      );
-      return text || null;
+      const { data, error } = await supabase.functions.invoke("smart-learning", {
+        body: { 
+          wrongAnswers,
+          insights,
+          topic,
+          action: "generate-focused-test"
+        },
+      });
+
+      if (error) {
+        console.error("Generate focused test error:", error);
+        return null;
+      }
+
+      return data.content;
     } catch (error) {
       console.error("Generate focused test failed:", error);
       return null;

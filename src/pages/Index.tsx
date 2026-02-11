@@ -14,7 +14,7 @@ import { ManualWorksheetEditor } from "@/components/study/ManualWorksheetEditor"
 import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAndAchievements";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
-import { StudyAction, parseFlashcards, Flashcard, type StudyPlanItem } from "@/lib/study-api";
+import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
 import { useAuth } from "@/hooks/useAuth-simple";
 import { useStudySessions } from "@/hooks/useStudySessions-simple";
 import { useI18n } from "@/lib/i18n";
@@ -51,12 +51,7 @@ const Index = () => {
   const [showChat, setShowChat] = useState(false);
   const [chatGradeLevel, setChatGradeLevel] = useState("8");
   const [manualEditor, setManualEditor] = useState<ManualEditorMode>(null);
-  const [pendingTemplateData, setPendingTemplateData] = useState<{
-    name?: string;
-    description?: string;
-    action?: string;
-    payload?: unknown;
-  } | null>(null);
+  const [pendingTemplateData, setPendingTemplateData] = useState<any>(null);
 
   const { user, signOut, loading } = useAuth();
   const { recordSession } = useStudySessions();
@@ -105,7 +100,7 @@ const Index = () => {
     setSaveDialogOpen(true);
   };
 
-  const handleSaveStudyPlan = (plan: StudyPlanItem[]) => {
+  const handleSaveStudyPlan = (plan: any) => {
     if (!user) {
       toast({
         title: "Sign in required",

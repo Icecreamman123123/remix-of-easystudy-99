@@ -36,7 +36,7 @@ export function useFlashcardDecks() {
     title: string;
     description?: string;
     topic?: string;
-    flashcards: unknown[];
+    flashcards: any[];
   }) => {
     try {
       const newDeck = saveDeck(deckData);

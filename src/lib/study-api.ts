@@ -1,5 +1,5 @@
-import { lovableChatCompletion } from "./lovable-ai";
-import { searchWikipedia } from "./wikipedia-fallback";
+import { supabase } from "@/integrations/supabase/client";
+import { searchWikipedia, fetchStudyContentWithFallback } from "./wikipedia-fallback";
 
 export type StudyAction =
   | "generate-flashcards"
@@ -90,55 +90,6 @@ export interface CornellNotesData {
   summary: string;
 }
 
-const MODEL_MAP: Record<Exclude<AIModel, "wikipedia">, string> = {
-  "gemini-flash": "google/gemini-2.5-flash",
-  "gemini-pro": "google/gemini-2.5-pro",
-  "gemini-3-pro": "google/gemini-2.5-pro",
-  "gemini-2.5-flash": "google/gemini-2.5-flash",
-  "gemini-flash-lite": "google/gemini-2.0-flash-lite",
-  "gpt-5-nano": "openai/gpt-5-nano",
-  "gpt-5-mini": "openai/gpt-5-mini",
-  "gpt-5": "openai/gpt-5",
-  "gpt-5.2": "openai/gpt-5",
-};
-
-function buildActionPrompt(action: StudyAction): string {
-  switch (action) {
-    case "generate-flashcards":
-      return "Return ONLY a JSON array of flashcards. Each item must have: question (string), answer (string), hint (optional string).";
-    case "generate-quiz":
-      return "Return ONLY a JSON array of quiz questions. Each item: question (string), options (string[]), correctAnswer (number index), explanation (string).";
-    case "practice-problems":
-      return "Return ONLY a JSON array of practice problems. Each item: problem (string), solution (string), difficulty ('easy'|'medium'|'hard'), tip (optional string).";
-    case "worksheet":
-      return "Return ONLY a JSON array of worksheet questions. Each item: type, question, options (optional), correctAnswer, explanation, points.";
-    case "generate-concepts":
-      return "Return ONLY a JSON array of concepts. Each item: concept (string), definition (string), example (optional string).";
-    case "create-cornell-notes":
-      return "Return ONLY a JSON object with: topic (string), mainIdeas (array of {cue,note}), summary (string).";
-    case "create-study-plan":
-      return "Return a 7-day study plan in plain text with clear daily sections.";
-    case "mind-map":
-      return "Return a text-based mind map with indentation and bullet points.";
-    case "summarize":
-      return "Return a concise summary in bullet points.";
-    case "explain-concept":
-      return "Explain clearly with examples and analogies. Use headings.";
-    case "practice-test":
-      return "Return a mixed-format practice test in plain text with answer key at the end.";
-    case "matching-game":
-      return "Return a JSON array of pairs as flashcards (question/answer) suitable for matching.";
-    case "speed-challenge":
-      return "Return a JSON array of short flashcards (question/answer) optimized for speed.";
-    case "elaborative-interrogation":
-      return "Return ONLY a JSON array of objects: {question, type:'why'|'how', hint, idealAnswer}.";
-    case "study-runner":
-      return "Return a JSON array of flashcards (question/answer) for an endless runner study mode.";
-    default:
-      return "Return your best result.";
-  }
-}
-
 export async function callStudyAI(
   action: StudyAction,
   content?: string,
@@ -149,59 +100,19 @@ export async function callStudyAI(
   expertise?: AIExpertise,
   includeWikipedia?: boolean
 ): Promise<string> {
-  const effectiveModel: AIModel = model || "gemini-flash";
+  const { data, error } = await supabase.functions.invoke("study-ai", {
+    body: { action, content, topic, difficulty, gradeLevel, model, expertise, includeWikipedia },
+  });
 
-  if (effectiveModel === "wikipedia") {
-    const fallbackTopic = topic || content || "";
-    if (!fallbackTopic) return "";
-    const wikiResults = await searchWikipedia(fallbackTopic, 1);
-    if (wikiResults.length === 0) return "";
-    return formatWikipediaContentForAction(action, wikiResults[0], difficulty, gradeLevel);
+  if (error) {
+    throw new Error(error.message || "Failed to call study AI");
   }
 
-  const wikiContext = includeWikipedia
-    ? await (async () => {
-        const q = topic || content || "";
-        if (!q) return "";
-        try {
-          const res = await searchWikipedia(q, 1);
-          if (res.length === 0) return "";
-          return `\n\n[Wikipedia context]\nTitle: ${res[0].title}\n${res[0].extract}\nURL: ${res[0].url}`;
-        } catch {
-          return "";
-        }
-      })()
-    : "";
+  if (data.error) {
+    throw new Error(data.error);
+  }
 
-  const system = [
-    "You are an expert study assistant.",
-    expertise ? `Domain focus: ${expertise}.` : "",
-    gradeLevel ? `Target level: ${gradeLevel}.` : "",
-    difficulty ? `Difficulty: ${difficulty}.` : "",
-    buildActionPrompt(action),
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const user = [
-    topic?.trim() ? `Topic: ${topic.trim()}` : "",
-    content?.trim() ? `Content:\n${content.trim()}` : "",
-    wikiContext,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
-  return await lovableChatCompletion(
-    [
-      { role: "system", content: system },
-      { role: "user", content: user || "Generate study material." },
-    ],
-    {
-      model: MODEL_MAP[effectiveModel],
-      temperature: 0.4,
-      maxTokens: 4096,
-    }
-  );
+  return data.result;
 }
 
 export function parseFlashcards(response: string): Flashcard[] {
@@ -360,20 +271,15 @@ export function parseStudyPlan(response: string): StudyPlanItem[] {
   try {
     const jsonMatch = response.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as unknown;
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map((item) => {
-        const obj = (typeof item === "object" && item !== null ? (item as Record<string, unknown>) : {});
-        const activitiesRaw = obj.activities;
-        return {
-          day: typeof obj.day === "number" ? obj.day : 1,
-          topic: typeof obj.topic === "string" ? obj.topic : "Study Session",
-          activities: Array.isArray(activitiesRaw) ? activitiesRaw.filter((a): a is string => typeof a === "string") : [],
-          difficulty: typeof obj.difficulty === "number" ? obj.difficulty : 5,
-          timeMinutes: typeof obj.timeMinutes === "number" ? obj.timeMinutes : 30,
-          description: typeof obj.description === "string" ? obj.description : "",
-        };
-      });
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.map((item: any) => ({
+        day: item.day || 1,
+        topic: item.topic || "Study Session",
+        activities: Array.isArray(item.activities) ? item.activities : [],
+        difficulty: item.difficulty || 5,
+        timeMinutes: item.timeMinutes || 30,
+        description: item.description || ""
+      }));
     }
     return [];
   } catch (e) {
