@@ -337,6 +337,7 @@ Return JSON: [{"problem": "...", "solution": "...", "difficulty": "easy|medium|h
  
  IMPORTANT: Generate exactly ${requestedCount} elaborative questions about the user's topic.`;
         userPrompt = `Create exactly ${requestedCount} elaborative interrogation questions at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Include a mix of "why" and "how" questions. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
+        break;
       case "create-cornell-notes":
         systemPrompt = `You are an expert academic tutor who creates perfect Cornell Notes for ${gradeLevelText} students at a ${difficulty || "medium"} difficulty level. ${expertiseApproach}
 
