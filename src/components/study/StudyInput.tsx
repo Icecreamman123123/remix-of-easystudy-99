@@ -128,6 +128,7 @@ const LENGTH_OPTIONS = [
 
 const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; description: string }[] = [
   { action: "generate-flashcards", icon: BookOpen, label: "Flashcards", description: "Create active recall cards" },
+  { action: "vocabulary-cards", icon: GraduationCap, label: "Vocab Cards", description: "Word cards with drawings" },
   { action: "matching-game", icon: Puzzle, label: "Matching", description: "Match Q&A pairs" },
   { action: "speed-challenge", icon: Zap, label: "Speed Challenge", description: "Timed blitz mode" },
   { action: "practice-test", icon: Target, label: "Practice Test", description: "Mixed question types" },

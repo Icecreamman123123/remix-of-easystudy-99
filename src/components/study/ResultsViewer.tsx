@@ -14,6 +14,7 @@ import { MatchingGame } from "./MatchingGame";
 import { SpeedChallenge } from "./SpeedChallenge";
 import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
 import { CornellNotesViewer } from "./CornellNotesViewer";
+import { VocabularyCardViewer, parseVocabularyCards } from "./VocabularyCardViewer";
 import { ExportPdfButton } from "./ExportPdfButton";
 import { StudyPlanViewer } from "./StudyPlanViewer";
 import ReactMarkdown from "react-markdown";
@@ -202,6 +203,15 @@ export function ResultsViewer({ action, result, onClose, topic, isManual, onSave
         }
         break;
       }
+      case "vocabulary-cards": {
+        const vocabCards = parseVocabularyCards(result);
+        if (vocabCards.length > 0) {
+          return (
+            <VocabularyCardViewer cards={vocabCards} topic={topic} />
+          );
+        }
+        break;
+      }
       case "practice-problems": {
         const problems = parsePracticeProblems(result);
         if (problems.length > 0) {
@@ -272,13 +282,14 @@ export function ResultsViewer({ action, result, onClose, topic, isManual, onSave
       case "create-study-plan": return "Study Schedule";
       case "summarize": return "Summary";
       case "create-cornell-notes": return "Cornell Notes";
+      case "vocabulary-cards": return "Vocabulary Cards";
       case "practice-problems": return "Practice Problems";
       default: return "Results";
     }
   };
 
   // For interactive modes, use full height
-  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes"].includes(action);
+  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards"].includes(action);
 
   return (
     <Card className="h-full">

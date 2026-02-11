@@ -369,6 +369,37 @@ Return a JSON object with this structure:
         userPrompt = `Create structured Cornell Notes for a ${gradeLevelText} student at ${difficulty || "medium"} difficulty. Focus ONLY on this specific topic/content:\n\n${content || topic}\n\nPAY ATTENTION to any "[Instructions: ...]" block if present.\n\nReturn ONLY the JSON object.`;
         break;
 
+      case "vocabulary-cards":
+        systemPrompt = `You are an expert vocabulary educator for ${gradeLevelText} students. ${expertiseApproach}
+
+CRITICAL: Create detailed vocabulary cards for key terms from the user's topic/content.
+
+Each vocabulary card must include:
+1. **word**: The vocabulary term (capitalized)
+2. **pronunciation**: Phonetic pronunciation with syllable breaks (e.g., "Ee-co-sys-tem")
+3. **definition**: A clear, grade-appropriate definition
+4. **relatedWords**: 3-5 related/associated words that connect to this term
+5. **imagePrompt**: A brief description of what illustration would represent this word
+
+Requirements:
+- Focus on the most important vocabulary from the topic
+- Definitions must be clear and appropriate for ${gradeLevelText}
+- Related words should help build conceptual connections
+- Difficulty: ${difficulty || 'medium'}
+
+Return a JSON array:
+[{
+  "word": "ECOSYSTEM",
+  "pronunciation": "Ee-co-sys-tem",
+  "definition": "All of the living and nonliving things interacting in an area.",
+  "relatedWords": ["Nature", "Community", "Forest", "Habitat", "Biome"],
+  "imagePrompt": "trees, animals, sun, and water in a forest scene"
+}]
+
+IMPORTANT: Generate exactly ${requestedCount} vocabulary cards.`;
+        userPrompt = `Create exactly ${requestedCount} vocabulary cards at ${gradeLevelText} with ${difficulty || 'medium'} difficulty. Focus ONLY on this specific topic/content:\n\n${content || topic}`;
+        break;
+
       default:
         systemPrompt = "You are a helpful study assistant. Help students learn effectively. Focus on the specific topic they provide.";
         userPrompt = content || topic || "How can I study more effectively?";
