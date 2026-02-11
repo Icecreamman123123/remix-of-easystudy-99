@@ -33,6 +33,14 @@ import {
   HelpCircle,
   ScrollText
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
@@ -282,6 +290,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [loading, setLoading] = useState<StudyAction | null>(null);
   const [favorites, setFavorites] = useState<FavoritePreset[]>([]);
   const [includeWikipedia, setIncludeWikipedia] = useState(false);
+  const [vocabDialogOpen, setVocabDialogOpen] = useState(false);
+  const [vocabWord, setVocabWord] = useState("");
   const { toast } = useToast();
 
   // Load favorites on mount
@@ -378,6 +388,29 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const getCombinedContent = () => {
     const allContent = sources.map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n");
     return allContent;
+  };
+
+  const handleVocabGenerate = async (word: string) => {
+    setVocabWord("");
+    setLoading("vocabulary-cards" as StudyAction);
+    try {
+      const difficultyText = DIFFICULTY_LABELS[difficulty].toLowerCase();
+      const contentWithInstructions = `Topic: ${word}\n\n[Instructions: Generate exactly 1 items.\nDifficulty level: ${difficultyText}.]`;
+      const result = await callStudyAI("vocabulary-cards", contentWithInstructions, word, difficultyText, gradeLevel, aiModel, aiExpertise, includeWikipedia);
+      onResult("vocabulary-cards", result, word, gradeLevel);
+      toast({
+        title: "Success!",
+        description: `Generated vocabulary card for "${word}".`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(null);
+    }
   };
 
   const handleAction = async (action: StudyAction) => {
@@ -717,7 +750,13 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               key={action}
               variant="outline"
               className="h-auto py-8 flex flex-col items-center gap-3 apple-button hover-scale border-muted-foreground/10 bg-card hover:bg-accent/50 hover:border-primary/20 relative overflow-hidden group"
-              onClick={() => handleAction(action)}
+              onClick={() => {
+                if (action === "vocabulary-cards") {
+                  setVocabDialogOpen(true);
+                } else {
+                  handleAction(action);
+                }
+              }}
               disabled={loading !== null}
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -733,6 +772,58 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             </Button>
           ))}
         </div>
+
+        {/* Vocabulary Card Word Input Dialog */}
+        <Dialog open={vocabDialogOpen} onOpenChange={setVocabDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-primary" />
+                Vocabulary Card
+              </DialogTitle>
+              <DialogDescription>
+                Enter a word to generate a vocabulary card with definition, illustration, and related words.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="vocab-word">Word</Label>
+                <Input
+                  id="vocab-word"
+                  placeholder="e.g. Ecosystem, Photosynthesis, Democracy..."
+                  value={vocabWord}
+                  onChange={(e) => setVocabWord(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && vocabWord.trim()) {
+                      setVocabDialogOpen(false);
+                      handleVocabGenerate(vocabWord.trim());
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Grade level: <span className="font-medium text-foreground">{GRADE_LEVELS.find(g => g.value === gradeLevel)?.label || gradeLevel}</span>
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setVocabDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (vocabWord.trim()) {
+                    setVocabDialogOpen(false);
+                    handleVocabGenerate(vocabWord.trim());
+                  }
+                }}
+                disabled={!vocabWord.trim()}
+              >
+                Generate Card
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Manual Create Section */}
         {onManualCreate && (
