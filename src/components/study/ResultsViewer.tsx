@@ -24,6 +24,7 @@ interface ResultsViewerProps {
   result: string;
   onClose: () => void;
   topic?: string;
+  gradeLevel?: string;
   isManual?: boolean;
   onSavePlan?: (plan: any) => void;
 }
@@ -60,7 +61,7 @@ function toMindMapFormat(concepts: Concept[]) {
   }));
 }
 
-export function ResultsViewer({ action, result, onClose, topic, isManual, onSavePlan }: ResultsViewerProps) {
+export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isManual, onSavePlan }: ResultsViewerProps) {
   const [completed, setCompleted] = useState(false);
   const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)
     ? parseFlashcards(result)
@@ -207,7 +208,7 @@ export function ResultsViewer({ action, result, onClose, topic, isManual, onSave
         const vocabCards = parseVocabularyCards(result);
         if (vocabCards.length > 0) {
           return (
-            <VocabularyCardViewer cards={vocabCards} topic={topic} />
+            <VocabularyCardViewer cards={vocabCards} topic={topic} gradeLevel={gradeLevel} />
           );
         }
         break;

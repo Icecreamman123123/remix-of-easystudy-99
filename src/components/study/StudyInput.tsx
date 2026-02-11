@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   BookOpen,
   Brain,
@@ -31,7 +32,9 @@ import {
   Trash2,
   Zap,
   HelpCircle,
-  ScrollText
+  ScrollText,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import {
   Dialog,
@@ -292,6 +295,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [includeWikipedia, setIncludeWikipedia] = useState(false);
   const [vocabDialogOpen, setVocabDialogOpen] = useState(false);
   const [vocabWord, setVocabWord] = useState("");
+  const [customizationOpen, setCustomizationOpen] = useState(false);
   const { toast } = useToast();
 
   // Load favorites on mount
@@ -485,7 +489,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Grade Level and AI Model Selectors */}
+        {/* Grade Level - always visible */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Label htmlFor="grade-level" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
@@ -505,117 +509,171 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Label htmlFor="ai-model" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
-              <Cpu className="h-4 w-4" />
-              Model:
-            </Label>
-            <Select value={aiModel} onValueChange={(v) => setAiModel(v as AIModel)}>
-              <SelectTrigger id="ai-model" className="w-[220px]">
-                <SelectValue placeholder="Select model" className="truncate" />
-              </SelectTrigger>
-              <SelectContent>
-                {AI_MODELS.map(({ value, label, description }) => (
-                  <SelectItem key={value} value={value}>
-                    <div className="flex items-center justify-between w-full gap-2">
-                      <div className="flex-1 truncate">
-                        <span className="font-medium">{label}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground shrink-0 ml-2">
-                        {description}
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Network className="h-4 w-4" />
-              Include Wikipedia
-            </Label>
-            <Switch checked={includeWikipedia} onCheckedChange={(v) => setIncludeWikipedia(!!v)} disabled={aiModel === "wikipedia"} />
-          </div>
-
-          {/* Small banner when Wikipedia content is being included */}
-          {includeWikipedia && (
-            <div className="w-full mt-1">
-              <div className="inline-block rounded px-2 py-1 bg-primary/10 text-xs text-primary">Using Wikipedia extract as context</div>
-            </div>
-          )}
-
-          <div className="w-full mt-1">
-            <div className="text-xs text-muted-foreground">⚠️ AI may be inaccurate — please double-check sources and verify facts before using generated content.</div>
-          </div>
         </div>
 
-        {/* Expertise Selector */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Lightbulb className="h-4 w-4" />
-              Expertise: <span className="text-primary">{AI_EXPERTISE.find(e => e.value === aiExpertise)?.label}</span>
-            </Label>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={addToFavorites}
-              className="h-7 text-xs gap-1 hover:text-primary"
-            >
-              <Star className="h-3.5 w-3.5" />
-              Save Combo
+        {/* Collapsible Customization */}
+        <Collapsible open={customizationOpen} onOpenChange={setCustomizationOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between text-sm h-9">
+              <span className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                Customization
+                {(aiModel !== "gemini-flash" || aiExpertise !== "general" || difficulty !== 1 || questionCount !== 16) && (
+                  <Badge variant="secondary" className="text-xs ml-1">Modified</Badge>
+                )}
+              </span>
+              {customizationOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {AI_EXPERTISE.map(({ value, label, icon }) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={aiExpertise === value ? "default" : "outline"}
-                onClick={() => setAiExpertise(value)}
-                className="text-xs h-8 transition-all duration-200"
-              >
-                <span className="mr-1">{icon}</span>
-                {label}
-              </Button>
-            ))}
-          </div>
-        </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-3">
+            {/* Model & Wikipedia */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="ai-model" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
+                  <Cpu className="h-4 w-4" />
+                  Model:
+                </Label>
+                <Select value={aiModel} onValueChange={(v) => setAiModel(v as AIModel)}>
+                  <SelectTrigger id="ai-model" className="w-[220px]">
+                    <SelectValue placeholder="Select model" className="truncate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AI_MODELS.map(({ value, label, description }) => (
+                      <SelectItem key={value} value={value}>
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <div className="flex-1 truncate">
+                            <span className="font-medium">{label}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground shrink-0 ml-2">
+                            {description}
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        {/* Favorites Section */}
-        {favorites.length > 0 && (
-          <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Star className="h-4 w-4 text-primary" />
-              Favorite Presets
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {favorites.map((favorite) => (
-                <div key={favorite.id} className="flex items-center">
-                  <Button
-                    size="sm"
-                    variant={aiModel === favorite.model && aiExpertise === favorite.expertise ? "default" : "secondary"}
-                    onClick={() => applyFavorite(favorite)}
-                    className="text-xs h-7 pr-1 rounded-r-none"
-                  >
-                    {favorite.name}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => removeFavorite(favorite.id)}
-                    className="h-7 w-7 p-0 rounded-l-none border-l border-border hover:bg-destructive/20 hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Network className="h-4 w-4" />
+                  Include Wikipedia
+                </Label>
+                <Switch checked={includeWikipedia} onCheckedChange={(v) => setIncludeWikipedia(!!v)} disabled={aiModel === "wikipedia"} />
+              </div>
+
+              {includeWikipedia && (
+                <div className="w-full mt-1">
+                  <div className="inline-block rounded px-2 py-1 bg-primary/10 text-xs text-primary">Using Wikipedia extract as context</div>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+
+            <div className="w-full">
+              <div className="text-xs text-muted-foreground">⚠️ AI may be inaccurate — please double-check sources and verify facts before using generated content.</div>
+            </div>
+
+            {/* Expertise Selector */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4" />
+                  Expertise: <span className="text-primary">{AI_EXPERTISE.find(e => e.value === aiExpertise)?.label}</span>
+                </Label>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={addToFavorites}
+                  className="h-7 text-xs gap-1 hover:text-primary"
+                >
+                  <Star className="h-3.5 w-3.5" />
+                  Save Combo
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {AI_EXPERTISE.map(({ value, label, icon }) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    variant={aiExpertise === value ? "default" : "outline"}
+                    onClick={() => setAiExpertise(value)}
+                    className="text-xs h-8 transition-all duration-200"
+                  >
+                    <span className="mr-1">{icon}</span>
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Favorites Section */}
+            {favorites.length > 0 && (
+              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Star className="h-4 w-4 text-primary" />
+                  Favorite Presets
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {favorites.map((favorite) => (
+                    <div key={favorite.id} className="flex items-center">
+                      <Button
+                        size="sm"
+                        variant={aiModel === favorite.model && aiExpertise === favorite.expertise ? "default" : "secondary"}
+                        onClick={() => applyFavorite(favorite)}
+                        className="text-xs h-7 pr-1 rounded-r-none"
+                      >
+                        {favorite.name}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => removeFavorite(favorite.id)}
+                        className="h-7 w-7 p-0 rounded-l-none border-l border-border hover:bg-destructive/20 hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Difficulty and Length Controls */}
+            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  <Gauge className="h-4 w-4" />
+                  Difficulty: <span className="font-bold text-primary transition-all duration-300">{DIFFICULTY_LABELS[difficulty]}</span>
+                </Label>
+                <DraggableSlider
+                  value={difficulty}
+                  onChange={setDifficulty}
+                  max={3}
+                  labels={DIFFICULTY_LABELS}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  <Hash className="h-4 w-4" />
+                  Questions: <span className="font-bold text-primary">{questionCount}</span>
+                </Label>
+                <div className="flex gap-1">
+                  {LENGTH_OPTIONS.map(({ value, label }) => (
+                    <Button
+                      key={value}
+                      size="sm"
+                      variant={questionCount === value ? "default" : "outline"}
+                      onClick={() => setQuestionCount(value)}
+                      className="flex-1 text-xs transition-all duration-200"
+                    >
+                      {label.split(" ")[0]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Sources Display */}
         {sources.length > 0 && (
@@ -682,41 +740,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
           </TabsContent>
         </Tabs>
 
-        {/* Difficulty and Length Controls with Smooth Slider */}
-        <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm">
-              <Gauge className="h-4 w-4" />
-              Difficulty: <span className="font-bold text-primary transition-all duration-300">{DIFFICULTY_LABELS[difficulty]}</span>
-            </Label>
-            <DraggableSlider
-              value={difficulty}
-              onChange={setDifficulty}
-              max={3}
-              labels={DIFFICULTY_LABELS}
-            />
-          </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-sm">
-              <Hash className="h-4 w-4" />
-              Questions: <span className="font-bold text-primary">{questionCount}</span>
-            </Label>
-            <div className="flex gap-1">
-              {LENGTH_OPTIONS.map(({ value, label }) => (
-                <Button
-                  key={value}
-                  size="sm"
-                  variant={questionCount === value ? "default" : "outline"}
-                  onClick={() => setQuestionCount(value)}
-                  className="flex-1 text-xs transition-all duration-200"
-                >
-                  {label.split(" ")[0]}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Custom Instructions Collapsible */}
         {/* Custom Instructions - Always Visible */}

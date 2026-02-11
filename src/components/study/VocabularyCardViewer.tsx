@@ -1,8 +1,19 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Volume2, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ChevronLeft, ChevronRight, Volume2, Loader2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { callStudyAI, AIModel, AIExpertise } from "@/lib/study-api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export interface VocabularyCard {
   word: string;
@@ -15,6 +26,7 @@ export interface VocabularyCard {
 interface VocabularyCardViewerProps {
   cards: VocabularyCard[];
   topic?: string;
+  gradeLevel?: string;
 }
 
 export function parseVocabularyCards(response: string): VocabularyCard[] {
@@ -36,10 +48,19 @@ export function parseVocabularyCards(response: string): VocabularyCard[] {
   }
 }
 
-export function VocabularyCardViewer({ cards, topic }: VocabularyCardViewerProps) {
+export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }: VocabularyCardViewerProps) {
+  const [cards, setCards] = useState<VocabularyCard[]>(initialCards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageUrls, setImageUrls] = useState<Record<number, string>>({});
   const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newWord, setNewWord] = useState("");
+  const [generatingCard, setGeneratingCard] = useState(false);
+
+  // Sync if parent passes new cards
+  useEffect(() => {
+    setCards(initialCards);
+  }, [initialCards]);
 
   const card = cards[currentIndex];
 
@@ -75,24 +96,47 @@ export function VocabularyCardViewer({ cards, topic }: VocabularyCardViewerProps
     speechSynthesis.speak(utterance);
   };
 
+  const handleAddCard = async () => {
+    if (!newWord.trim()) return;
+    setGeneratingCard(true);
+    try {
+      const contentWithInstructions = `Topic: ${newWord.trim()}\n\n[Instructions: Generate exactly 1 items.\nDifficulty level: medium.]`;
+      const result = await callStudyAI("vocabulary-cards", contentWithInstructions, newWord.trim(), "medium", gradeLevel || "8");
+      const newCards = parseVocabularyCards(result);
+      if (newCards.length > 0) {
+        setCards(prev => [...prev, ...newCards]);
+        setCurrentIndex(cards.length); // Jump to newly added card
+        setAddDialogOpen(false);
+        setNewWord("");
+      }
+    } catch (err) {
+      console.error("Failed to generate vocab card:", err);
+    } finally {
+      setGeneratingCard(false);
+    }
+  };
+
   if (!card) return null;
 
   return (
     <div className="space-y-4">
-      {/* Navigation - only show if multiple cards */}
-      {cards.length > 1 && (
-        <div className="flex items-center justify-between">
-          <Button variant="outline" size="sm" onClick={goPrev} disabled={currentIndex === 0}>
-            <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-          </Button>
+      {/* Navigation + Add button */}
+      <div className="flex items-center justify-between">
+        <Button variant="outline" size="sm" onClick={goPrev} disabled={currentIndex === 0}>
+          <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+        </Button>
+        <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
             {currentIndex + 1} / {cards.length}
           </span>
-          <Button variant="outline" size="sm" onClick={goNext} disabled={currentIndex === cards.length - 1}>
-            Next <ChevronRight className="h-4 w-4 ml-1" />
+          <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)} disabled={generatingCard}>
+            <Plus className="h-4 w-4 mr-1" /> Add Word
           </Button>
         </div>
-      )}
+        <Button variant="outline" size="sm" onClick={goNext} disabled={currentIndex === cards.length - 1}>
+          Next <ChevronRight className="h-4 w-4 ml-1" />
+        </Button>
+      </div>
 
       {/* Vocabulary Card - notebook paper style matching reference */}
       <div className="rounded-xl border-2 border-border overflow-hidden bg-background shadow-md relative"
@@ -184,6 +228,54 @@ export function VocabularyCardViewer({ cards, topic }: VocabularyCardViewerProps
           ))}
         </div>
       )}
+
+      {/* Add Word Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Add Another Word
+            </DialogTitle>
+            <DialogDescription>
+              Enter a word to generate another vocabulary card.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="new-vocab-word">Word</Label>
+              <Input
+                id="new-vocab-word"
+                placeholder="e.g. Mitosis, Democracy, Velocity..."
+                value={newWord}
+                onChange={(e) => setNewWord(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newWord.trim() && !generatingCard) {
+                    handleAddCard();
+                  }
+                }}
+                autoFocus
+                disabled={generatingCard}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={generatingCard}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddCard} disabled={!newWord.trim() || generatingCard}>
+              {generatingCard ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Card"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
