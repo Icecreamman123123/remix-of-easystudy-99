@@ -3,8 +3,6 @@
  * Handles user achievements and milestones
  */
 
-import { supabase } from "@/integrations/supabase/client";
-
 export interface Achievement {
   id: string;
   name: string;
@@ -28,67 +26,15 @@ export interface UserAchievement {
  * Get all available achievements
  */
 export async function getAllAchievements(): Promise<Achievement[]> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from("achievements")
-      .select("*")
-      .order("requirement_value", { ascending: true });
-
-    if (error) throw error;
-    return (data as Achievement[]) || [];
-  } catch (error) {
-    console.error("Error fetching achievements:", error);
-    return [];
-  }
+  return [];
 }
 
 /**
  * Get user's earned achievements
  */
 export async function getUserAchievements(userId: string): Promise<UserAchievement[]> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from("user_achievements")
-      .select(
-        `
-        id,
-        user_id,
-        achievement_id,
-        earned_at,
-        achievements:achievement_id (
-          id,
-          name,
-          description,
-          icon,
-          category,
-          requirement_type,
-          requirement_value,
-          created_at
-        )
-      `
-      )
-      .eq("user_id", userId)
-      .order("earned_at", { ascending: false });
-
-    if (error) throw error;
-
-    return (data as unknown as Array<{
-      id: string;
-      user_id: string;
-      achievement_id: string;
-      earned_at: string;
-      achievements: Achievement | Achievement[];
-    }>).map((item) => ({
-      id: item.id,
-      user_id: item.user_id,
-      achievement_id: item.achievement_id,
-      earned_at: item.earned_at,
-      achievement: Array.isArray(item.achievements) ? item.achievements[0] : item.achievements,
-    }));
-  } catch (error) {
-    console.error("Error fetching user achievements:", error);
-    return [];
-  }
+  void userId;
+  return [];
 }
 
 /**
@@ -97,19 +43,8 @@ export async function getUserAchievements(userId: string): Promise<UserAchieveme
 export async function getAchievementsByCategory(
   category: "streak" | "cards" | "accuracy" | "social"
 ): Promise<Achievement[]> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from("achievements")
-      .select("*")
-      .eq("category", category)
-      .order("requirement_value", { ascending: true });
-
-    if (error) throw error;
-    return (data as Achievement[]) || [];
-  } catch (error) {
-    console.error("Error fetching achievements by category:", error);
-    return [];
-  }
+  void category;
+  return [];
 }
 
 /**
@@ -119,20 +54,9 @@ export async function hasEarnedAchievement(
   userId: string,
   achievementId: string
 ): Promise<boolean> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from("user_achievements")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("achievement_id", achievementId)
-      .single();
-
-    if (error && error.code !== "PGRST116") throw error;
-    return !!data;
-  } catch (error) {
-    console.error("Error checking achievement:", error);
-    return false;
-  }
+  void userId;
+  void achievementId;
+  return false;
 }
 
 /**
@@ -225,22 +149,9 @@ export async function getNextMilestones(userId: string): Promise<Achievement[]> 
  * Award achievement to user (called by backend)
  */
 export async function awardAchievement(userId: string, achievementId: string): Promise<boolean> {
-  try {
-    const { error } = await (supabase as any)
-      .from("user_achievements")
-      .insert({ user_id: userId, achievement_id: achievementId })
-      .select();
-
-    if (error && error.code !== "23505") {
-      // 23505 = unique constraint violation (already earned)
-      throw error;
-    }
-
-    return !error;
-  } catch (error) {
-    console.error("Error awarding achievement:", error);
-    return false;
-  }
+  void userId;
+  void achievementId;
+  return false;
 }
 
 /**
@@ -250,25 +161,6 @@ export async function getAchievementRarity(achievementId: string): Promise<{
   earnedByUserCount: number;
   percentageOfUsers: number;
 }> {
-  try {
-    const [earnedCount, totalUsers] = await Promise.all([
-      (supabase as any)
-        .from("user_achievements")
-        .select("id", { count: "exact" })
-        .eq("achievement_id", achievementId),
-      supabase.from("profiles").select("id", { count: "exact" }),
-    ]);
-
-    const earnedByUserCount = earnedCount.count || 0;
-    const totalUserCount = totalUsers.count || 1;
-    const percentageOfUsers = totalUserCount > 0 ? (earnedByUserCount / totalUserCount) * 100 : 0;
-
-    return {
-      earnedByUserCount,
-      percentageOfUsers: Math.round(percentageOfUsers * 10) / 10,
-    };
-  } catch (error) {
-    console.error("Error getting achievement rarity:", error);
-    return { earnedByUserCount: 0, percentageOfUsers: 0 };
-  }
+  void achievementId;
+  return { earnedByUserCount: 0, percentageOfUsers: 0 };
 }

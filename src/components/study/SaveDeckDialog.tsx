@@ -218,16 +218,22 @@ export function SaveDeckDialog({
                     <div className="p-2 text-sm text-muted-foreground">No saved templates</div>
                   ) : (
                     userTemplates.map((t) => {
-                      const userPreview = (t.payload && (t.payload.preview || t.payload.summary)) || t.description || '';
+                      const payload = (typeof t.payload === "object" && t.payload !== null ? (t.payload as Record<string, unknown>) : null);
+                      const userPreview = (payload && (payload.preview || payload.summary)) || t.description || "";
                       return (
                         <DropdownMenuItem key={t.id} onSelect={async () => {
                           // use payload to create template-like deck
-                          const { name: tname, action, payload } = t as any;
+                          const tname = t.name;
+                          const action = t.action;
                           const effectiveTopic = topic || title || "";
                           const { generateTemplateDeck } = await import("@/lib/study-templates");
-                          const { flashcards } = await generateTemplateDeck(action === "generate-flashcards" ? "exam-revision" : action, effectiveTopic, undefined);
+                          const { flashcards } = await generateTemplateDeck(
+                            action === "generate-flashcards" ? "exam-revision" : action,
+                            effectiveTopic,
+                            undefined
+                          );
                           setPreviewTitle(tname);
-                          setPreviewCards(flashcards.map((c:any)=>({question:c.question, answer:c.answer, hint:c.hint})));
+                          setPreviewCards(flashcards.map((c) => ({ question: c.question, answer: c.answer, hint: c.hint })));
                           setPreviewOpen(true);
                         }}>
                           <div className="flex items-center justify-between">

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileUp, File, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { lovableChatCompletion } from "@/lib/lovable-ai";
 
 interface FileDropzoneProps {
   onTextExtracted: (text: string, fileName: string) => void;
@@ -38,10 +38,14 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
     for (let i = 1; i <= totalPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .filter((item: any) => item.str)
-        .map((item: any) => item.str)
-        .join(' ');
+      const items = (textContent as unknown as { items?: unknown[] }).items || [];
+      const pageText = items
+        .map((item) => {
+          const rec = (typeof item === "object" && item !== null ? (item as Record<string, unknown>) : null);
+          return typeof rec?.str === "string" ? rec.str : "";
+        })
+        .filter(Boolean)
+        .join(" ");
       fullText += pageText + '\n\n';
       setProgress(Math.round((i / totalPages) * 100));
     }
@@ -64,23 +68,25 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
     
     setProgress(30);
     
-    // Use Lovable AI to extract text from image
-    const { data, error } = await supabase.functions.invoke("extract-image-text", {
-      body: { imageBase64: base64, mimeType: file.type },
-    });
+    const text = await lovableChatCompletion(
+      [
+        {
+          role: "system",
+          content:
+            "Extract all readable text from the provided image. Return ONLY the extracted text, no markdown, no commentary.",
+        },
+        {
+          role: "user",
+          content: `mimeType: ${file.type}\nbase64: ${base64}`,
+        },
+      ],
+      { model: "google/gemini-2.5-flash", temperature: 0.1, maxTokens: 2048 }
+    );
     
     setProgress(90);
     
-    if (error) {
-      throw new Error(error.message || "Failed to extract text from image");
-    }
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
-    
     setProgress(100);
-    return data.text || "";
+    return text || "";
   };
 
   const handleFile = useCallback(async (file: File) => {

@@ -237,18 +237,6 @@ export async function generateTemplateDeck(
 
   // create-study-plan -> convert to multiple flashcards (one card per major section)
   if (template.action === "create-study-plan") {
-    // Check if we have a saved plan in the payload (from "Save Plan to Templates")
-    const payload = (template as any).payload;
-    if (payload && payload.plan && Array.isArray(payload.plan)) {
-      // We have a strict JSON plan, let's return it as the raw result
-      // The ResultsViewer will parse it using parseStudyPlan
-      return {
-        title,
-        flashcards: [], // Not used for study plan
-        rawResult: JSON.stringify(payload.plan)
-      };
-    }
-
     const ai = await callStudyAIWithFallback(
       "create-study-plan",
       undefined,

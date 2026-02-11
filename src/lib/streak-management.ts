@@ -2,8 +2,7 @@
  * Daily Streak Management
  * Handles user study streaks and milestone tracking
  */
-
-import { supabase } from "@/integrations/supabase/client";
+import { getSessions } from "@/lib/storage-simple";
 
 export interface DailyStreak {
   id: string;
@@ -26,50 +25,56 @@ export interface StreakStats {
  * Get user's current streak information
  */
 export async function getUserStreak(userId: string): Promise<DailyStreak | null> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from("daily_streaks")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+  void userId;
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        // No row found, return null
-        return null;
-      }
-      throw error;
+  const sessions = getSessions();
+  const days = new Set(
+    sessions
+      .map((s) => s.completedAt)
+      .filter(Boolean)
+      .map((d) => new Date(d).toISOString().slice(0, 10))
+  );
+
+  const sortedDays = Array.from(days).sort();
+  if (sortedDays.length === 0) return null;
+
+  let current = 1;
+  let longest = 1;
+  for (let i = 1; i < sortedDays.length; i++) {
+    const prev = new Date(sortedDays[i - 1]);
+    const next = new Date(sortedDays[i]);
+    const diffDays = Math.round((next.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) {
+      current += 1;
+      longest = Math.max(longest, current);
+    } else if (diffDays > 1) {
+      current = 1;
     }
-
-    return data as DailyStreak;
-  } catch (error) {
-    console.error("Error fetching user streak:", error);
-    return null;
   }
+
+  const last = sortedDays[sortedDays.length - 1];
+  const today = new Date().toISOString().slice(0, 10);
+  const studiedToday = last === today;
+
+  const streak: DailyStreak = {
+    id: `streak_local`,
+    user_id: "local",
+    current_streak: studiedToday ? current : 0,
+    longest_streak: longest,
+    last_study_date: last,
+    created_at: new Date(sortedDays[0]).toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  return streak;
 }
 
 /**
  * Initialize streak for new user
  */
 export async function initializeUserStreak(userId: string): Promise<DailyStreak | null> {
-  try {
-    const { data, error } = await (supabase as any)
-      .from("daily_streaks")
-      .insert({
-        user_id: userId,
-        current_streak: 0,
-        longest_streak: 0,
-        last_study_date: null,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as DailyStreak;
-  } catch (error) {
-    console.error("Error initializing streak:", error);
-    return null;
-  }
+  void userId;
+  return getUserStreak("local");
 }
 
 /**

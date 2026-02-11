@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useStudyTemplates } from "@/hooks/useStudyTemplates-simple";
 import { STUDY_TEMPLATES } from "@/lib/study-templates";
+import type { Flashcard } from "@/lib/study-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TemplatesManager } from "@/components/study/TemplatesManager";
@@ -12,15 +13,18 @@ export default function ExploreSets() {
   const [templatesManagerOpen, setTemplatesManagerOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState("");
-  const [previewCards, setPreviewCards] = useState<any[]>([]);
+  const [previewCards, setPreviewCards] = useState<Flashcard[]>([]);
 
   const publicTemplates = templates.filter((t) => t.is_public);
 
-  const handleUseTemplate = async (t: any) => {
+  const handleUseTemplate = async (t: unknown) => {
     try {
+      const tmpl = (typeof t === "object" && t !== null ? (t as Record<string, unknown>) : {});
+      const id = typeof tmpl.id === "string" ? tmpl.id : "";
+      const action = typeof tmpl.action === "string" ? tmpl.action : "";
       const { generateTemplateDeck } = await import("@/lib/study-templates");
       // Built-in template id or map user action to built-in when possible
-      const templateId = (t.id && STUDY_TEMPLATES.find(s => s.id === t.id)) ? t.id : (t.action === "generate-flashcards" ? "exam-revision" : t.action);
+      const templateId = id && STUDY_TEMPLATES.find((s) => s.id === id) ? id : action === "generate-flashcards" ? "exam-revision" : action;
       const { title, flashcards } = await generateTemplateDeck(templateId, "", undefined);
       setPreviewTitle(title);
       setPreviewCards(flashcards);
@@ -64,7 +68,7 @@ export default function ExploreSets() {
             <Card key={t.id}>
               <CardHeader>
                 <CardTitle>{t.name}</CardTitle>
-                <div className="text-xs text-muted-foreground">by {(t as any).profiles?.[0]?.display_name || "Anonymous"}</div>
+                <div className="text-xs text-muted-foreground">by {t.profiles?.display_name || "Anonymous"}</div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{t.description}</p>

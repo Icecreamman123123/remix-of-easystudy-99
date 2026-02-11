@@ -36,6 +36,7 @@ import {
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
+import { useSources } from "@/hooks/useSources";
 
 // Manual editor mode types
 export type ManualEditorMode =
@@ -49,26 +50,11 @@ interface StudyInputProps {
   onManualCreate?: (mode: ManualEditorMode) => void;
 }
 
-interface Source {
-  id: string;
-  name: string;
-  content: string;
-  type: "text" | "file";
-}
-
 interface FavoritePreset {
   id: string;
   name: string;
   model: AIModel;
   expertise: AIExpertise;
-}
-
-
-interface Source {
-  id: string;
-  name: string;
-  content: string;
-  type: "text" | "file";
 }
 
 const GRADE_LEVELS = [
@@ -270,7 +256,6 @@ function saveFavorites(favorites: FavoritePreset[]) {
 
 export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [topic, setTopic] = useState("");
-  const [sources, setSources] = useState<Source[]>([]);
   const [currentTextContent, setCurrentTextContent] = useState("");
   const [customInstructions, setCustomInstructions] = useState("");
   const [gradeLevel, setGradeLevel] = useState("8");
@@ -282,6 +267,18 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [favorites, setFavorites] = useState<FavoritePreset[]>([]);
   const [includeWikipedia, setIncludeWikipedia] = useState(false);
   const { toast } = useToast();
+
+  const {
+    sources,
+    activeSources,
+    maxSources,
+    addSource,
+    removeSource,
+    renameSource,
+    setActive,
+    moveSource,
+    clearSources,
+  } = useSources();
 
   // Load favorites on mount
   useEffect(() => {
@@ -339,13 +336,21 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
 
   const addTextSource = () => {
     if (!currentTextContent.trim()) return;
-    const newSource: Source = {
-      id: `text-${Date.now()}`,
+
+    const res = addSource({
       name: `Notes ${sources.length + 1}`,
       content: currentTextContent,
-      type: "text"
-    };
-    setSources(prev => [...prev, newSource]);
+      type: "text",
+    });
+    if (!res.ok) {
+      toast({
+        title: "Cannot add source",
+        description: res.reason === "limit" ? `You can only have up to ${maxSources} sources.` : "Source is empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCurrentTextContent("");
     toast({
       title: "Source added",
@@ -354,13 +359,15 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   };
 
   const addFileSource = (text: string, fileName: string) => {
-    const newSource: Source = {
-      id: `file-${Date.now()}`,
-      name: fileName,
-      content: text,
-      type: "file"
-    };
-    setSources(prev => [...prev, newSource]);
+    const res = addSource({ name: fileName, content: text, type: "file" });
+    if (!res.ok) {
+      toast({
+        title: "Cannot add source",
+        description: res.reason === "limit" ? `You can only have up to ${maxSources} sources.` : "Source is empty.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!topic) {
       setTopic(fileName.replace(/\.[^/.]+$/, ""));
     }
@@ -370,12 +377,10 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
     });
   };
 
-  const removeSource = (id: string) => {
-    setSources(prev => prev.filter(s => s.id !== id));
-  };
-
   const getCombinedContent = () => {
-    const allContent = sources.map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n");
+    const allContent = activeSources
+      .map((s) => `--- ${s.name} ---\n${s.content}`)
+      .join("\n\n");
     return allContent;
   };
 
@@ -586,19 +591,63 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
         {/* Sources Display */}
         {sources.length > 0 && (
           <div className="p-3 bg-muted/30 rounded-lg space-y-2">
-            <Label className="text-sm font-medium">Sources ({sources.length})</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-sm font-medium">Sources ({activeSources.length}/{maxSources} active)</Label>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => {
+                  clearSources();
+                  toast({ title: "Cleared", description: "All sources removed." });
+                }}
+              >
+                Clear
+              </Button>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {sources.map(source => (
+              {sources.map((source) => (
                 <Badge
                   key={source.id}
                   variant="secondary"
-                  className="flex items-center gap-1 pr-1"
+                  className={`flex items-center gap-1 pr-1 ${source.active ? "" : "opacity-60"}`}
+                  onDoubleClick={() => {
+                    const next = window.prompt("Rename source", source.name);
+                    if (next !== null) renameSource(source.id, next);
+                  }}
                 >
                   {source.type === "file" ? <FileText className="h-3 w-3" /> : <FileEdit className="h-3 w-3" />}
                   <span className="max-w-[150px] truncate">{source.name}</span>
                   <span className="text-xs text-muted-foreground ml-1">
                     ({(source.content.length / 1000).toFixed(1)}k)
                   </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 ml-1"
+                    onClick={() => setActive(source.id, !source.active)}
+                    title={source.active ? "Disable source" : "Enable source"}
+                  >
+                    <span className="text-[10px] leading-none">{source.active ? "ON" : "OFF"}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
+                    onClick={() => moveSource(source.id, "up")}
+                    title="Move up"
+                  >
+                    <span className="text-[10px] leading-none">↑</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
+                    onClick={() => moveSource(source.id, "down")}
+                    title="Move down"
+                  >
+                    <span className="text-[10px] leading-none">↓</span>
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

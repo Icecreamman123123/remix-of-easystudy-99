@@ -5,8 +5,21 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "./useAuth-simple";
 import { getUserStreak, getStreakStatus, getDaysUntilStreakReset } from "@/lib/streak-management";
-import { getUserAchievements, getAchievementProgress, getNextMilestones } from "@/lib/achievement-system";
+import {
+  getUserAchievements,
+  getAchievementProgress,
+  getNextMilestones,
+  type Achievement,
+  type UserAchievement,
+} from "@/lib/achievement-system";
 import { useToast } from "./use-toast";
+
+type AchievementProgress = {
+  completedCount: number;
+  totalCount: number;
+  percentComplete: number;
+  categories: Record<string, { completed: number; total: number }>;
+};
 
 export function useStreakAndAchievements() {
   const { user } = useAuth();
@@ -22,9 +35,9 @@ export function useStreakAndAchievements() {
 
   const [achievementLoading, setAchievementLoading] = useState(true);
   const [achievements, setAchievements] = useState<{
-    earned: any[];
-    progress: any;
-    nextMilestones: any[];
+    earned: UserAchievement[];
+    progress: AchievementProgress;
+    nextMilestones: Achievement[];
   } | null>(null);
 
   useEffect(() => {

@@ -27,7 +27,7 @@ export function useDeckInvitations() {
 
   const [pendingInvitations, setPendingInvitations] = useState<DeckInvitation[]>([]);
   const [sentInvitations, setSentInvitations] = useState<DeckInvitation[]>([]);
-  const [sharedDecks, setSharedDecks] = useState<any[]>([]);
+  const [sharedDecks, setSharedDecks] = useState<SharedDeckAccess[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
