@@ -12,6 +12,9 @@ import { ManualFlashcardEditor } from "@/components/study/ManualFlashcardEditor"
 import { ManualQuizEditor } from "@/components/study/ManualQuizEditor";
 import { ManualWorksheetEditor } from "@/components/study/ManualWorksheetEditor";
 import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAndAchievements";
+import { CompactFeatureBanner } from "@/components/study/EnhancedFeatureCards";
+import { OnboardingGuide } from "@/components/study/OnboardingTooltips";
+import { GamificationHub } from "@/components/study/GamificationHub";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
@@ -184,17 +187,8 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Features Banner */}
-      <section className="bg-muted/50 border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <FeatureCard icon={Sparkles} title={t("feature.activeRecall")} description={t("feature.activeRecall.desc")} index={0} />
-            <FeatureCard icon={Repeat} title={t("feature.spacedRepetition")} description={t("feature.spacedRepetition.desc")} index={1} />
-            <FeatureCard icon={Brain} title={t("feature.feynman")} description={t("feature.feynman.desc")} index={2} />
-            <FeatureCard icon={Target} title={t("feature.pomodoro")} description={t("feature.pomodoro.desc")} index={3} />
-          </div>
-        </div>
-      </section>
+      {/* Features Banner - Enhanced */}
+      <CompactFeatureBanner />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
@@ -298,6 +292,7 @@ const Index = () => {
             {/* Show detailed analytics for logged-in users */}
             {user && (
               <>
+                <GamificationHub />
                 <LearningAnalytics />
                 <AchievementsDisplay />
               </>
@@ -347,6 +342,9 @@ const Index = () => {
           </div>
         </div>
       </main>
+
+      {/* Onboarding Guide */}
+      <OnboardingGuide />
 
       {/* Footer */}
       <footer className="border-t gradient-border mt-auto bg-muted/30">
