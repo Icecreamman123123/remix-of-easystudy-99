@@ -12,9 +12,17 @@
    }
  
    try {
-     const body = await req.json();
-     const { messages, topic, gradeLevel, difficulty, instruction, customInstruction } = body;
-     const customInstructionText = customInstruction || instruction;
+      const body = await req.json();
+      const { messages, topic, gradeLevel, difficulty, instruction, customInstruction } = body;
+      const customInstructionText = customInstruction || instruction;
+
+      // Validate messages
+      if (!messages || !Array.isArray(messages)) {
+        return new Response(
+          JSON.stringify({ error: "messages must be an array" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
      // Deno environment access
      const getEnv = (key: string): string | undefined => {

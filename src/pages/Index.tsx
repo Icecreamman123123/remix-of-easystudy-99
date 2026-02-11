@@ -246,6 +246,7 @@ const Index = () => {
                   action={currentResult.action}
                   result={currentResult.result}
                   topic={currentTopic}
+                  gradeLevel={chatGradeLevel}
                   onClose={() => setCurrentResult(null)}
                   isManual={currentResult.isManual}
                   onSavePlan={handleSaveStudyPlan}
