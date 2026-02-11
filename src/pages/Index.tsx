@@ -15,6 +15,10 @@ import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAnd
 import { CompactFeatureBanner } from "@/components/study/EnhancedFeatureCards";
 import { OnboardingGuide } from "@/components/study/OnboardingTooltips";
 import { GamificationHub } from "@/components/study/GamificationHub";
+import { ActivityHeatmap, VelocityGauge } from "@/components/study/VisualAnalytics";
+import { AdaptiveDifficulty } from "@/components/study/SmartControls";
+import { FloatingQuickActions } from "@/components/study/QuickActions";
+import { UIProvider, useUI } from "@/context/UIContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { StudyAction, parseFlashcards, Flashcard } from "@/lib/study-api";
@@ -33,7 +37,9 @@ import {
   Save,
   User,
   MessageCircle,
-  Zap
+  Zap,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +52,17 @@ interface StudyResult {
 
 
 const Index = () => {
+  return (
+    <UIProvider>
+      <IndexContent />
+    </UIProvider>
+  );
+};
+
+const IndexContent = () => {
   const [currentResult, setCurrentResult] = useState<StudyResult | null>(null);
+  const [difficulty, setDifficulty] = useState(5);
+  const { isFocusMode, toggleFocusMode } = useUI();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [templatesManagerOpen, setTemplatesManagerOpen] = useState(false);
   const [flashcardsToSave, setFlashcardsToSave] = useState<Flashcard[]>([]);
@@ -138,8 +154,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background animate-fade-in">
+    <div className={`min-h-screen flex flex-col bg-background transition-all duration-500 ${isFocusMode ? 'focus-mode' : ''}`}>
       {/* Header */}
+      {!isFocusMode && (
       <header className="border-b gradient-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -186,19 +203,38 @@ const Index = () => {
           </div>
         </div>
       </header>
+      )}
 
       {/* Features Banner - Enhanced */}
-      <CompactFeatureBanner />
+      {!isFocusMode && <CompactFeatureBanner />}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Study Input - Takes 2 columns on large screens */}
           <div className="lg:col-span-2 space-y-6">
-            <StudyInput
-              onResult={handleResultWithChat}
-              onManualCreate={(mode) => setManualEditor(mode)}
-            />
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-2xl font-bold tracking-tight">Study Center</h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={toggleFocusMode}
+                className="gap-2"
+              >
+                {isFocusMode ? <><Minimize2 className="h-4 w-4" /> Exit Focus</> : <><Maximize2 className="h-4 w-4" /> Focus Mode</>}
+              </Button>
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <StudyInput
+                  onResult={handleResultWithChat}
+                  onManualCreate={(mode) => setManualEditor(mode)}
+                />
+              </div>
+              <div>
+                <AdaptiveDifficulty value={difficulty} onChange={setDifficulty} />
+              </div>
+            </div>
 
             {/* Manual Editors */}
             {manualEditor && !currentResult && (
@@ -293,6 +329,10 @@ const Index = () => {
             {user && (
               <>
                 <GamificationHub />
+                <div className="grid grid-cols-1 gap-4">
+                  <ActivityHeatmap />
+                  <VelocityGauge />
+                </div>
                 <LearningAnalytics />
                 <AchievementsDisplay />
               </>
@@ -345,8 +385,12 @@ const Index = () => {
 
       {/* Onboarding Guide */}
       <OnboardingGuide />
+      
+      {/* Floating Actions */}
+      <FloatingQuickActions />
 
       {/* Footer */}
+      {!isFocusMode && (
       <footer className="border-t gradient-border mt-auto bg-muted/30">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
           <p>{t("footer.builtWith")}</p>
@@ -364,6 +408,7 @@ const Index = () => {
           <div className="mt-4 text-xs text-muted-foreground">© Daniel Yu. All rights reserved.</div>
         </div>
       </footer>
+      )}
 
       {/* Save Dialog */}
       <SaveDeckDialog

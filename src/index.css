@@ -297,3 +297,39 @@ button {
 .hover-scale:hover {
   @apply transform scale-[1.02];
 }
+/* Focus Mode Styles */
+.focus-mode {
+  @apply bg-background/50 backdrop-blur-xl;
+}
+
+.focus-mode main {
+  @apply max-w-4xl mx-auto py-12;
+}
+
+.focus-mode .lg\:col-span-1 {
+  @apply hidden;
+}
+
+.focus-mode .lg\:col-span-2 {
+  @apply col-span-full;
+}
+
+/* Custom Themes */
+.theme-forest {
+  --primary: 142.1 76.2% 36.3%;
+  --ring: 142.1 76.2% 36.3%;
+}
+
+.theme-ocean {
+  --primary: 199 89% 48%;
+  --ring: 199 89% 48%;
+}
+
+.theme-sunset {
+  --primary: 24.6 95% 53.1%;
+  --ring: 24.6 95% 53.1%;
+}
+
+.apple-card {
+  @apply transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10;
+}
