@@ -156,7 +156,7 @@ const IndexContent = () => {
       {/* Header */}
       {!isFocusMode && (
       <header className="border-b gradient-border">
-        <div className="container mx-auto px-4 py-4">
+        <div className="max-w-[1600px] mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary rounded-lg">
@@ -207,10 +207,10 @@ const IndexContent = () => {
       {!isFocusMode && <CompactFeatureBanner />}
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Study Input - Takes 2 columns on large screens */}
-          <div className="lg:col-span-2 space-y-6">
+      <main className="max-w-[1600px] mx-auto px-6 py-12">
+        <div className="grid lg:grid-cols-4 gap-10">
+          {/* Study Input - Takes 3 columns on large screens */}
+          <div className="lg:col-span-3 space-y-10">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-2xl font-bold tracking-tight">Study Center</h2>
               <Button 
@@ -274,7 +274,7 @@ const IndexContent = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-10">
             {/* Streak Display - Top of Sidebar */}
             {user && <StreakDisplay />}
 
@@ -377,7 +377,7 @@ const IndexContent = () => {
       {/* Footer */}
       {!isFocusMode && (
       <footer className="border-t gradient-border mt-auto bg-muted/30">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
+        <div className="max-w-[1600px] mx-auto px-6 py-10 text-center text-sm text-muted-foreground">
           <p>{t("footer.builtWith")}</p>
           <p className="mt-2 text-xs opacity-70">Made by Daniel Yu</p>
 
