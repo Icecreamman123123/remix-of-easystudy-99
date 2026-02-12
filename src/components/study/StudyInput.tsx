@@ -47,6 +47,7 @@ import {
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
+import { AdaptiveDifficulty } from "./SmartControls";
 
 // Manual editor mode types
 export type ManualEditorMode =
@@ -296,6 +297,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [vocabDialogOpen, setVocabDialogOpen] = useState(false);
   const [vocabWord, setVocabWord] = useState("");
   const [customizationOpen, setCustomizationOpen] = useState(false);
+  const [adaptiveDifficulty, setAdaptiveDifficulty] = useState(5);
   const { toast } = useToast();
 
   // Load favorites on mount
@@ -672,6 +674,9 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 </div>
               </div>
             </div>
+
+            {/* Adaptive Difficulty */}
+            <AdaptiveDifficulty value={adaptiveDifficulty} onChange={setAdaptiveDifficulty} />
           </CollapsibleContent>
         </Collapsible>
 
