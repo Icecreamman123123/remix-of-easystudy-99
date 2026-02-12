@@ -11,57 +11,71 @@
      return new Response(null, { headers: corsHeaders });
    }
  
-   try {
-      const body = await req.json();
-      const { messages, topic, gradeLevel, difficulty, instruction, customInstruction } = body;
-      const customInstructionText = customInstruction || instruction;
+    try {
+       const body = await req.json();
+       const { messages, topic, gradeLevel, difficulty, instruction, customInstruction, language, sourceContext } = body;
+       const customInstructionText = customInstruction || instruction;
 
-      // Validate messages
-      if (!messages || !Array.isArray(messages)) {
-        return new Response(
-          JSON.stringify({ error: "messages must be an array" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-     // Deno environment access
-     const getEnv = (key: string): string | undefined => {
-       try {
-         return Deno.env.get(key);
-       } catch (e) {
-         console.warn("getEnv error:", e);
+       // Validate messages
+       if (!messages || !Array.isArray(messages)) {
+         return new Response(
+           JSON.stringify({ error: "messages must be an array" }),
+           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+         );
        }
-       return undefined;
-     };
 
-     const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
-     
-     if (!LOVABLE_API_KEY) {
-       throw new Error("LOVABLE_API_KEY is not configured");
-     }
- 
-     const gradeLevelText = gradeLevel 
-       ? gradeLevel === "university" 
-         ? "university undergraduate level" 
-         : gradeLevel === "phd" 
-           ? "PhD/graduate research level"
-           : `grade ${gradeLevel} (ages ${parseInt(gradeLevel) + 5}-${parseInt(gradeLevel) + 6})`
-       : "middle school level";
- 
-     let systemPrompt = `You are a helpful, knowledgeable study assistant helping a ${gradeLevelText} student learn about: ${topic || "their studies"}.
- 
- IMPORTANT GUIDELINES:
- - Focus your answers on the topic: "${topic || "the student's questions"}"
- - Use vocabulary and explanations appropriate for ${gradeLevelText}
- - Be encouraging and supportive
- - Give clear, concise answers
- - Use examples and analogies that are relatable
- - If asked about something off-topic, gently redirect back to the study topic
- - Format your responses with markdown for better readability
- - Break down complex concepts into digestible parts
- - Encourage critical thinking by asking follow-up questions when appropriate
- 
- You are here to help them understand and master this subject!`;
+      // Deno environment access
+      const getEnv = (key: string): string | undefined => {
+        try {
+          return Deno.env.get(key);
+        } catch (e) {
+          console.warn("getEnv error:", e);
+        }
+        return undefined;
+      };
+
+      const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
+      
+      if (!LOVABLE_API_KEY) {
+        throw new Error("LOVABLE_API_KEY is not configured");
+      }
+  
+      const gradeLevelText = gradeLevel 
+        ? gradeLevel === "university" 
+          ? "university undergraduate level" 
+          : gradeLevel === "phd" 
+            ? "PhD/graduate research level"
+            : `grade ${gradeLevel} (ages ${parseInt(gradeLevel) + 5}-${parseInt(gradeLevel) + 6})`
+        : "middle school level";
+
+      const LANGUAGE_MAP: Record<string, string> = {
+        "en": "",
+        "zh": "\n\nIMPORTANT: Respond entirely in Simplified Chinese (简体中文).",
+        "fr": "\n\nIMPORTANT: Respond entirely in French (Français).",
+        "es": "\n\nIMPORTANT: Respond entirely in Spanish (Español).",
+        "hi": "\n\nIMPORTANT: Respond entirely in Hindi (हिन्दी).",
+      };
+      const langInstruction = LANGUAGE_MAP[language] || "";
+
+      // Build source context section
+      const sourceSection = sourceContext 
+        ? `\n\nSOURCE MATERIAL (prioritize this content when answering questions):\n---\n${sourceContext}\n---\nWhen the user asks questions, PRIMARILY use the above source material to answer. Only supplement with your general knowledge if the source material doesn't cover the question.`
+        : "";
+  
+      let systemPrompt = `You are a helpful, knowledgeable study assistant helping a ${gradeLevelText} student learn about: ${topic || "their studies"}.${sourceSection}
+  
+  IMPORTANT GUIDELINES:
+  - Focus your answers on the topic: "${topic || "the student's questions"}"
+  - Use vocabulary and explanations appropriate for ${gradeLevelText}
+  - Be encouraging and supportive
+  - Give clear, concise answers
+  - Use examples and analogies that are relatable
+  - If asked about something off-topic, gently redirect back to the study topic
+  - Format your responses with markdown for better readability
+  - Break down complex concepts into digestible parts
+  - Encourage critical thinking by asking follow-up questions when appropriate${langInstruction}
+  
+  You are here to help them understand and master this subject!`;
 
     // Append difficulty context and custom instruction if provided
     if (difficulty) {

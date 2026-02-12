@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X } from "lucide-react";
-import { StudyAction, parseFlashcards, parseQuiz, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, parseCornellNotes, Flashcard, Concept } from "@/lib/study-api";
+import { StudyAction, parseFlashcards, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, parseCornellNotes, Flashcard, Concept } from "@/lib/study-api";
 import { FlashcardViewer } from "./FlashcardViewer";
-import { QuizViewer } from "./QuizViewer";
 import { PracticeTest } from "./PracticeTest";
 import { MindMap } from "./MindMap";
 import { SubwaySurferGame } from "./SubwaySurferGame";
@@ -15,8 +14,9 @@ import { SpeedChallenge } from "./SpeedChallenge";
 import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
 import { CornellNotesViewer } from "./CornellNotesViewer";
 import { VocabularyCardViewer, parseVocabularyCards } from "./VocabularyCardViewer";
+import { CheatSheetViewer } from "./CheatSheetViewer";
 import { ExportPdfButton } from "./ExportPdfButton";
-import { StudyPlanViewer } from "./StudyPlanViewer";
+import { StudyPlanCalendar } from "./StudyPlanCalendar";
 import ReactMarkdown from "react-markdown";
 
 interface ResultsViewerProps {
@@ -77,10 +77,10 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
         const plan = parseStudyPlan(result);
         if (plan.length > 0) {
           return (
-            <StudyPlanViewer
+            <StudyPlanCalendar
               plan={plan}
               onSavePlan={() => onSavePlan?.(plan)}
-              className="h-full"
+              topic={topic}
             />
           );
         }
@@ -109,7 +109,6 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
         break;
       }
       case "mind-map": {
-        // Mind map now uses concepts instead of flashcards
         const concepts = parseConcepts(result);
         if (concepts.length > 0) {
           const mindMapFormat = toMindMapFormat(concepts);
@@ -186,12 +185,8 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
         }
         break;
       }
-      case "generate-quiz": {
-        const questions = parseQuiz(result);
-        if (questions.length > 0) {
-          return <QuizViewer questions={questions} topic={topic} disableSmartLearning={isManual} />;
-        }
-        break;
+      case "cheat-sheet": {
+        return <CheatSheetViewer content={result} topic={topic} />;
       }
       case "create-cornell-notes": {
         const cornellData = parseCornellNotes(result);
@@ -273,7 +268,6 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
       case "generate-flashcards": return "Flashcards";
       case "practice-test": return "Practice Test";
       case "mind-map": return "Mind Map";
-      case "generate-quiz": return "Quiz";
       case "study-runner": return "Study Runner";
       case "worksheet": return "Worksheet";
       case "matching-game": return "Matching Game";
@@ -281,7 +275,7 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
       case "elaborative-interrogation": return "Elaborative Interrogation";
       case "explain-concept": return "Concept Explanation";
       case "create-study-plan": return "Study Schedule";
-      case "summarize": return "Summary";
+      case "cheat-sheet": return "Cheat Sheet";
       case "create-cornell-notes": return "Cornell Notes";
       case "vocabulary-cards": return "Vocabulary Cards";
       case "practice-problems": return "Practice Problems";
@@ -290,7 +284,7 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
   };
 
   // For interactive modes, use full height
-  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards"].includes(action);
+  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards", "create-study-plan", "cheat-sheet"].includes(action);
 
   return (
     <Card className="h-full">

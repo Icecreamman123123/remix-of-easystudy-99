@@ -1,4 +1,4 @@
-import { callStudyAIWithFallback, parseFlashcards, parseQuiz } from "./study-api";
+import { callStudyAIWithFallback, parseFlashcards } from "./study-api";
 import type { Flashcard } from "./study-api";
 
 export interface StudyTemplate {
@@ -7,7 +7,7 @@ export interface StudyTemplate {
   description: string;
   preview?: string;
   defaultTitle: string;
-  action: "generate-flashcards" | "generate-quiz" | "create-study-plan" | "create-cornell-notes";
+  action: "generate-flashcards" | "cheat-sheet" | "create-study-plan" | "create-cornell-notes";
   defaultCount?: number;
   difficulty?: string;
   gradeLevel?: string;
@@ -208,31 +208,16 @@ export async function generateTemplateDeck(
     };
   }
 
-  if (template.action === "generate-quiz") {
+  if (template.action === "cheat-sheet") {
     const ai = await callStudyAIWithFallback(
-      "generate-quiz",
+      "cheat-sheet",
       undefined,
       topic,
       template.difficulty,
       gradeLevel
     );
 
-    const quiz = parseQuiz(ai.result);
-    if (quiz.length > 0) {
-      const flashcards = quiz.map((q) => ({
-        question: `${q.question}\nOptions: ${q.options.join(" / ")}`,
-        answer: `${q.options[q.correctAnswer]} — ${q.explanation}`,
-        hint: "Practice by explaining why the correct option is best",
-      }));
-      return { title, flashcards };
-    }
-
-    return {
-      title,
-      flashcards: [
-        { question: `Practice question about ${topic || "this topic"}`, answer: "Answer explanation...", hint: "Try eliminating wrong options" },
-      ],
-    };
+    return { title, flashcards: [], rawResult: ai.result };
   }
 
   // create-study-plan -> convert to multiple flashcards (one card per major section)

@@ -3,10 +3,9 @@ import { searchWikipedia, fetchStudyContentWithFallback } from "./wikipedia-fall
 
 export type StudyAction =
   | "generate-flashcards"
-  | "generate-quiz"
   | "explain-concept"
   | "create-study-plan"
-  | "summarize"
+  | "cheat-sheet"
   | "practice-problems"
   | "practice-test"
   | "mind-map"
@@ -99,10 +98,12 @@ export async function callStudyAI(
   gradeLevel?: string,
   model?: AIModel,
   expertise?: AIExpertise,
-  includeWikipedia?: boolean
+  includeWikipedia?: boolean,
+  language?: string,
+  adaptiveDifficulty?: number
 ): Promise<string> {
   const { data, error } = await supabase.functions.invoke("study-ai", {
-    body: { action, content, topic, difficulty, gradeLevel, model, expertise, includeWikipedia },
+    body: { action, content, topic, difficulty, gradeLevel, model, expertise, includeWikipedia, language, adaptiveDifficulty },
   });
 
   if (error) {
@@ -369,7 +370,7 @@ function formatWikipediaContentForAction(
     case "explain-concept":
       return baseContent;
 
-    case "summarize":
+    case "cheat-sheet":
       return `${wikiResult.title}\n\n${wikiResult.extract.substring(0, 300)}...`;
 
     case "mind-map":
