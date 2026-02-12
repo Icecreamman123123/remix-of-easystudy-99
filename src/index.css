@@ -285,6 +285,13 @@ button {
   @apply bg-zinc-900/80 border-white/10 shadow-[0_8px_32px_#00000080];
 }
 
+/* Universal Button Animations */
+button, 
+.btn,
+[role="button"] {
+  @apply transition-all duration-200 active:scale-95 hover:scale-[1.02] hover:brightness-110 active:brightness-90;
+}
+
 .apple-button {
   @apply transition-all duration-300 active:scale-95;
 }
