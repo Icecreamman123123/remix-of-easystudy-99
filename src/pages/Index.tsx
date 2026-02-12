@@ -9,8 +9,6 @@ import { SaveDeckDialog } from "@/components/study/SaveDeckDialog";
 import { TemplatesManager } from "@/components/study/TemplatesManager";
 import { StudyChat } from "@/components/study/StudyChat";
 import { ManualFlashcardEditor } from "@/components/study/ManualFlashcardEditor";
-import { ManualQuizEditor } from "@/components/study/ManualQuizEditor";
-import { ManualWorksheetEditor } from "@/components/study/ManualWorksheetEditor";
 import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAndAchievements";
 import { CompactFeatureBanner } from "@/components/study/EnhancedFeatureCards";
 import { OnboardingGuide } from "@/components/study/OnboardingTooltips";
@@ -236,12 +234,6 @@ const IndexContent = () => {
                   <ManualFlashcardEditor
                     targetAction={manualEditor.action}
                     actionLabel={manualEditor.label}
-                    onSubmit={handleManualResult}
-                    onCancel={() => setManualEditor(null)}
-                  />
-                )}
-                {manualEditor.type === "quiz" && (
-                  <ManualQuizEditor
                     onSubmit={handleManualResult}
                     onCancel={() => setManualEditor(null)}
                   />

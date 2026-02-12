@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   BookOpen,
   Brain,
-  ClipboardList,
   FileText,
   Lightbulb,
   Loader2,
@@ -34,7 +34,9 @@ import {
   HelpCircle,
   ScrollText,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ClipboardCheck,
+  Sliders
 } from "lucide-react";
 import {
   Dialog,
@@ -48,12 +50,12 @@ import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api"
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
 import { AdaptiveDifficulty } from "./SmartControls";
+import { useI18n } from "@/lib/i18n";
 
 // Manual editor mode types
 export type ManualEditorMode =
   | null
   | { type: "flashcard"; action: StudyAction; label: string }
-  | { type: "quiz" }
   | { type: "worksheet" };
 
 interface StudyInputProps {
@@ -66,6 +68,7 @@ interface Source {
   name: string;
   content: string;
   type: "text" | "file";
+  noAISearch?: boolean;
 }
 
 interface FavoritePreset {
@@ -73,14 +76,6 @@ interface FavoritePreset {
   name: string;
   model: AIModel;
   expertise: AIExpertise;
-}
-
-
-interface Source {
-  id: string;
-  name: string;
-  content: string;
-  type: "text" | "file";
 }
 
 const GRADE_LEVELS = [
@@ -101,19 +96,15 @@ const GRADE_LEVELS = [
 ];
 
 const AI_MODELS: { value: AIModel; label: string; description: string }[] = [
-  // Fast & Efficient
   { value: "gemini-flash-lite", label: "Gemini Flash Lite", description: "Ultra fast, best for simple tasks" },
   { value: "gpt-5-nano", label: "GPT-5 Nano", description: "Lightweight & quick" },
-  // Balanced
   { value: "gemini-flash", label: "Gemini 3 Flash", description: "Fast & capable (default)" },
   { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Great speed/quality balance" },
   { value: "gpt-5-mini", label: "GPT-5 Mini", description: "Strong reasoning, good speed" },
-  // Most Capable
   { value: "gemini-pro", label: "Gemini 2.5 Pro", description: "Advanced reasoning & context" },
   { value: "gemini-3-pro", label: "Gemini 3 Pro", description: "Next-gen flagship model" },
   { value: "gpt-5", label: "GPT-5", description: "Powerful all-rounder" },
   { value: "gpt-5.2", label: "GPT-5.2", description: "Latest & most capable" },
-  // External source (Wikipedia)
   { value: "wikipedia", label: "Wikipedia", description: "Use Wikipedia content as the source" },
 ];
 
@@ -148,10 +139,9 @@ const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; desc
   { action: "worksheet", icon: FileEdit, label: "Worksheet", description: "Printable worksheet" },
   { action: "study-runner", icon: Gamepad2, label: "Study Runner", description: "Endless runner game" },
   { action: "mind-map", icon: Network, label: "Mind Map", description: "Visual concept mapping" },
-  { action: "generate-quiz", icon: ClipboardList, label: "Quiz", description: "Test your knowledge" },
   { action: "explain-concept", icon: Lightbulb, label: "Explain", description: "Simple explanations" },
   { action: "create-study-plan", icon: Brain, label: "Study Plan", description: "Weekly schedule" },
-  { action: "summarize", icon: FileText, label: "Summarize", description: "Key points summary" },
+  { action: "cheat-sheet", icon: ClipboardCheck, label: "Cheat Sheet", description: "Formulas & key concepts" },
   { action: "create-cornell-notes", icon: ScrollText, label: "Cornell Notes", description: "Structured notes & cues" },
 ];
 
@@ -184,8 +174,7 @@ function DraggableSlider({
     onChange(newValue);
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newValue = calculateValue(e.clientX);
-      onChange(newValue);
+      onChange(calculateValue(e.clientX));
     };
 
     const handleMouseUp = () => {
@@ -200,14 +189,10 @@ function DraggableSlider({
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
-    const touch = e.touches[0];
-    const newValue = calculateValue(touch.clientX);
-    onChange(newValue);
+    onChange(calculateValue(e.touches[0].clientX));
 
     const handleTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      const newValue = calculateValue(touch.clientX);
-      onChange(newValue);
+      onChange(calculateValue(e.touches[0].clientX));
     };
 
     const handleTouchEnd = () => {
@@ -230,30 +215,21 @@ function DraggableSlider({
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
-        {/* Track background */}
         <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-secondary" />
-
-        {/* Filled track */}
         <div
           className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-primary transition-all duration-75 ease-out"
           style={{ width: `${percentage}%` }}
         />
-
-        {/* Thumb */}
         <div
-          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-primary bg-background shadow-lg transition-transform duration-75 ease-out ${isDragging ? "scale-110 ring-2 ring-primary/50" : ""
-            }`}
+          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-primary bg-background shadow-lg transition-transform duration-75 ease-out ${isDragging ? "scale-110 ring-2 ring-primary/50" : ""}`}
           style={{ left: `calc(${percentage}% - 10px)` }}
         />
       </div>
-
-      {/* Labels below */}
       <div className="flex justify-between mt-1 px-0.5">
         {labels.map((label, i) => (
           <div
             key={label}
-            className={`w-2 h-2 rounded-full transition-all duration-200 ${i <= value ? "bg-primary scale-100" : "bg-muted-foreground/30 scale-75"
-              }`}
+            className={`w-2 h-2 rounded-full transition-all duration-200 ${i <= value ? "bg-primary scale-100" : "bg-muted-foreground/30 scale-75"}`}
           />
         ))}
       </div>
@@ -265,7 +241,6 @@ function DraggableSlider({
   );
 }
 
-// Load favorites from localStorage
 const FAVORITES_KEY = "easystudy-favorites";
 
 function loadFavorites(): FavoritePreset[] {
@@ -289,18 +264,20 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [gradeLevel, setGradeLevel] = useState("8");
   const [aiModel, setAiModel] = useState<AIModel>("gemini-flash");
   const [aiExpertise, setAiExpertise] = useState<AIExpertise>("general");
-  const [difficulty, setDifficulty] = useState(1); // 0-3 (Easy to Expert)
-  const [questionCount, setQuestionCount] = useState(16); // 8, 16, or 24
+  const [difficulty, setDifficulty] = useState(1);
+  const [questionCount, setQuestionCount] = useState(16);
   const [loading, setLoading] = useState<StudyAction | null>(null);
   const [favorites, setFavorites] = useState<FavoritePreset[]>([]);
   const [includeWikipedia, setIncludeWikipedia] = useState(false);
   const [vocabDialogOpen, setVocabDialogOpen] = useState(false);
   const [vocabWord, setVocabWord] = useState("");
-  const [customizationOpen, setCustomizationOpen] = useState(false);
+  const [diffLengthOpen, setDiffLengthOpen] = useState(false);
+  const [aiCustomOpen, setAiCustomOpen] = useState(false);
   const [adaptiveDifficulty, setAdaptiveDifficulty] = useState(5);
+  const [noAISearchOnImport, setNoAISearchOnImport] = useState(false);
   const { toast } = useToast();
+  const { language } = useI18n();
 
-  // Load favorites on mount
   useEffect(() => {
     setFavorites(loadFavorites());
   }, []);
@@ -308,50 +285,34 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const addToFavorites = () => {
     const expertiseLabel = AI_EXPERTISE.find(e => e.value === aiExpertise)?.label || aiExpertise;
     const modelLabel = AI_MODELS.find(m => m.value === aiModel)?.label || aiModel;
-
     const newFavorite: FavoritePreset = {
       id: `fav-${Date.now()}`,
       name: `${modelLabel} + ${expertiseLabel}`,
       model: aiModel,
       expertise: aiExpertise,
     };
-
-    // Check if already exists
     const exists = favorites.some(f => f.model === aiModel && f.expertise === aiExpertise);
     if (exists) {
-      toast({
-        title: "Already saved",
-        description: "This combination is already in your favorites.",
-      });
+      toast({ title: "Already saved", description: "This combination is already in your favorites." });
       return;
     }
-
     const updated = [...favorites, newFavorite];
     setFavorites(updated);
     saveFavorites(updated);
-    toast({
-      title: "Favorite saved!",
-      description: `${newFavorite.name} added to favorites.`,
-    });
+    toast({ title: "Favorite saved!", description: `${newFavorite.name} added to favorites.` });
   };
 
   const removeFavorite = (id: string) => {
     const updated = favorites.filter(f => f.id !== id);
     setFavorites(updated);
     saveFavorites(updated);
-    toast({
-      title: "Removed",
-      description: "Favorite preset removed.",
-    });
+    toast({ title: "Removed", description: "Favorite preset removed." });
   };
 
   const applyFavorite = (favorite: FavoritePreset) => {
     setAiModel(favorite.model);
     setAiExpertise(favorite.expertise);
-    toast({
-      title: "Preset applied",
-      description: `Using ${favorite.name}`,
-    });
+    toast({ title: "Preset applied", description: `Using ${favorite.name}` });
   };
 
   const addTextSource = () => {
@@ -364,10 +325,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
     };
     setSources(prev => [...prev, newSource]);
     setCurrentTextContent("");
-    toast({
-      title: "Source added",
-      description: "Text content has been added as a source.",
-    });
+    toast({ title: "Source added", description: "Text content has been added as a source." });
   };
 
   const addFileSource = (text: string, fileName: string) => {
@@ -375,16 +333,14 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
       id: `file-${Date.now()}`,
       name: fileName,
       content: text,
-      type: "file"
+      type: "file",
+      noAISearch: noAISearchOnImport
     };
     setSources(prev => [...prev, newSource]);
     if (!topic) {
       setTopic(fileName.replace(/\.[^/.]+$/, ""));
     }
-    toast({
-      title: "File added",
-      description: `${fileName} has been added as a source.`,
-    });
+    toast({ title: "File added", description: `${fileName} has been added as a source.` });
   };
 
   const removeSource = (id: string) => {
@@ -392,9 +348,11 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   };
 
   const getCombinedContent = () => {
-    const allContent = sources.map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n");
-    return allContent;
+    return sources.map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n");
   };
+
+  // Check if any source has noAISearch enabled
+  const hasNoAISearchSource = sources.some(s => s.noAISearch);
 
   const handleVocabGenerate = async (word: string) => {
     setVocabWord("");
@@ -402,18 +360,11 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
     try {
       const difficultyText = DIFFICULTY_LABELS[difficulty].toLowerCase();
       const contentWithInstructions = `Topic: ${word}\n\n[Instructions: Generate exactly 1 items.\nDifficulty level: ${difficultyText}.]`;
-      const result = await callStudyAI("vocabulary-cards", contentWithInstructions, word, difficultyText, gradeLevel, aiModel, aiExpertise, includeWikipedia);
+      const result = await callStudyAI("vocabulary-cards", contentWithInstructions, word, difficultyText, gradeLevel, aiModel, aiExpertise, hasNoAISearchSource ? false : includeWikipedia, language, adaptiveDifficulty);
       onResult("vocabulary-cards", result, word, gradeLevel);
-      toast({
-        title: "Success!",
-        description: `Generated vocabulary card for "${word}".`,
-      });
+      toast({ title: "Success!", description: `Generated vocabulary card for "${word}".` });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Something went wrong", variant: "destructive" });
     } finally {
       setLoading(null);
     }
@@ -423,28 +374,19 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
     const combinedContent = getCombinedContent();
 
     if (!topic.trim() && !combinedContent.trim()) {
-      toast({
-        title: "Enter content",
-        description: "Please enter a topic or add study sources.",
-        variant: "destructive",
-      });
+      toast({ title: "Enter content", description: "Please enter a topic or add study sources.", variant: "destructive" });
       return;
     }
 
     setLoading(action);
     try {
-      // For Practice Test, Study Runner, and Matching Game - we generate flashcards first
-      // For Mind Map, we generate concepts
       let effectiveAction: StudyAction = action;
       if (["practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)) {
         effectiveAction = "generate-flashcards";
       } else if (action === "mind-map") {
         effectiveAction = "generate-concepts";
-      } else if (action === "elaborative-interrogation") {
-        effectiveAction = "elaborative-interrogation";
       }
 
-      // Build instructions with difficulty and count
       const difficultyText = DIFFICULTY_LABELS[difficulty].toLowerCase();
       const countInstruction = `Generate exactly ${questionCount} items.`;
       const difficultyInstruction = `Difficulty level: ${difficultyText}. ${difficulty === 0 ? "Use simple vocabulary and basic concepts." :
@@ -453,34 +395,29 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             "Include highly complex questions requiring expert-level analysis and synthesis."
         }`;
 
-      // Combine content with custom instructions if provided
       const allInstructions = [
         countInstruction,
         difficultyInstruction,
         customInstructions.trim()
       ].filter(Boolean).join("\n");
 
-      // IMPORTANT: Include topic in content if no sources added
       const topicContent = topic.trim() ? `Topic: ${topic.trim()}` : "";
       const fullContent = [topicContent, combinedContent].filter(Boolean).join("\n\n");
       const contentWithInstructions = `${fullContent}\n\n[Instructions: ${allInstructions}]`;
 
-      const result = await callStudyAI(effectiveAction, contentWithInstructions, topic, difficultyText, gradeLevel, aiModel, aiExpertise, includeWikipedia);
+      const shouldIncludeWiki = hasNoAISearchSource ? false : includeWikipedia;
+      const result = await callStudyAI(effectiveAction, contentWithInstructions, topic, difficultyText, gradeLevel, aiModel, aiExpertise, shouldIncludeWiki, language, adaptiveDifficulty);
       onResult(action, result, topic, gradeLevel);
-      toast({
-        title: "Success!",
-        description: `Generated ${action.replace(/-/g, " ")} successfully.`,
-      });
+      toast({ title: "Success!", description: `Generated ${action.replace(/-/g, " ")} successfully.` });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Something went wrong",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Something went wrong", variant: "destructive" });
     } finally {
       setLoading(null);
     }
   };
+
+  const isDiffLengthModified = difficulty !== 1 || questionCount !== 16 || adaptiveDifficulty !== 5;
+  const isAIModified = aiModel !== "gemini-flash" || aiExpertise !== "general";
 
   return (
     <Card className="apple-card border-none shadow-lg">
@@ -491,7 +428,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Grade Level - always visible */}
+        {/* Grade Level */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Label htmlFor="grade-level" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
@@ -504,27 +441,68 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               </SelectTrigger>
               <SelectContent>
                 {GRADE_LEVELS.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Collapsible Customization */}
-        <Collapsible open={customizationOpen} onOpenChange={setCustomizationOpen}>
+        {/* Difficulty & Length Tab */}
+        <Collapsible open={diffLengthOpen} onOpenChange={setDiffLengthOpen}>
           <CollapsibleTrigger asChild>
             <Button variant="outline" className="w-full justify-between text-sm h-9">
               <span className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4" />
-                Customization
-                {(aiModel !== "gemini-flash" || aiExpertise !== "general" || difficulty !== 1 || questionCount !== 16) && (
-                  <Badge variant="secondary" className="text-xs ml-1">Modified</Badge>
-                )}
+                <Gauge className="h-4 w-4" />
+                Difficulty & Length
+                {isDiffLengthModified && <Badge variant="secondary" className="text-xs ml-1">Modified</Badge>}
               </span>
-              {customizationOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {diffLengthOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 pt-3">
+            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  <Gauge className="h-4 w-4" />
+                  Difficulty: <span className="font-bold text-primary">{DIFFICULTY_LABELS[difficulty]}</span>
+                </Label>
+                <DraggableSlider value={difficulty} onChange={setDifficulty} max={3} labels={DIFFICULTY_LABELS} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  <Hash className="h-4 w-4" />
+                  Questions: <span className="font-bold text-primary">{questionCount}</span>
+                </Label>
+                <div className="flex gap-1">
+                  {LENGTH_OPTIONS.map(({ value, label }) => (
+                    <Button
+                      key={value}
+                      size="sm"
+                      variant={questionCount === value ? "default" : "outline"}
+                      onClick={() => setQuestionCount(value)}
+                      className="flex-1 text-xs"
+                    >
+                      {label.split(" ")[0]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <AdaptiveDifficulty value={adaptiveDifficulty} onChange={setAdaptiveDifficulty} />
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* AI Customization Tab */}
+        <Collapsible open={aiCustomOpen} onOpenChange={setAiCustomOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between text-sm h-9">
+              <span className="flex items-center gap-2">
+                <Sliders className="h-4 w-4" />
+                AI Customization
+                {isAIModified && <Badge variant="secondary" className="text-xs ml-1">Modified</Badge>}
+              </span>
+              {aiCustomOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-3">
@@ -537,57 +515,48 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 </Label>
                 <Select value={aiModel} onValueChange={(v) => setAiModel(v as AIModel)}>
                   <SelectTrigger id="ai-model" className="w-[220px]">
-                    <SelectValue placeholder="Select model" className="truncate" />
+                    <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
                     {AI_MODELS.map(({ value, label, description }) => (
                       <SelectItem key={value} value={value}>
                         <div className="flex items-center justify-between w-full gap-2">
-                          <div className="flex-1 truncate">
-                            <span className="font-medium">{label}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground shrink-0 ml-2">
-                            {description}
-                          </div>
+                          <span className="font-medium">{label}</span>
+                          <span className="text-xs text-muted-foreground shrink-0 ml-2">{description}</span>
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="flex items-center gap-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Network className="h-4 w-4" />
                   Include Wikipedia
                 </Label>
-                <Switch checked={includeWikipedia} onCheckedChange={(v) => setIncludeWikipedia(!!v)} disabled={aiModel === "wikipedia"} />
+                <Switch checked={includeWikipedia} onCheckedChange={(v) => setIncludeWikipedia(!!v)} disabled={aiModel === "wikipedia" || hasNoAISearchSource} />
               </div>
-
-              {includeWikipedia && (
+              {hasNoAISearchSource && (
                 <div className="w-full mt-1">
-                  <div className="inline-block rounded px-2 py-1 bg-primary/10 text-xs text-primary">Using Wikipedia extract as context</div>
+                  <div className="inline-block rounded px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-xs text-amber-800 dark:text-amber-200">
+                    AI search disabled — using uploaded file context only
+                  </div>
                 </div>
               )}
             </div>
 
             <div className="w-full">
-              <div className="text-xs text-muted-foreground">⚠️ AI may be inaccurate — please double-check sources and verify facts before using generated content.</div>
+              <div className="text-xs text-muted-foreground">⚠️ AI may be inaccurate — please double-check sources and verify facts.</div>
             </div>
 
-            {/* Expertise Selector */}
+            {/* Expertise */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Lightbulb className="h-4 w-4" />
                   Expertise: <span className="text-primary">{AI_EXPERTISE.find(e => e.value === aiExpertise)?.label}</span>
                 </Label>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={addToFavorites}
-                  className="h-7 text-xs gap-1 hover:text-primary"
-                >
+                <Button size="sm" variant="ghost" onClick={addToFavorites} className="h-7 text-xs gap-1 hover:text-primary">
                   <Star className="h-3.5 w-3.5" />
                   Save Combo
                 </Button>
@@ -599,7 +568,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                     size="sm"
                     variant={aiExpertise === value ? "default" : "outline"}
                     onClick={() => setAiExpertise(value)}
-                    className="text-xs h-8 transition-all duration-200"
+                    className="text-xs h-8"
                   >
                     <span className="mr-1">{icon}</span>
                     {label}
@@ -608,7 +577,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               </div>
             </div>
 
-            {/* Favorites Section */}
+            {/* Favorites */}
             {favorites.length > 0 && (
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
@@ -639,44 +608,6 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 </div>
               </div>
             )}
-            {/* Difficulty and Length Controls */}
-            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Gauge className="h-4 w-4" />
-                  Difficulty: <span className="font-bold text-primary transition-all duration-300">{DIFFICULTY_LABELS[difficulty]}</span>
-                </Label>
-                <DraggableSlider
-                  value={difficulty}
-                  onChange={setDifficulty}
-                  max={3}
-                  labels={DIFFICULTY_LABELS}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Hash className="h-4 w-4" />
-                  Questions: <span className="font-bold text-primary">{questionCount}</span>
-                </Label>
-                <div className="flex gap-1">
-                  {LENGTH_OPTIONS.map(({ value, label }) => (
-                    <Button
-                      key={value}
-                      size="sm"
-                      variant={questionCount === value ? "default" : "outline"}
-                      onClick={() => setQuestionCount(value)}
-                      className="flex-1 text-xs transition-all duration-200"
-                    >
-                      {label.split(" ")[0]}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Adaptive Difficulty */}
-            <AdaptiveDifficulty value={adaptiveDifficulty} onChange={setAdaptiveDifficulty} />
           </CollapsibleContent>
         </Collapsible>
 
@@ -693,6 +624,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 >
                   {source.type === "file" ? <FileText className="h-3 w-3" /> : <FileEdit className="h-3 w-3" />}
                   <span className="max-w-[150px] truncate">{source.name}</span>
+                  {source.noAISearch && <span className="text-[9px] text-amber-600 dark:text-amber-400 ml-0.5">📌</span>}
                   <span className="text-xs text-muted-foreground ml-1">
                     ({(source.content.length / 1000).toFixed(1)}k)
                   </span>
@@ -730,43 +662,40 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               onChange={(e) => setCurrentTextContent(e.target.value)}
               className="min-h-[120px]"
             />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={addTextSource}
-              disabled={!currentTextContent.trim()}
-            >
+            <Button size="sm" variant="outline" onClick={addTextSource} disabled={!currentTextContent.trim()}>
               <Plus className="h-4 w-4 mr-1" />
               Add as Source
             </Button>
           </TabsContent>
-          <TabsContent value="upload" className="space-y-2">
+          <TabsContent value="upload" className="space-y-3">
             <FileDropzone onTextExtracted={addFileSource} />
+            <div className="flex items-center gap-2 px-1">
+              <Checkbox
+                id="no-ai-search"
+                checked={noAISearchOnImport}
+                onCheckedChange={(v) => setNoAISearchOnImport(!!v)}
+              />
+              <Label htmlFor="no-ai-search" className="text-xs text-muted-foreground cursor-pointer">
+                Use only this file as context (no AI search)
+              </Label>
+            </div>
           </TabsContent>
         </Tabs>
 
-
-
-        {/* Custom Instructions Collapsible */}
-        {/* Custom Instructions - Always Visible */}
+        {/* Custom Instructions */}
         <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Settings2 className="h-4 w-4 text-primary" />
               Custom Instructions
             </Label>
-            {customInstructions && (
-              <Badge variant="secondary" className="text-xs">
-                Active
-              </Badge>
-            )}
+            {customInstructions && <Badge variant="secondary" className="text-xs">Active</Badge>}
           </div>
           <Textarea
             placeholder="Tell the AI exactly what you want! Examples:
 • 'Focus on practical real-world examples'
 • 'Include memory tricks and mnemonics'
-• 'Make questions more challenging'
-• 'Add step-by-step explanations'"
+• 'Make questions more challenging'"
             value={customInstructions}
             onChange={(e) => setCustomInstructions(e.target.value)}
             className="min-h-[80px] bg-background"
@@ -836,9 +765,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               </p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setVocabDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setVocabDialogOpen(false)}>Cancel</Button>
               <Button
                 onClick={() => {
                   if (vocabWord.trim()) {
@@ -869,7 +796,6 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 { action: "speed-challenge" as StudyAction, label: "Speed Challenge", icon: Gauge },
                 { action: "study-runner" as StudyAction, label: "Study Runner", icon: Gamepad2 },
                 { action: "matching-game" as StudyAction, label: "Matching Game", icon: Puzzle },
-                { action: "generate-quiz" as StudyAction, label: "Quiz", icon: ClipboardList },
                 { action: "worksheet" as StudyAction, label: "Worksheet", icon: FileEdit },
               ].map(({ action, label, icon: Icon }) => (
                 <Button
@@ -877,9 +803,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                   variant="secondary"
                   className="h-auto py-4 flex flex-col items-center gap-2 text-sm"
                   onClick={() => {
-                    if (action === "generate-quiz") {
-                      onManualCreate({ type: "quiz" });
-                    } else if (action === "worksheet") {
+                    if (action === "worksheet") {
                       onManualCreate({ type: "worksheet" });
                     } else {
                       onManualCreate({ type: "flashcard", action, label });
