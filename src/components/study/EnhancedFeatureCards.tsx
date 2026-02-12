@@ -79,8 +79,8 @@ export function CompactFeatureBanner() {
 
   return (
     <div className="bg-gradient-to-r from-background via-primary/5 to-background border-b">
-      <div className="container mx-auto px-4 py-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="max-w-[1600px] mx-auto px-6 py-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {features.map((feature, index) => (
             <EnhancedFeatureCard
               key={index}

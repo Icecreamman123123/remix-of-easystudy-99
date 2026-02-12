@@ -49,7 +49,7 @@ import {
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
-import { AdaptiveDifficulty } from "./SmartControls";
+import { AdaptiveDifficulty, MethodSuitability } from "./SmartControls";
 import { useI18n } from "@/lib/i18n";
 
 // Manual editor mode types
@@ -725,7 +725,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               )}
               <div className="flex flex-col items-center gap-1 z-10">
                 <span className="font-semibold text-base tracking-tight">{label}</span>
-                <span className="text-xs text-muted-foreground hidden sm:block text-center px-1 leading-tight">{description}</span>
+                <span className="text-xs text-muted-foreground hidden sm:block text-center px-1 leading-tight mb-1">{description}</span>
+                <MethodSuitability method={action} />
               </div>
             </Button>
           ))}
