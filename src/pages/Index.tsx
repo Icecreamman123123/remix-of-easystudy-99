@@ -16,6 +16,7 @@ import { CompactFeatureBanner } from "@/components/study/EnhancedFeatureCards";
 import { OnboardingGuide } from "@/components/study/OnboardingTooltips";
 import { GamificationHub } from "@/components/study/GamificationHub";
 import { ActivityHeatmap, VelocityGauge } from "@/components/study/VisualAnalytics";
+import { AdaptiveDifficulty } from "@/components/study/SmartControls";
 import { FloatingQuickActions } from "@/components/study/QuickActions";
 import { UIProvider, useUI } from "@/context/UIContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -60,6 +61,7 @@ const Index = () => {
 
 const IndexContent = () => {
   const [currentResult, setCurrentResult] = useState<StudyResult | null>(null);
+  const [difficulty, setDifficulty] = useState(5);
   const { isFocusMode, toggleFocusMode } = useUI();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [templatesManagerOpen, setTemplatesManagerOpen] = useState(false);
@@ -222,11 +224,17 @@ const IndexContent = () => {
                 {isFocusMode ? <><Minimize2 className="h-4 w-4" /> Exit Focus</> : <><Maximize2 className="h-4 w-4" /> Focus Mode</>}
               </Button>
             </div>
-            
-            <StudyInput
-              onResult={handleResultWithChat}
-              onManualCreate={(mode) => setManualEditor(mode)}
-            />
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <StudyInput
+                  onResult={handleResultWithChat}
+                  onManualCreate={(mode) => setManualEditor(mode)}
+                />
+              </div>
+              <div>
+                <AdaptiveDifficulty value={difficulty} onChange={setDifficulty} />
+              </div>
+            </div>
 
             {/* Manual Editors */}
             {manualEditor && !currentResult && (
