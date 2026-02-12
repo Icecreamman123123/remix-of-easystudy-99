@@ -47,6 +47,7 @@ import {
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
+import { AdaptiveDifficulty } from "@/components/study/SmartControls";
 
 // Manual editor mode types
 export type ManualEditorMode =
@@ -130,7 +131,6 @@ const AI_EXPERTISE: { value: AIExpertise; label: string; icon: string }[] = [
   { value: "law", label: "Law", icon: "⚖️" },
 ];
 
-const DIFFICULTY_LABELS = ["Easy", "Medium", "Hard", "Expert"];
 const LENGTH_OPTIONS = [
   { value: 8, label: "Short (8)" },
   { value: 16, label: "Normal (16)" },
@@ -154,114 +154,11 @@ const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; desc
   { action: "create-cornell-notes", icon: ScrollText, label: "Cornell Notes", description: "Structured notes & cues" },
 ];
 
-// Draggable Slider Component with smooth mouse following
-function DraggableSlider({
-  value,
-  onChange,
-  max,
-  labels
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  max: number;
-  labels: string[];
-}) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const calculateValue = (clientX: number) => {
-    if (!trackRef.current) return value;
-    const rect = trackRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, x / rect.width));
-    return Math.round(percentage * max);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    const newValue = calculateValue(e.clientX);
-    onChange(newValue);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const newValue = calculateValue(e.clientX);
-      onChange(newValue);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    const touch = e.touches[0];
-    const newValue = calculateValue(touch.clientX);
-    onChange(newValue);
-
-    const handleTouchMove = (e: TouchEvent) => {
-      const touch = e.touches[0];
-      const newValue = calculateValue(touch.clientX);
-      onChange(newValue);
-    };
-
-    const handleTouchEnd = () => {
-      setIsDragging(false);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleTouchEnd);
-    };
-
-    window.addEventListener("touchmove", handleTouchMove);
-    window.addEventListener("touchend", handleTouchEnd);
-  };
-
-  const percentage = (value / max) * 100;
-
-  return (
-    <div className="relative">
-      <div
-        ref={trackRef}
-        className="relative h-6 w-full cursor-pointer select-none"
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-      >
-        {/* Track background */}
-        <div className="absolute top-1/2 -translate-y-1/2 h-2 w-full rounded-full bg-secondary" />
-
-        {/* Filled track */}
-        <div
-          className="absolute top-1/2 -translate-y-1/2 h-2 rounded-full bg-primary transition-all duration-75 ease-out"
-          style={{ width: `${percentage}%` }}
-        />
-
-        {/* Thumb */}
-        <div
-          className={`absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full border-2 border-primary bg-background shadow-lg transition-transform duration-75 ease-out ${isDragging ? "scale-110 ring-2 ring-primary/50" : ""
-            }`}
-          style={{ left: `calc(${percentage}% - 10px)` }}
-        />
-      </div>
-
-      {/* Labels below */}
-      <div className="flex justify-between mt-1 px-0.5">
-        {labels.map((label, i) => (
-          <div
-            key={label}
-            className={`w-2 h-2 rounded-full transition-all duration-200 ${i <= value ? "bg-primary scale-100" : "bg-muted-foreground/30 scale-75"
-              }`}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-        <span>{labels[0]}</span>
-        <span>{labels[labels.length - 1]}</span>
-      </div>
-    </div>
-  );
+const getDifficultyLabel = (level: number): "Easy" | "Medium" | "Hard" | "Expert" => {
+  if (level <= 2) return "Easy";
+  if (level <= 5) return "Medium";
+  if (level <= 8) return "Hard";
+  return "Expert";
 }
 
 // Load favorites from localStorage
@@ -288,7 +185,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [gradeLevel, setGradeLevel] = useState("8");
   const [aiModel, setAiModel] = useState<AIModel>("gemini-flash");
   const [aiExpertise, setAiExpertise] = useState<AIExpertise>("general");
-  const [difficulty, setDifficulty] = useState(1); // 0-3 (Easy to Expert)
+  const [difficulty, setDifficulty] = useState(5); // 0-10 scale
   const [questionCount, setQuestionCount] = useState(16); // 8, 16, or 24
   const [loading, setLoading] = useState<StudyAction | null>(null);
   const [favorites, setFavorites] = useState<FavoritePreset[]>([]);
@@ -398,7 +295,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
     setVocabWord("");
     setLoading("vocabulary-cards" as StudyAction);
     try {
-      const difficultyText = DIFFICULTY_LABELS[difficulty].toLowerCase();
+      const difficultyText = getDifficultyLabel(difficulty).toLowerCase();
       const contentWithInstructions = `Topic: ${word}\n\n[Instructions: Generate exactly 1 items.\nDifficulty level: ${difficultyText}.]`;
       const result = await callStudyAI("vocabulary-cards", contentWithInstructions, word, difficultyText, gradeLevel, aiModel, aiExpertise, includeWikipedia);
       onResult("vocabulary-cards", result, word, gradeLevel);
@@ -443,7 +340,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
       }
 
       // Build instructions with difficulty and count
-      const difficultyText = DIFFICULTY_LABELS[difficulty].toLowerCase();
+      const difficultyText = getDifficultyLabel(difficulty).toLowerCase();
       const countInstruction = `Generate exactly ${questionCount} items.`;
       const difficultyInstruction = `Difficulty level: ${difficultyText}. ${difficulty === 0 ? "Use simple vocabulary and basic concepts." :
         difficulty === 1 ? "Use standard complexity appropriate for the grade level." :
@@ -489,26 +386,29 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
         {/* Grade Level - always visible */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="grade-level" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
-              <GraduationCap className="h-4 w-4" />
-              Level:
-            </Label>
-            <Select value={gradeLevel} onValueChange={setGradeLevel}>
-              <SelectTrigger id="grade-level" className="w-[140px]">
-                <SelectValue placeholder="Select level" />
-              </SelectTrigger>
-              <SelectContent>
-                {GRADE_LEVELS.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="grade-level" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
+                <GraduationCap className="h-4 w-4" />
+                Level:
+              </Label>
+              <Select value={gradeLevel} onValueChange={setGradeLevel}>
+                <SelectTrigger id="grade-level" className="w-[140px]">
+                  <SelectValue placeholder="Select level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GRADE_LEVELS.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          <AdaptiveDifficulty value={difficulty} onChange={setDifficulty} />
         </div>
 
         {/* Collapsible Customization */}
@@ -518,7 +418,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               <span className="flex items-center gap-2">
                 <Settings2 className="h-4 w-4" />
                 Customization
-                {(aiModel !== "gemini-flash" || aiExpertise !== "general" || difficulty !== 1 || questionCount !== 16) && (
+                {(aiModel !== "gemini-flash" || aiExpertise !== "general" || questionCount !== 16) && (
                   <Badge variant="secondary" className="text-xs ml-1">Modified</Badge>
                 )}
               </span>
@@ -639,19 +539,6 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             )}
             {/* Difficulty and Length Controls */}
             <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  <Gauge className="h-4 w-4" />
-                  Difficulty: <span className="font-bold text-primary transition-all duration-300">{DIFFICULTY_LABELS[difficulty]}</span>
-                </Label>
-                <DraggableSlider
-                  value={difficulty}
-                  onChange={setDifficulty}
-                  max={3}
-                  labels={DIFFICULTY_LABELS}
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   <Hash className="h-4 w-4" />
