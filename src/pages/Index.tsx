@@ -238,12 +238,6 @@ const IndexContent = () => {
                     onCancel={() => setManualEditor(null)}
                   />
                 )}
-                {manualEditor.type === "worksheet" && (
-                  <ManualWorksheetEditor
-                    onSubmit={handleManualResult}
-                    onCancel={() => setManualEditor(null)}
-                  />
-                )}
               </div>
             )}
 

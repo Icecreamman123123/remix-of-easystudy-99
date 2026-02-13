@@ -106,28 +106,6 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     difficulty: "medium",
   },
 
-  // === QUIZ TEMPLATES ===
-  {
-    id: "focused-test",
-    name: "📝 Practice Test",
-    description: "Mixed-difficulty multiple choice questions converted to study cards.",
-    preview: "10 questions with explanations",
-    defaultTitle: "Practice Test: {{topic}}",
-    action: "generate-quiz",
-    defaultCount: 10,
-    difficulty: "medium",
-  },
-  {
-    id: "challenge-quiz",
-    name: "🏆 Challenge Quiz",
-    description: "Difficult questions to test advanced understanding.",
-    preview: "Expert-level multiple choice",
-    defaultTitle: "Challenge: {{topic}}",
-    action: "generate-quiz",
-    defaultCount: 8,
-    difficulty: "hard",
-  },
-
   // === STUDY PLAN TEMPLATES ===
   {
     id: "weekly-plan",
