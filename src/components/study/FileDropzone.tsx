@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { FileUp, File, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { extractTextFromFile, SUPPORTED_IMPORT_EXTENSIONS, SUPPORTED_IMPORT_MIME } from "@/lib/file-utils";
 
 interface FileDropzoneProps {
   onTextExtracted: (text: string, fileName: string) => void;
@@ -15,26 +16,21 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [fileType, setFileType] = useState<"pdf" | "image" | null>(null);
+  const [fileType, setFileType] = useState<string | null>(null);
   const { toast } = useToast();
 
   const extractTextFromPdf = async (file: File): Promise<string> => {
     const pdfjsLib = await import('pdfjs-dist');
-    
     const workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
     pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-    
     const arrayBuffer = await file.arrayBuffer();
-    
-    const pdf = await pdfjsLib.getDocument({ 
+    const pdf = await pdfjsLib.getDocument({
       data: arrayBuffer,
       useSystemFonts: true,
       standardFontDataUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/standard_fonts/`
     }).promise;
-    
     let fullText = '';
     const totalPages = pdf.numPages;
-    
     for (let i = 1; i <= totalPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
@@ -45,86 +41,77 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
       fullText += pageText + '\n\n';
       setProgress(Math.round((i / totalPages) * 100));
     }
-    
     return fullText.trim();
   };
 
   const extractTextFromImage = async (file: File): Promise<string> => {
     setProgress(10);
-    
-    // Convert to base64
     const base64 = await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        resolve(result.split(',')[1]); // Remove data:image/...;base64, prefix
+        resolve(result.split(',')[1]);
       };
       reader.readAsDataURL(file);
     });
-    
     setProgress(30);
-    
-    // Use Lovable AI to extract text from image
     const { data, error } = await supabase.functions.invoke("extract-image-text", {
       body: { imageBase64: base64, mimeType: file.type },
     });
-    
     setProgress(90);
-    
-    if (error) {
-      throw new Error(error.message || "Failed to extract text from image");
-    }
-    
-    if (data.error) {
-      throw new Error(data.error);
-    }
-    
+    if (error) throw new Error(error.message || "Failed to extract text from image");
+    if (data.error) throw new Error(data.error);
     setProgress(100);
     return data.text || "";
   };
 
+  const getFileCategory = (file: File): string => {
+    if (file.type === 'application/pdf') return 'pdf';
+    if (file.type.startsWith('image/')) return 'image';
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    if (['docx', 'pptx', 'xlsx', 'xls', 'csv', 'txt', 'md'].includes(ext)) return ext;
+    return 'unknown';
+  };
+
   const handleFile = useCallback(async (file: File) => {
-    const isPdf = file.type === 'application/pdf';
-    const isImage = file.type.startsWith('image/');
+    const category = getFileCategory(file);
     
-    if (!isPdf && !isImage) {
+    if (category === 'unknown') {
       toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF or image file (JPG, PNG, etc.).",
+        title: "Unsupported file type",
+        description: "Supported: PDF, JPG, PNG, DOCX, PPTX, CSV, TXT, XLSX",
         variant: "destructive",
       });
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 20MB.",
-        variant: "destructive",
-      });
+      toast({ title: "File too large", description: "Max 20MB.", variant: "destructive" });
       return;
     }
 
     setFileName(file.name);
-    setFileType(isPdf ? "pdf" : "image");
+    setFileType(category);
     setIsProcessing(true);
     setProgress(0);
 
     try {
       let text: string;
       
-      if (isPdf) {
+      if (category === 'pdf') {
         text = await extractTextFromPdf(file);
-      } else {
+      } else if (category === 'image') {
         text = await extractTextFromImage(file);
+      } else {
+        setProgress(20);
+        text = await extractTextFromFile(file);
+        setProgress(100);
       }
-      
-      if (!text || text.length < 20) {
+
+      if (!text || text.length < 10) {
         toast({
           title: "Could not extract text",
-          description: isPdf 
-            ? "The PDF appears to be image-based or empty. Try uploading the image directly."
-            : "Could not read text from this image. Try a clearer image.",
+          description: "The file appears empty or unreadable. Try a different format.",
           variant: "destructive",
         });
         setIsProcessing(false);
@@ -142,7 +129,7 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
       console.error('File extraction error:', error);
       toast({
         title: "Failed to process file",
-        description: error instanceof Error ? error.message : "There was an error reading the file.",
+        description: error instanceof Error ? error.message : "Error reading file.",
         variant: "destructive",
       });
       setFileName(null);
@@ -155,42 +142,23 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
     const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFile(file);
-    }
+    if (file) handleFile(file);
   }, [handleFile]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); }, []);
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      handleFile(file);
-    }
+    if (file) handleFile(file);
   }, [handleFile]);
 
-  const clearFile = () => {
-    setFileName(null);
-    setFileType(null);
-    setProgress(0);
-  };
+  const clearFile = () => { setFileName(null); setFileType(null); setProgress(0); };
 
   return (
-    <Card 
+    <Card
       className={`border-2 border-dashed transition-colors ${
-        isDragging 
-          ? 'border-primary bg-primary/5' 
-          : 'border-muted-foreground/25 hover:border-primary/50'
+        isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
       }`}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -202,9 +170,7 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <div className="text-center">
               <p className="text-sm font-medium">Processing {fileName}</p>
-              <p className="text-xs text-muted-foreground">
-                {fileType === "image" ? "Extracting text from image..." : "Extracting text..."}
-              </p>
+              <p className="text-xs text-muted-foreground">Extracting text...</p>
             </div>
             <Progress value={progress} className="w-full max-w-xs" />
           </div>
@@ -230,11 +196,11 @@ export function FileDropzone({ onTextExtracted }: FileDropzoneProps) {
             </div>
             <div className="text-center">
               <p className="text-sm font-medium">Drop file here or click to upload</p>
-              <p className="text-xs text-muted-foreground">PDF, JPG, PNG • Max 20MB</p>
+              <p className="text-xs text-muted-foreground">PDF, JPG, PNG, DOCX, PPTX, CSV, TXT, XLSX • Max 20MB</p>
             </div>
             <input
               type="file"
-              accept=".pdf,application/pdf,image/*"
+              accept={SUPPORTED_IMPORT_EXTENSIONS}
               className="hidden"
               onChange={handleInputChange}
             />

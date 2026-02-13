@@ -797,18 +797,13 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 { action: "speed-challenge" as StudyAction, label: "Speed Challenge", icon: Gauge },
                 { action: "study-runner" as StudyAction, label: "Study Runner", icon: Gamepad2 },
                 { action: "matching-game" as StudyAction, label: "Matching Game", icon: Puzzle },
-                { action: "worksheet" as StudyAction, label: "Worksheet", icon: FileEdit },
               ].map(({ action, label, icon: Icon }) => (
                 <Button
                   key={`manual-${action}`}
                   variant="secondary"
                   className="h-auto py-4 flex flex-col items-center gap-2 text-sm"
                   onClick={() => {
-                    if (action === "worksheet") {
-                      onManualCreate({ type: "worksheet" });
-                    } else {
-                      onManualCreate({ type: "flashcard", action, label });
-                    }
+                    onManualCreate({ type: "flashcard", action, label });
                   }}
                   disabled={loading !== null}
                 >

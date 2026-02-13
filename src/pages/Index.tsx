@@ -298,6 +298,8 @@ const IndexContent = () => {
                   topic={currentTopic || "General Study Help"}
                   gradeLevel={chatGradeLevel}
                   onClose={() => setShowChat(false)}
+                  sourceContext={currentResult?.result}
+                  language={undefined}
                 />
               </div>
             )}

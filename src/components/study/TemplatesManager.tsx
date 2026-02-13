@@ -377,7 +377,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="generate-flashcards">Generate Flashcards</SelectItem>
-                          <SelectItem value="generate-quiz">Generate Quiz</SelectItem>
+                          <SelectItem value="cheat-sheet">Cheat Sheet</SelectItem>
                           <SelectItem value="create-study-plan">Create Study Plan</SelectItem>
                           <SelectItem value="create-cornell-notes">Generate Cornell Notes</SelectItem>
                         </SelectContent>
