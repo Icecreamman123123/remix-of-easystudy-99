@@ -51,6 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
 import { AdaptiveDifficulty, MethodSuitability } from "./SmartControls";
 import { useI18n } from "@/lib/i18n";
+import { useGamificationStats } from "@/hooks/useGamificationStats";
 
 // Manual editor mode types
 export type ManualEditorMode =
@@ -257,6 +258,7 @@ function saveFavorites(favorites: FavoritePreset[]) {
 }
 
 export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
+  const { incrementToolsUsed } = useGamificationStats();
   const [topic, setTopic] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [currentTextContent, setCurrentTextContent] = useState("");
@@ -379,6 +381,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
     }
 
     setLoading(action);
+    incrementToolsUsed();
     try {
       let effectiveAction: StudyAction = action;
       if (["practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)) {

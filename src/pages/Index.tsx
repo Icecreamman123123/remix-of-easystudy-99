@@ -13,7 +13,7 @@ import { StreakDisplay, AchievementsDisplay } from "@/components/study/StreakAnd
 import { CompactFeatureBanner } from "@/components/study/EnhancedFeatureCards";
 import { OnboardingGuide } from "@/components/study/OnboardingTooltips";
 import { GamificationHub } from "@/components/study/GamificationHub";
-import { ActivityHeatmap, VelocityGauge } from "@/components/study/VisualAnalytics";
+import { ActivityHeatmap, VelocityGauge, PerformanceHeatmap } from "@/components/study/VisualAnalytics";
 
 import { FloatingQuickActions } from "@/components/study/QuickActions";
 import { UIProvider, useUI } from "@/context/UIContext";
@@ -310,8 +310,9 @@ const IndexContent = () => {
             {user && (
               <>
                 <GamificationHub />
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-6">
                   <ActivityHeatmap />
+                  <PerformanceHeatmap />
                   <VelocityGauge />
                 </div>
                 <LearningAnalytics />
@@ -368,7 +369,14 @@ const IndexContent = () => {
       <OnboardingGuide />
       
       {/* Floating Actions */}
-      <FloatingQuickActions />
+      <FloatingQuickActions 
+        onSave={handleSaveFlashcards}
+        onAskAI={() => setShowChat(true)}
+        onShare={() => {
+          navigator.clipboard.writeText(window.location.href);
+          toast({ title: "Link Copied", description: "Share this link with your friends!" });
+        }}
+      />
 
       {/* Footer */}
       {!isFocusMode && (
