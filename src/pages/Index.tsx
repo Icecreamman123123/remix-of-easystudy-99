@@ -207,10 +207,10 @@ const IndexContent = () => {
       {!isFocusMode && <CompactFeatureBanner />}
 
       {/* Main Content */}
-      <main className="max-w-[1600px] mx-auto px-6 py-12">
-        <div className="grid lg:grid-cols-4 gap-10">
-          {/* Study Input - Takes 3 columns on large screens */}
-          <div className="lg:col-span-3 space-y-10">
+      <main className="max-w-[1800px] mx-auto px-6 py-12">
+        <div className="grid lg:grid-cols-3 gap-10">
+          {/* Study Input - Takes 2 columns on large screens */}
+          <div className="lg:col-span-2 space-y-10">
             <div className="flex justify-between items-center mb-2">
               <h2 className="text-2xl font-bold tracking-tight">Study Center</h2>
               <Button 
