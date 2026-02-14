@@ -99,205 +99,144 @@ const IndexContent = () => {
     }
   };
 
-  const handleManualResult = (action: StudyAction, result: string, topic: string) => {
-    setManualEditor(null);
-    handleResult(action, result, topic, true);
-  };
-
   const handleSaveFlashcards = () => {
-    if (!user) {
+    if (flashcardsToSave.length > 0) {
+      setSaveDialogOpen(true);
+    } else {
       toast({
-        title: "Sign in required",
-        description: "Please sign in to save flashcards.",
+        title: "No flashcards",
+        description: "Generate some flashcards first to save them.",
         variant: "destructive",
       });
-      navigate("/auth");
-      return;
     }
-    setSaveDialogOpen(true);
   };
 
-  const handleSaveStudyPlan = (plan: any) => {
-    if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to save templates.",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
-    setPendingTemplateData({
-      name: `Study Plan: ${currentTopic}`,
-      description: `Structured study plan for ${currentTopic}`,
-      action: "create-study-plan",
-      payload: {
-        plan,
-        topic: currentTopic,
-        difficulty: "medium", // Default, could be extracted
-        defaultCount: plan.length
-      }
-    });
-    setTemplatesManagerOpen(true);
+  const handleTemplateSelect = (template: any) => {
+    setPendingTemplateData(template);
+    setTemplatesManagerOpen(false);
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: "Signed out",
-      description: "You've been signed out successfully.",
-      variant: "default",
-    });
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`min-h-screen flex flex-col bg-background transition-all duration-500 ${isFocusMode ? 'focus-mode' : ''}`}>
-      {/* Header */}
+    <div className={`min-h-screen flex flex-col bg-background text-foreground transition-all duration-500 ${isFocusMode ? 'focus-mode' : ''}`}>
+      {/* Header - Hidden in Focus Mode */}
       {!isFocusMode && (
-      <header className="border-b gradient-border">
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary rounded-lg">
-                <GraduationCap className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">{t("app.name")}</h1>
-                <p className="text-sm text-muted-foreground hidden sm:block">
-                  {t("app.tagline")}
-                </p>
-              </div>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
+        <div className="max-w-[1600px] mx-auto flex h-16 items-center justify-between px-6">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary p-1.5 rounded-lg">
+              <GraduationCap className="h-6 w-6 text-primary-foreground" />
             </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">EasyStudy</h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">AI-powered study tools</p>
+            </div>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <LanguageSelector />
-              <ThemeToggle />
-              {loading ? null : user ? (
-                <>
-                  <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground mr-2">
-                    <User className="h-4 w-4" />
-                    <span>{user.email}</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSignOut}
-                    className="transition-all duration-200 hover:scale-105"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    {t("auth.signOut")}
-                  </Button>
-                </>
-              ) : (
-                <Button asChild className="transition-all duration-200 hover:scale-105">
-                  <Link to="/auth">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    {t("auth.signIn")}
-                  </Link>
+          <div className="flex items-center gap-4">
+            <LanguageSelector />
+            <ThemeToggle />
+            
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="hidden md:flex flex-col items-end">
+                  <span className="text-sm font-semibold">{user.email?.split('@')[0]}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Premium Student</span>
+                </div>
+                <Button variant="outline" size="icon" onClick={() => signOut()} className="hover:bg-destructive/10 hover:text-destructive transition-colors">
+                  <LogOut className="h-4 w-4" />
                 </Button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <Button asChild variant="default" size="sm" className="gap-2 shadow-lg shadow-primary/20">
+                <Link to="/auth">
+                  <LogIn className="h-4 w-4" />
+                  {t("auth.signIn")}
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
       )}
 
-      {/* Features Banner - Enhanced */}
+      {/* Feature Banner - Hidden in Focus Mode */}
       {!isFocusMode && <CompactFeatureBanner />}
 
-      {/* Main Content */}
-      <main className="max-w-[1800px] mx-auto px-6 py-12">
-        <div className="grid lg:grid-cols-3 gap-10">
-          {/* Study Input - Takes 2 columns on large screens */}
-          <div className="lg:col-span-2 space-y-10">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-2xl font-bold tracking-tight">Study Center</h2>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={toggleFocusMode}
-                className="gap-2"
-              >
-                {isFocusMode ? <><Minimize2 className="h-4 w-4" /> Exit Focus</> : <><Maximize2 className="h-4 w-4" /> Focus Mode</>}
-              </Button>
-            </div>
-            <StudyInput
-              onResult={handleResultWithChat}
-              onManualCreate={(mode) => setManualEditor(mode)}
-            />
-
-            {/* Manual Editors */}
-            {manualEditor && !currentResult && (
-              <div>
-                {manualEditor.type === "flashcard" && (
-                  <ManualFlashcardEditor
-                    targetAction={manualEditor.action}
-                    actionLabel={manualEditor.label}
-                    onSubmit={handleManualResult}
-                    onCancel={() => setManualEditor(null)}
-                  />
-                )}
+      <main className="flex-1 max-w-[1600px] mx-auto w-full px-6 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+          {/* Main Study Area */}
+          <div className={`lg:col-span-3 space-y-10 transition-all duration-500 ${isFocusMode ? 'lg:col-span-4 max-w-4xl mx-auto' : ''}`}>
+            <section className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-3xl font-black tracking-tighter">
+                    {t("hero.title")}
+                  </h2>
+                  <p className="text-muted-foreground">
+                    {t("hero.subtitle")}
+                  </p>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={toggleFocusMode}
+                  className="gap-2 border-2 hover:bg-primary hover:text-primary-foreground transition-all"
+                >
+                  {isFocusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  {isFocusMode ? "Exit Focus" : "Focus Mode"}
+                </Button>
               </div>
+
+              <div className="apple-card rounded-2xl overflow-hidden">
+                <StudyInput 
+                  onResult={handleResultWithChat} 
+                  onManualCreate={setManualEditor}
+                />
+              </div>
+            </section>
+
+            {manualEditor && (
+              <ManualFlashcardEditor 
+                mode={manualEditor}
+                onClose={() => setManualEditor(null)}
+                onSave={(result) => {
+                  handleResult(manualEditor.action, result, "Manual Content", true);
+                  setManualEditor(null);
+                }}
+              />
             )}
 
             {currentResult && (
-              <div className="relative">
-                {["generate-flashcards", "leitner-system", "practice-test", "mind-map", "study-runner", "matching-game"].includes(currentResult.action) && flashcardsToSave.length > 0 && (
-                  <div className="absolute top-4 left-4 z-10">
-                    <Button size="sm" onClick={handleSaveFlashcards}>
-                      <Save className="h-4 w-4 mr-2" />
-                      {t("common.saveDeck")}
-                    </Button>
-                  </div>
-                )}
-                <ResultsViewer
-                  action={currentResult.action}
-                  result={currentResult.result}
-                  topic={currentTopic}
-                  gradeLevel={chatGradeLevel}
-                  onClose={() => setCurrentResult(null)}
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <ResultsViewer 
+                  action={currentResult.action} 
+                  result={currentResult.result} 
                   isManual={currentResult.isManual}
-                  onSavePlan={handleSaveStudyPlan}
+                  topic={currentTopic}
+                  onSave={handleSaveFlashcards}
+                  onAskAI={() => setShowChat(true)}
                 />
               </div>
             )}
-
-            {/* Show saved decks for logged-in users */}
-            {user && <MyDecks />}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-10">
-            {/* Streak Display - Top of Sidebar */}
-            {user && <StreakDisplay />}
-
-            {/* AI Chat - Always visible */}
-            {!showChat ? (
-              <Button
-                onClick={() => setShowChat(true)}
-                className="w-full gap-2 h-auto py-4 glass-card hover-glow border-2 border-primary/30 hover:border-primary/50"
-                variant="outline"
-              >
-                <div className="flex items-center gap-2 flex-1">
-                  <div className="p-2 icon-gradient rounded-full animate-pulse-glow">
-                    <MessageCircle className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-semibold">AI Study Chat</p>
-                    <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                      {currentTopic ? `Ask about: ${currentTopic}` : "Ask anything!"}
-                    </p>
-                  </div>
-                  <Zap className="h-4 w-4 text-primary ml-auto" />
-                </div>
-              </Button>
-            ) : (
-              <div className="h-[550px]">
-                <StudyChat
-                  topic={currentTopic || "General Study Help"}
-                  gradeLevel={chatGradeLevel}
-                  onClose={() => setShowChat(false)}
+          {/* Sidebar Area - Hidden in Focus Mode */}
+          <div className={`space-y-10 transition-all duration-500 ${isFocusMode ? 'hidden' : 'block'}`}>
+            <StreakDisplay />
+            
+            {showChat && (
+              <div className="animate-in fade-in zoom-in-95">
+                <StudyChat 
+                  gradeLevel={chatGradeLevel} 
                   sourceContext={currentResult?.result}
                   language={undefined}
                 />
@@ -373,8 +312,10 @@ const IndexContent = () => {
         onSave={handleSaveFlashcards}
         onAskAI={() => setShowChat(true)}
         onShare={() => {
-          navigator.clipboard.writeText(window.location.href);
-          toast({ title: "Link Copied", description: "Share this link with your friends!" });
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(window.location.href);
+            toast({ title: "Link Copied", description: "Share this link with your friends!" });
+          }
         }}
       />
 
@@ -399,52 +340,20 @@ const IndexContent = () => {
       </footer>
       )}
 
-      {/* Save Dialog */}
-      <SaveDeckDialog
-        open={saveDialogOpen}
+      <SaveDeckDialog 
+        open={saveDialogOpen} 
         onOpenChange={setSaveDialogOpen}
         flashcards={flashcardsToSave}
         topic={currentTopic}
       />
 
-      {/* Templates Manager (accessible from footer) */}
-      <TemplatesManager
+      <TemplatesManager 
         open={templatesManagerOpen}
-        onOpenChange={(open) => {
-          setTemplatesManagerOpen(open);
-          if (!open) setPendingTemplateData(null);
-        }}
-        prefillData={pendingTemplateData}
+        onOpenChange={setTemplatesManagerOpen}
+        onSelect={handleTemplateSelect}
       />
     </div>
   );
 };
-
-function FeatureCard({
-  icon: Icon,
-  title,
-  description,
-  index = 0
-}: {
-  icon: typeof Sparkles;
-  title: string;
-  description: string;
-  index?: number;
-}) {
-  return (
-    <div
-      className="flex items-start gap-6 p-8 bg-card rounded-2xl border border-border/50 apple-card hover-scale animate-in fade-in-50 slide-in-from-bottom-4 group cursor-default"
-      style={{ animationDelay: `${index * 100}ms` }}
-    >
-      <div className="p-4 bg-secondary rounded-xl shrink-0 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
-        <Icon className="h-7 w-7" />
-      </div>
-      <div>
-        <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors">{title}</h3>
-        <p className="text-base text-muted-foreground leading-relaxed">{description}</p>
-      </div>
-    </div>
-  );
-}
 
 export default Index;
