@@ -17,6 +17,7 @@ import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
 import { CornellNotesViewer } from "./CornellNotesViewer";
 import { VocabularyCardViewer, parseVocabularyCards } from "./VocabularyCardViewer";
 import { CheatSheetViewer } from "./CheatSheetViewer";
+import { SlidePresenter, parseSlides } from "./SlidePresenter";
 import { StudyPlanCalendar } from "./StudyPlanCalendar";
 import ReactMarkdown from "react-markdown";
 
@@ -189,6 +190,13 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
       case "cheat-sheet": {
         return <CheatSheetViewer content={result} topic={topic} />;
       }
+      case "presenter-slides": {
+        const slides = parseSlides(result);
+        if (slides.length > 0) {
+          return <SlidePresenter slides={slides} topic={topic} />;
+        }
+        break;
+      }
       case "create-cornell-notes": {
         const cornellData = parseCornellNotes(result);
         if (cornellData) {
@@ -277,6 +285,7 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
       case "explain-concept": return "Concept Explanation";
       case "create-study-plan": return "Study Schedule";
       case "cheat-sheet": return "Cheat Sheet";
+      case "presenter-slides": return "Presenter Slides";
       case "create-cornell-notes": return "Cornell Notes";
       case "vocabulary-cards": return "Vocabulary Cards";
       case "practice-problems": return "Practice Problems";
@@ -285,7 +294,7 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
   };
 
   // For interactive modes, use full height
-  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards", "create-study-plan", "cheat-sheet"].includes(action);
+  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards", "create-study-plan", "cheat-sheet", "presenter-slides"].includes(action);
 
   return (
     <Card className="h-full">

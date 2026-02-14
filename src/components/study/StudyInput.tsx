@@ -36,7 +36,8 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
-  Sliders
+  Sliders,
+  Presentation
 } from "lucide-react";
 import {
   Dialog,
@@ -143,6 +144,7 @@ const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; desc
   { action: "explain-concept", icon: Lightbulb, label: "Explain", description: "Simple explanations" },
   { action: "create-study-plan", icon: Brain, label: "Study Plan", description: "Weekly schedule" },
   { action: "cheat-sheet", icon: ClipboardCheck, label: "Cheat Sheet", description: "Formulas & key concepts" },
+  { action: "presenter-slides", icon: Presentation, label: "Slides", description: "Presenter slide deck" },
   { action: "create-cornell-notes", icon: ScrollText, label: "Cornell Notes", description: "Structured notes & cues" },
 ];
 
