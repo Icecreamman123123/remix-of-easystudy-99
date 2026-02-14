@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 type TimerMode = "focus" | "shortBreak" | "longBreak";
 
 const TIMER_SETTINGS = {
-  focus: { duration: 25 * 60, label: "Focus Time", icon: Brain },
+  focus: { duration: 10 * 60, label: "Focus Time", icon: Brain },
   shortBreak: { duration: 5 * 60, label: "Short Break", icon: Coffee },
   longBreak: { duration: 15 * 60, label: "Long Break", icon: Coffee },
 };

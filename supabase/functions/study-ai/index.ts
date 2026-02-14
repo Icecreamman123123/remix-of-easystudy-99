@@ -214,6 +214,22 @@ Generate exactly ${requestedCount} cards. Difficulty: ${difficulty || 'medium'}.
         userPrompt = `Create ${requestedCount} vocabulary cards at ${gradeLevelText}:\n\n${content || topic}`;
         break;
 
+      case "presenter-slides":
+        systemPrompt = `You are an expert presentation designer creating educational lecture slides for ${gradeLevelText} students. ${expertiseApproach}${langInstruction}
+Create a professional slide deck with 8-15 slides. Style: clean, modern, minimal text per slide (like NotebookLM presentations).
+
+Rules:
+- Slide 1: Title slide with topic name and subtitle. Layout "title".
+- Slide 2+: Content slides. Each has a clear heading and 3-6 concise bullet points.
+- Use bold for key terms: **term**
+- Include speaker notes for each slide (what to say when presenting)
+- Last slide: Summary/Key Takeaways
+- Difficulty: ${difficulty || 'medium'}
+
+Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"title|content|section"}]`;
+        userPrompt = `Create a professional presentation slide deck about:\n\n${content || topic}`;
+        break;
+
       default:
         systemPrompt = `You are a helpful study assistant. ${langInstruction}`;
         userPrompt = content || topic || "How can I study more effectively?";
