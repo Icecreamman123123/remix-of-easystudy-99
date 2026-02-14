@@ -55,30 +55,25 @@ export function ActivityHeatmap() {
 export function PerformanceHeatmap() {
   const { stats } = useGamificationStats();
   
-  // Create a grid for the soccer-style heatmap (10x10)
   const rows = 8;
   const cols = 12;
   
-  // Generate "hotspots" based on accuracy and time
   const getIntensity = (r: number, c: number) => {
-    // Center point for "sweet spot" (high accuracy, low time)
     const centerX = cols * 0.7;
     const centerY = rows * 0.4;
-    
     const dist = Math.sqrt(Math.pow(c - centerX, 2) + Math.pow(r - centerY, 2));
     const accuracyFactor = stats.accuracy / 100;
     const sessionFactor = Math.min(stats.totalSessions / 10, 1);
-    
     const base = Math.exp(-dist / 3) * 100 * accuracyFactor * sessionFactor;
     return Math.min(100, Math.max(0, base + Math.random() * 10));
   };
 
   const getHeatColor = (intensity: number) => {
-    if (intensity < 10) return "rgba(34, 197, 94, 0.05)"; // Greenish background
-    if (intensity < 30) return "rgba(59, 130, 246, 0.4)"; // Blue
-    if (intensity < 60) return "rgba(6, 182, 212, 0.6)"; // Cyan
-    if (intensity < 80) return "rgba(234, 179, 8, 0.8)"; // Yellow
-    return "rgba(239, 68, 68, 0.9)"; // Red (Hot)
+    if (intensity < 10) return "rgba(34, 197, 94, 0.05)";
+    if (intensity < 30) return "rgba(59, 130, 246, 0.4)";
+    if (intensity < 60) return "rgba(6, 182, 212, 0.6)";
+    if (intensity < 80) return "rgba(234, 179, 8, 0.8)";
+    return "rgba(239, 68, 68, 0.9)";
   };
 
   return (
@@ -86,27 +81,15 @@ export function PerformanceHeatmap() {
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <Target className="h-4 w-4 text-red-500" />
-          Accuracy & Time Heatmap
+          Performance Heatmap
         </CardTitle>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <Info className="h-3.5 w-3.5 text-muted-foreground opacity-50" />
-            </TooltipTrigger>
-            <TooltipContent side="left" className="text-xs">
-              Visualizes your "Hot Zones" where accuracy is highest vs response time.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </CardHeader>
       <CardContent>
         <div className="relative aspect-[16/9] w-full rounded-lg overflow-hidden border-2 border-primary/20 bg-green-900/20">
-          {/* Soccer field lines simulation */}
           <div className="absolute inset-0 border border-white/10" />
           <div className="absolute inset-y-0 left-1/2 w-px bg-white/10" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border border-white/10" />
           
-          {/* Heatmap Grid */}
           <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
             {Array.from({ length: rows * cols }).map((_, i) => {
               const r = Math.floor(i / cols);
@@ -126,14 +109,9 @@ export function PerformanceHeatmap() {
             })}
           </div>
           
-          {/* Labels */}
           <div className="absolute bottom-2 left-2 text-[8px] font-bold text-white/50 uppercase">Slow Response</div>
           <div className="absolute bottom-2 right-2 text-[8px] font-bold text-white/50 uppercase">Fast Response</div>
           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold text-white/50 uppercase">High Accuracy</div>
-        </div>
-        <div className="flex justify-between mt-3 text-[10px] font-medium text-muted-foreground">
-          <span className="flex items-center gap-1"><Timer className="h-3 w-3" /> Time: {stats.totalSessions > 0 ? '2.4s avg' : 'N/A'}</span>
-          <span className="flex items-center gap-1"><Target className="h-3 w-3" /> Acc: {Math.round(stats.accuracy)}%</span>
         </div>
       </CardContent>
     </Card>
@@ -158,10 +136,10 @@ export function VelocityGauge() {
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <Zap className="h-4 w-4 text-yellow-500 animate-pulse" />
-          Live Mastery Velocity
+          Mastery Velocity
         </CardTitle>
         <div className="flex items-center gap-1">
-           <span className="relative flex h-2 w-2">
+          <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </span>
@@ -201,7 +179,6 @@ export function VelocityGauge() {
         <div className={`mt-3 px-3 py-1 rounded-full bg-muted/50 border text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
           {status.label}
         </div>
-        <p className="text-[9px] text-muted-foreground mt-2 italic text-center">Updates every minute based on activity</p>
       </CardContent>
     </Card>
   );

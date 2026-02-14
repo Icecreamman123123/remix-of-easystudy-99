@@ -7,7 +7,9 @@ import {
   FileText, 
   MessageSquare,
   ChevronUp,
-  Download
+  Download,
+  Zap,
+  Layout
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -16,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useUI } from "@/context/UIContext";
 
 interface QuickActionsProps {
   onSave?: () => void;
@@ -27,6 +30,7 @@ interface QuickActionsProps {
 export function FloatingQuickActions({ onSave, onAskAI, onExport, onShare }: QuickActionsProps) {
   const [isVisible, setIsVisible] = useState(false);
   const { toast } = useToast();
+  const { isFocusMode, toggleFocusMode } = useUI();
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -56,16 +60,26 @@ export function FloatingQuickActions({ onSave, onAskAI, onExport, onShare }: Qui
       title: "Exporting...",
       description: "Preparing your study material for PDF export.",
     });
-    // Simulate export
     setTimeout(() => {
        window.print();
     }, 1000);
   };
 
-  if (!isVisible) return null;
+  if (!isVisible && !isFocusMode) return null;
 
   return (
-    <div className="fixed bottom-20 right-6 z-40 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4">
+    <div className="fixed bottom-20 right-6 z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4">
+      {/* Focus Mode Toggle (Always visible if scrolling or in focus mode) */}
+      <Button 
+        variant={isFocusMode ? "default" : "secondary"}
+        size="icon" 
+        className="rounded-full h-12 w-12 shadow-xl border-2 border-background transition-all hover:scale-110"
+        onClick={toggleFocusMode}
+        title={isFocusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
+      >
+        <Zap className={`h-6 w-6 ${isFocusMode ? "fill-current" : ""}`} />
+      </Button>
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size="icon" className="rounded-full h-14 w-14 shadow-2xl hover:scale-110 transition-transform bg-primary border-4 border-background">
@@ -92,14 +106,16 @@ export function FloatingQuickActions({ onSave, onAskAI, onExport, onShare }: Qui
         </DropdownMenuContent>
       </DropdownMenu>
       
-      <Button 
-        variant="secondary" 
-        size="icon" 
-        className="rounded-full h-10 w-10 shadow-md opacity-80 hover:opacity-100 border-2 border-background"
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      >
-        <ChevronUp className="h-5 w-5" />
-      </Button>
+      {!isFocusMode && (
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          className="rounded-full h-10 w-10 shadow-md opacity-80 hover:opacity-100 border-2 border-background"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <ChevronUp className="h-5 w-5" />
+        </Button>
+      )}
     </div>
   );
 }
