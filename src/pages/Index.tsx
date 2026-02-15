@@ -68,7 +68,7 @@ const IndexContent = () => {
   const [showChat, setShowChat] = useState(false);
   const [chatGradeLevel, setChatGradeLevel] = useState("8");
   const [manualEditor, setManualEditor] = useState<ManualEditorMode>(null);
-  const [pendingTemplateData, setPendingTemplateData] = useState<any>(null);
+  const [pendingTemplateData] = useState<any>(null);
 
   const { user, signOut, loading } = useAuth();
   const { recordSession } = useStudySessions();
@@ -111,10 +111,8 @@ const IndexContent = () => {
     }
   };
 
-  const handleTemplateSelect = (template: any) => {
-    setPendingTemplateData(template);
-    setTemplatesManagerOpen(false);
-  };
+
+
 
   if (loading) {
     return (
@@ -204,12 +202,13 @@ const IndexContent = () => {
               </div>
             </section>
 
-            {manualEditor && (
+            {manualEditor && manualEditor.type === "flashcard" && (
               <ManualFlashcardEditor 
-                mode={manualEditor}
-                onClose={() => setManualEditor(null)}
-                onSave={(result) => {
-                  handleResult(manualEditor.action, result, "Manual Content", true);
+                targetAction={manualEditor.action}
+                actionLabel={manualEditor.label}
+                onCancel={() => setManualEditor(null)}
+                onSubmit={(action, result, topic) => {
+                  handleResult(action, result, topic, true);
                   setManualEditor(null);
                 }}
               />
@@ -222,8 +221,7 @@ const IndexContent = () => {
                   result={currentResult.result} 
                   isManual={currentResult.isManual}
                   topic={currentTopic}
-                  onSave={handleSaveFlashcards}
-                  onAskAI={() => setShowChat(true)}
+                  onClose={() => setCurrentResult(null)}
                 />
               </div>
             )}
@@ -236,7 +234,9 @@ const IndexContent = () => {
             {showChat && (
               <div className="animate-in fade-in zoom-in-95">
                 <StudyChat 
+                  topic={currentTopic || "General Studies"}
                   gradeLevel={chatGradeLevel} 
+                  onClose={() => setShowChat(false)}
                   sourceContext={currentResult?.result}
                   language={undefined}
                 />
@@ -327,7 +327,7 @@ const IndexContent = () => {
           <p className="mt-2 text-xs opacity-70">Made by Daniel Yu</p>
 
           <div className="mt-4 flex items-center justify-center gap-3">
-            <Button size="sm" variant="outline" onClick={() => { setPendingTemplateData(null); setTemplatesManagerOpen(true); }} className="hover-glow">
+            <Button size="sm" variant="outline" onClick={() => setTemplatesManagerOpen(true)} className="hover-glow">
               Manage templates
             </Button>
             <Button size="sm" variant="outline" asChild className="hover-glow">
@@ -350,7 +350,6 @@ const IndexContent = () => {
       <TemplatesManager 
         open={templatesManagerOpen}
         onOpenChange={setTemplatesManagerOpen}
-        onSelect={handleTemplateSelect}
       />
     </div>
   );
