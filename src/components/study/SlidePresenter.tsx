@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +12,8 @@ import {
   FileDown,
   Presentation,
   Grid3X3,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { jsPDF } from "jspdf";
@@ -28,27 +32,36 @@ interface SlidePresenterProps {
   topic?: string;
 }
 
-const SLIDE_COLORS = [
-  { bg: "from-slate-900 to-slate-800", accent: "bg-blue-500", text: "text-slate-50" },
-  { bg: "from-slate-50 to-slate-100", accent: "bg-blue-600", text: "text-slate-900" },
-  { bg: "from-slate-50 to-slate-100", accent: "bg-emerald-600", text: "text-slate-900" },
-  { bg: "from-slate-50 to-slate-100", accent: "bg-violet-600", text: "text-slate-900" },
-  { bg: "from-slate-50 to-slate-100", accent: "bg-amber-600", text: "text-slate-900" },
-  { bg: "from-slate-50 to-slate-100", accent: "bg-rose-600", text: "text-slate-900" },
+const LIGHT_COLORS = [
+  { bg: "from-slate-900 to-slate-800", accent: "bg-blue-500", text: "text-slate-50", bulletDot: "bg-blue-500" },
+  { bg: "from-slate-50 to-slate-100", accent: "bg-blue-600", text: "text-slate-900", bulletDot: "bg-blue-600" },
+  { bg: "from-slate-50 to-slate-100", accent: "bg-emerald-600", text: "text-slate-900", bulletDot: "bg-emerald-600" },
+  { bg: "from-slate-50 to-slate-100", accent: "bg-violet-600", text: "text-slate-900", bulletDot: "bg-violet-600" },
+  { bg: "from-slate-50 to-slate-100", accent: "bg-amber-600", text: "text-slate-900", bulletDot: "bg-amber-600" },
+  { bg: "from-slate-50 to-slate-100", accent: "bg-rose-600", text: "text-slate-900", bulletDot: "bg-rose-600" },
 ];
 
-function getSlideTheme(index: number, total: number) {
-  if (index === 0) return SLIDE_COLORS[0]; // Title slide is dark
-  return SLIDE_COLORS[((index - 1) % (SLIDE_COLORS.length - 1)) + 1];
+const DARK_COLORS = [
+  { bg: "from-slate-950 to-slate-900", accent: "bg-blue-500", text: "text-slate-50", bulletDot: "bg-blue-400" },
+  { bg: "from-slate-900 to-slate-800", accent: "bg-blue-500", text: "text-slate-100", bulletDot: "bg-blue-400" },
+  { bg: "from-slate-900 to-slate-800", accent: "bg-emerald-500", text: "text-slate-100", bulletDot: "bg-emerald-400" },
+  { bg: "from-slate-900 to-slate-800", accent: "bg-violet-500", text: "text-slate-100", bulletDot: "bg-violet-400" },
+  { bg: "from-slate-900 to-slate-800", accent: "bg-amber-500", text: "text-slate-100", bulletDot: "bg-amber-400" },
+  { bg: "from-slate-900 to-slate-800", accent: "bg-rose-500", text: "text-slate-100", bulletDot: "bg-rose-400" },
+];
+
+function getSlideTheme(index: number, darkMode: boolean) {
+  const colors = darkMode ? DARK_COLORS : LIGHT_COLORS;
+  if (index === 0) return colors[0];
+  return colors[((index - 1) % (colors.length - 1)) + 1];
 }
 
-function SlideRenderer({ slide, index, total }: { slide: Slide; index: number; total: number }) {
-  const theme = getSlideTheme(index, total);
+function SlideRenderer({ slide, index, total, darkMode }: { slide: Slide; index: number; total: number; darkMode: boolean }) {
+  const theme = getSlideTheme(index, darkMode);
   const isTitle = index === 0 || slide.layout === "title" || slide.layout === "section";
 
   return (
     <div className={`w-full aspect-video rounded-xl bg-gradient-to-br ${theme.bg} ${theme.text} relative overflow-hidden shadow-2xl`}>
-      {/* Decorative elements */}
       <div className={`absolute top-0 left-0 w-full h-1.5 ${theme.accent}`} />
       <div className="absolute bottom-4 right-6 text-xs opacity-40 font-mono">
         {index + 1} / {total}
@@ -79,8 +92,8 @@ function SlideRenderer({ slide, index, total }: { slide: Slide; index: number; t
             <ul className="space-y-3">
               {slide.bullets.map((bullet, i) => (
                 <li key={i} className="flex items-start gap-3 text-base md:text-lg leading-relaxed">
-                  <span className={`mt-1.5 w-2 h-2 rounded-full ${theme.accent} shrink-0`} />
-                  <span className="prose prose-invert max-w-none">
+                  <span className={`mt-1.5 w-2 h-2 rounded-full ${theme.bulletDot} shrink-0`} />
+                  <span className="max-w-none">
                     <ReactMarkdown
                       components={{
                         p: ({ children }) => <span>{children}</span>,
@@ -131,8 +144,6 @@ function exportSlidesToPdf(slides: Slide[], topic?: string) {
 
   slides.forEach((slide, i) => {
     if (i > 0) doc.addPage();
-
-    // Background
     if (i === 0) {
       doc.setFillColor(30, 41, 59);
       doc.rect(0, 0, w, h, "F");
@@ -142,19 +153,12 @@ function exportSlidesToPdf(slides: Slide[], topic?: string) {
       doc.rect(0, 0, w, h, "F");
       doc.setTextColor(30, 41, 59);
     }
-
-    // Accent bar
     doc.setFillColor(59, 130, 246);
     doc.rect(0, 0, w, 4, "F");
-
-    // Title
     doc.setFontSize(i === 0 ? 28 : 22);
     doc.setFont("helvetica", "bold");
     const titleX = i === 0 ? w / 2 : 25;
-    const titleAlign = i === 0 ? "center" : "left";
-    doc.text(slide.title, titleX, i === 0 ? h / 2 - 20 : 25, { align: titleAlign as any });
-
-    // Bullets
+    doc.text(slide.title, titleX, i === 0 ? h / 2 - 20 : 25, { align: i === 0 ? "center" : "left" } as any);
     doc.setFontSize(13);
     doc.setFont("helvetica", "normal");
     let y = i === 0 ? h / 2 + 10 : 42;
@@ -164,8 +168,6 @@ function exportSlidesToPdf(slides: Slide[], topic?: string) {
       doc.text(lines, 30, y);
       y += lines.length * 7 + 4;
     });
-
-    // Slide number
     doc.setFontSize(9);
     doc.setTextColor(150, 150, 150);
     doc.text(`${i + 1} / ${slides.length}`, w - 20, h - 10);
@@ -175,19 +177,13 @@ function exportSlidesToPdf(slides: Slide[], topic?: string) {
 }
 
 function exportSlidesToPptxText(slides: Slide[], topic?: string) {
-  // Export as a structured text file that can be imported into presentation tools
   let text = `# ${topic || "Presentation"}\n\n`;
   slides.forEach((slide, i) => {
     text += `---\n## Slide ${i + 1}: ${slide.title}\n\n`;
-    slide.bullets.forEach((b) => {
-      text += `- ${b}\n`;
-    });
-    if (slide.speakerNotes) {
-      text += `\n> Speaker Notes: ${slide.speakerNotes}\n`;
-    }
+    slide.bullets.forEach((b) => { text += `- ${b}\n`; });
+    if (slide.speakerNotes) text += `\n> Speaker Notes: ${slide.speakerNotes}\n`;
     text += "\n";
   });
-
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   saveAs(blob, `${(topic || "Presentation").replace(/[^a-zA-Z0-9 ]/g, "")}_slides.md`);
 }
@@ -197,6 +193,7 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   const goNext = useCallback(() => {
     setCurrentSlide((prev) => Math.min(prev + 1, slides.length - 1));
@@ -208,24 +205,12 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") {
-        e.preventDefault();
-        goNext();
-      }
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        goPrev();
-      }
-      if (e.key === "Escape") {
-        setIsFullscreen(false);
-        setShowGrid(false);
-      }
-      if (e.key === "g" || e.key === "G") {
-        setShowGrid((v) => !v);
-      }
-      if (e.key === "f" || e.key === "F") {
-        setIsFullscreen((v) => !v);
-      }
+      if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); goNext(); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); goPrev(); }
+      if (e.key === "Escape") { setIsFullscreen(false); setShowGrid(false); }
+      if (e.key === "g" || e.key === "G") setShowGrid((v) => !v);
+      if (e.key === "f" || e.key === "F") setIsFullscreen((v) => !v);
+      if (e.key === "d" || e.key === "D") setDarkMode((v) => !v);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -259,14 +244,9 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
               className={`text-left rounded-lg overflow-hidden border-2 transition-all hover:scale-[1.02] ${
                 i === currentSlide ? "border-primary ring-2 ring-primary/20" : "border-border"
               }`}
-              onClick={() => {
-                setCurrentSlide(i);
-                setShowGrid(false);
-              }}
+              onClick={() => { setCurrentSlide(i); setShowGrid(false); }}
             >
-              <div className="scale-100">
-                <SlideRenderer slide={slide} index={i} total={slides.length} />
-              </div>
+              <SlideRenderer slide={slide} index={i} total={slides.length} darkMode={darkMode} />
               <div className="p-2 bg-muted text-xs text-muted-foreground truncate">
                 {i + 1}. {slide.title}
               </div>
@@ -282,7 +262,7 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
         <div className="w-full max-w-6xl px-4">
-          <SlideRenderer slide={slides[currentSlide]} index={currentSlide} total={slides.length} />
+          <SlideRenderer slide={slides[currentSlide]} index={currentSlide} total={slides.length} darkMode={darkMode} />
         </div>
         {showNotes && slides[currentSlide].speakerNotes && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 max-w-2xl bg-black/80 text-white/80 text-sm px-6 py-3 rounded-lg">
@@ -298,6 +278,9 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
           </span>
           <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" onClick={goNext} disabled={currentSlide === slides.length - 1}>
             <ChevronRight className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" onClick={() => setDarkMode((v) => !v)}>
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
           <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" onClick={() => setShowNotes((v) => !v)}>
             Notes
@@ -323,6 +306,11 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
           {topic && <Badge variant="secondary" className="text-xs">{topic}</Badge>}
         </div>
         <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 mr-2">
+            <Sun className="h-3.5 w-3.5 text-muted-foreground" />
+            <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+            <Moon className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
           <Button variant="ghost" size="sm" onClick={() => setShowGrid(true)} title="Grid view (G)">
             <Grid3X3 className="h-4 w-4" />
           </Button>
@@ -349,7 +337,7 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
       </div>
 
       {/* Current slide */}
-      <SlideRenderer slide={slides[currentSlide]} index={currentSlide} total={slides.length} />
+      <SlideRenderer slide={slides[currentSlide]} index={currentSlide} total={slides.length} darkMode={darkMode} />
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
@@ -380,22 +368,27 @@ export function SlidePresenter({ slides, topic }: SlidePresenterProps) {
           {slides.map((slide, i) => (
             <button
               key={i}
-              className={`shrink-0 w-32 rounded-md overflow-hidden border-2 transition-all hover:scale-105 ${
+              className={`shrink-0 w-36 rounded-md overflow-hidden border-2 transition-all hover:scale-105 ${
                 i === currentSlide ? "border-primary ring-1 ring-primary/30" : "border-border opacity-60"
               }`}
               onClick={() => setCurrentSlide(i)}
             >
-              <div className="pointer-events-none transform scale-[0.15] origin-top-left w-[640px] h-[360px]">
-                <SlideRenderer slide={slide} index={i} total={slides.length} />
+              <div className="aspect-video">
+                <div className={`w-full h-full rounded-sm bg-gradient-to-br ${getSlideTheme(i, darkMode).bg} p-2 flex flex-col`}>
+                  <div className={`w-full h-0.5 ${getSlideTheme(i, darkMode).accent} rounded mb-1`} />
+                  <p className={`text-[8px] font-bold truncate ${getSlideTheme(i, darkMode).text}`}>{slide.title}</p>
+                  {slide.bullets.slice(0, 2).map((b, bi) => (
+                    <p key={bi} className={`text-[6px] truncate ${getSlideTheme(i, darkMode).text} opacity-60`}>• {b}</p>
+                  ))}
+                </div>
               </div>
-              <div className="relative -mt-[306px] h-[360px]" style={{ transform: "scale(0.15)", transformOrigin: "top left", width: 640, height: 360, position: "absolute", top: 0, left: 0, opacity: 0 }} />
             </button>
           ))}
         </div>
       </ScrollArea>
 
       <p className="text-xs text-muted-foreground text-center">
-        Use arrow keys to navigate • Press F for fullscreen • Press G for grid view
+        Arrow keys to navigate • F fullscreen • G grid • D dark/light mode
       </p>
     </div>
   );

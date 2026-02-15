@@ -279,6 +279,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [aiCustomOpen, setAiCustomOpen] = useState(false);
   const [adaptiveDifficulty, setAdaptiveDifficulty] = useState(5);
   const [noAISearchOnImport, setNoAISearchOnImport] = useState(false);
+  const [worksheetType, setWorksheetType] = useState<string>("mixed");
+  const [worksheetDialogOpen, setWorksheetDialogOpen] = useState(false);
   const { toast } = useToast();
   const { language } = useI18n();
 
@@ -400,9 +402,16 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             "Include highly complex questions requiring expert-level analysis and synthesis."
         }`;
 
+      const worksheetInstruction = action === "worksheet" && worksheetType !== "mixed"
+        ? `Question type: only generate "${worksheetType}" questions.`
+        : action === "worksheet"
+        ? "Question types: use a mix of multiple-choice, true-false, fill-blank, short-answer, and matching questions."
+        : "";
+
       const allInstructions = [
         countInstruction,
         difficultyInstruction,
+        worksheetInstruction,
         customInstructions.trim()
       ].filter(Boolean).join("\n");
 
@@ -716,6 +725,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               onClick={() => {
                 if (action === "vocabulary-cards") {
                   setVocabDialogOpen(true);
+                } else if (action === "worksheet") {
+                  setWorksheetDialogOpen(true);
                 } else {
                   handleAction(action);
                 }
@@ -782,6 +793,54 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 disabled={!vocabWord.trim()}
               >
                 Generate Card
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Worksheet Question Type Dialog */}
+        <Dialog open={worksheetDialogOpen} onOpenChange={setWorksheetDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileEdit className="h-5 w-5 text-primary" />
+                Worksheet Options
+              </DialogTitle>
+              <DialogDescription>
+                Choose the type of questions for your worksheet.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Label className="text-sm font-medium">Question Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "mixed", label: "Mixed", icon: "🎲" },
+                  { value: "multiple-choice", label: "Multiple Choice", icon: "📝" },
+                  { value: "true-false", label: "True / False", icon: "⚖️" },
+                  { value: "fill-blank", label: "Fill in the Blank", icon: "✏️" },
+                  { value: "short-answer", label: "Written Answer", icon: "💬" },
+                  { value: "matching", label: "Match Definition", icon: "🔗" },
+                ].map(({ value, label, icon }) => (
+                  <Button
+                    key={value}
+                    variant={worksheetType === value ? "default" : "outline"}
+                    size="sm"
+                    className="justify-start h-10 text-sm"
+                    onClick={() => setWorksheetType(value)}
+                  >
+                    <span className="mr-2">{icon}</span>
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setWorksheetDialogOpen(false)}>Cancel</Button>
+              <Button onClick={() => {
+                setWorksheetDialogOpen(false);
+                handleAction("worksheet");
+              }}>
+                Generate Worksheet
               </Button>
             </DialogFooter>
           </DialogContent>
