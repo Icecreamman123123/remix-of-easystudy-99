@@ -6,16 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+
 const MODEL_MAP: Record<string, string> = {
-  "gemini-flash-lite": "google/gemini-2.5-flash-lite",
-  "gpt-5-nano": "openai/gpt-5-nano",
-  "gemini-flash": "google/gemini-3-flash-preview",
-  "gemini-2.5-flash": "google/gemini-2.5-flash",
-  "gpt-5-mini": "openai/gpt-5-mini",
-  "gemini-pro": "google/gemini-2.5-pro",
-  "gemini-3-pro": "google/gemini-3-pro-preview",
-  "gpt-5": "openai/gpt-5",
-  "gpt-5.2": "openai/gpt-5.2",
+  "gemini-flash-lite": "gemini-2.5-flash-lite",
+  "gpt-5-nano": "gemini-2.5-flash-lite",
+  "gemini-flash": "gemini-2.5-flash",
+  "gemini-2.5-flash": "gemini-2.5-flash",
+  "gpt-5-mini": "gemini-2.5-flash",
+  "gemini-pro": "gemini-2.5-pro",
+  "gemini-3-pro": "gemini-2.5-pro",
+  "gpt-5": "gemini-2.5-pro",
+  "gpt-5.2": "gemini-2.5-pro",
 };
 
 const EXPERTISE_APPROACHES: Record<string, string> = {
@@ -56,8 +58,8 @@ serve(async (req) => {
       return undefined;
     };
 
-    const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
+    if (!GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
 
     const selectedModel = MODEL_MAP[model] || MODEL_MAP["gemini-flash"];
     const langInstruction = LANGUAGE_INSTRUCTIONS[language] || "";
@@ -241,10 +243,10 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
 
     console.log(`Processing ${action} request with model ${selectedModel}`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(`${GEMINI_API_URL}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
