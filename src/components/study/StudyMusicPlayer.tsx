@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles, CloudRain } from "lucide-react";
+import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles, Wind } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,8 @@ type Track = {
 };
 
 const TRACKS: Track[] = [
-    { id: "rain", name: "Gentle Rain", icon: CloudRain, type: "youtube", color: "text-blue-400", youtubeId: "mPZkdNF637E" },
+    { id: "white", name: "White Noise", icon: Wind, type: "noise", color: "text-blue-400" },
+    { id: "brown", name: "Brown Noise", icon: Waves, type: "noise", color: "text-amber-600" },
     { id: "pink", name: "Deep Focus", icon: Waves, type: "noise", color: "text-rose-400" },
     { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "youtube", color: "text-purple-400", youtubeId: "jfKfPfyJRdk" },
     { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "youtube", color: "text-emerald-400", youtubeId: "DWcJYn7qpg8" },
@@ -40,7 +41,6 @@ export function StudyMusicPlayer() {
             return;
         }
 
-        // Only add script if it's not already there
         if (!document.getElementById("youtube-api-script")) {
             const tag = document.createElement("script");
             tag.id = "youtube-api-script";
@@ -55,7 +55,6 @@ export function StudyMusicPlayer() {
             setIsApiReady(true);
         };
 
-        // Check occasionally in case onYouTubeIframeAPIReady was already called
         const checkInterval = setInterval(() => {
             if (win.YT && win.YT.Player) {
                 setIsApiReady(true);
@@ -77,15 +76,45 @@ export function StudyMusicPlayer() {
         }
     };
 
+    const createWhiteNoise = () => {
+        if (!audioCtx.current || !gainNode.current) return;
+        const bufferSize = 2 * audioCtx.current.sampleRate;
+        const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+        const whiteNoise = audioCtx.current.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+        return whiteNoise;
+    };
+
+    const createBrownNoise = () => {
+        if (!audioCtx.current || !gainNode.current) return;
+        const bufferSize = 2 * audioCtx.current.sampleRate;
+        const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            output[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = output[i];
+            output[i] *= 3.5;
+        }
+        const brownNoise = audioCtx.current.createBufferSource();
+        brownNoise.buffer = noiseBuffer;
+        brownNoise.loop = true;
+        return brownNoise;
+    };
+
     const createPinkNoise = () => {
         if (!audioCtx.current || !gainNode.current) return;
         const bufferSize = 4 * audioCtx.current.sampleRate;
         const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
         const output = noiseBuffer.getChannelData(0);
-
         let b0, b1, b2, b3, b4, b5, b6;
         b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
-
         for (let i = 0; i < bufferSize; i++) {
             const white = Math.random() * 2 - 1;
             b0 = 0.99886 * b0 + white * 0.0555179;
@@ -98,7 +127,6 @@ export function StudyMusicPlayer() {
             output[i] *= 0.11;
             b6 = white * 0.115926;
         }
-
         const pinkNoise = audioCtx.current.createBufferSource();
         pinkNoise.buffer = noiseBuffer;
         pinkNoise.loop = true;
@@ -106,31 +134,29 @@ export function StudyMusicPlayer() {
     };
 
     const stopAll = () => {
-        // Stop YouTube
         if (ytPlayer.current && typeof ytPlayer.current.stopVideo === "function") {
-            try { ytPlayer.current.stopVideo(); } catch (e) { console.error("YT stop failed", e); }
+            try { ytPlayer.current.stopVideo(); } catch (e) { }
         }
-
-        // Stop Local Noise
         if (noiseNode.current) {
             try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
             noiseNode.current.disconnect();
             noiseNode.current = null;
         }
-
         setIsPlaying(false);
     };
 
     const playTrack = (trackId: string) => {
         const track = TRACKS.find(t => t.id === trackId);
         if (!track) return;
-
-        // Stop current before starting new
         stopAll();
 
         if (track.type === "noise") {
             initAudio();
-            const node = createPinkNoise();
+            let node;
+            if (track.id === "white") node = createWhiteNoise();
+            else if (track.id === "brown") node = createBrownNoise();
+            else node = createPinkNoise();
+
             if (node && gainNode.current) {
                 gainNode.current.gain.value = volume;
                 node.connect(gainNode.current);
@@ -140,7 +166,6 @@ export function StudyMusicPlayer() {
         } else if (track.type === "youtube" && track.youtubeId) {
             const win = window as any;
             if (!isApiReady || !win.YT || !win.YT.Player) {
-                console.warn("YouTube API not ready, retrying shortly...");
                 setTimeout(() => playTrack(trackId), 500);
                 return;
             }
@@ -162,10 +187,6 @@ export function StudyMusicPlayer() {
                             onReady: (event: any) => {
                                 event.target.setVolume(volume * 100);
                                 event.target.playVideo();
-                            },
-                            onError: (e: any) => {
-                                console.error("YouTube Player Error:", e);
-                                setIsPlaying(false);
                             }
                         }
                     });
@@ -178,8 +199,7 @@ export function StudyMusicPlayer() {
                     ytPlayer.current.setVolume(volume * 100);
                     ytPlayer.current.playVideo();
                 } catch (err) {
-                    console.error("Failed to load YT video:", err);
-                    ytPlayer.current = null; // Reset and try again
+                    ytPlayer.current = null;
                     playTrack(trackId);
                 }
             }
@@ -243,7 +263,7 @@ export function StudyMusicPlayer() {
                     </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                     {TRACKS.map((track) => {
                         const Icon = track.icon;
                         const isActive = activeTrack === track.id;
@@ -252,20 +272,20 @@ export function StudyMusicPlayer() {
                                 key={track.id}
                                 variant="outline"
                                 className={cn(
-                                    "h-auto py-3 px-2 flex flex-col gap-2 items-center justify-center border-dashed transition-all duration-300",
+                                    "h-auto py-2.5 px-2 flex flex-col gap-1.5 items-center justify-center border-dashed transition-all duration-300",
                                     isActive ? "bg-primary/10 border-primary ring-1 ring-primary/20" : "hover:bg-muted/50",
                                     isActive && isPlaying && "animate-pulse"
                                 )}
                                 onClick={() => playTrack(track.id)}
                             >
-                                <Icon className={cn("h-5 w-5", isActive ? track.color : "text-muted-foreground")} />
-                                <span className="text-[10px] font-bold uppercase tracking-tighter">{track.name}</span>
+                                <Icon className={cn("h-4 w-4", isActive ? track.color : "text-muted-foreground")} />
+                                <span className="text-[9px] font-bold uppercase tracking-tighter text-center leading-none">{track.name}</span>
                             </Button>
                         );
                     })}
                 </div>
 
-                <div className="pt-2 flex items-center gap-3">
+                <div className="pt-1 flex items-center gap-3">
                     <Volume2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <Slider
                         value={[volume]}
