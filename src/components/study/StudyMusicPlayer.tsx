@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles, Wind, Zap } from "lucide-react";
+import { Play, Pause, Volume2, Music, Coffee, Sparkles, Zap } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -9,15 +9,13 @@ type Track = {
     id: string;
     name: string;
     icon: any;
-    type: "noise" | "youtube" | "tone";
+    type: "youtube" | "tone";
     color: string;
     youtubeId?: string;
     frequency?: number;
 };
 
 const TRACKS: Track[] = [
-    { id: "white", name: "Soft White", icon: Wind, type: "noise", color: "text-blue-300" },
-    { id: "brown", name: "Deep Brown", icon: Waves, type: "noise", color: "text-amber-700" },
     { id: "gamma", name: "87Hz Waves", icon: Zap, type: "tone", color: "text-indigo-400", frequency: 87 },
     { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "youtube", color: "text-purple-400", youtubeId: "jfKfPfyJRdk" },
     { id: "rain", name: "Rainy Night", icon: Sparkles, type: "youtube", color: "text-blue-500", youtubeId: "mPZkdNF637E" },
@@ -76,39 +74,6 @@ export function StudyMusicPlayer() {
         }
     };
 
-    const createWhiteNoise = () => {
-        if (!audioCtx.current) return;
-        const bufferSize = 2 * audioCtx.current.sampleRate;
-        const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = (Math.random() * 2 - 1) * 0.5; // Softer white noise
-        }
-        const source = audioCtx.current.createBufferSource();
-        source.buffer = noiseBuffer;
-        source.loop = true;
-        return source;
-    };
-
-    const createBrownNoise = () => {
-        if (!audioCtx.current) return;
-        const bufferSize = 2 * audioCtx.current.sampleRate;
-        const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let lastOut = 0.0;
-        for (let i = 0; i < bufferSize; i++) {
-            const white = Math.random() * 2 - 1;
-            // Stronger integration for "actually deep" brown noise
-            output[i] = (lastOut + (0.02 * white)) / 1.02;
-            lastOut = output[i];
-            output[i] *= 2.5; // Gain adjustment
-        }
-        const source = audioCtx.current.createBufferSource();
-        source.buffer = noiseBuffer;
-        source.loop = true;
-        return source;
-    };
-
     const createBrainWave = (freq: number) => {
         if (!audioCtx.current) return;
         // Create an oscillator for the 87Hz base frequency
@@ -143,16 +108,7 @@ export function StudyMusicPlayer() {
         if (!track) return;
         stopAll();
 
-        if (track.type === "noise") {
-            initAudio();
-            const node = track.id === "white" ? createWhiteNoise() : createBrownNoise();
-            if (node && gainNode.current) {
-                gainNode.current.gain.value = volume;
-                node.connect(gainNode.current);
-                node.start();
-                soundNode.current = node;
-            }
-        } else if (track.type === "tone" && track.frequency) {
+        if (track.type === "tone" && track.frequency) {
             initAudio();
             const res = createBrainWave(track.frequency);
             if (res && gainNode.current) {
