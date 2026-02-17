@@ -35,7 +35,7 @@ const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
   "hi": "IMPORTANT: Respond entirely in Hindi (हिन्दी). All content, questions, answers, and explanations must be in Hindi.",
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
