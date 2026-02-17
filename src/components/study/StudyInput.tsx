@@ -36,7 +36,8 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
-  Sliders
+  Sliders,
+  Presentation
 } from "lucide-react";
 import {
   Dialog,
@@ -49,8 +50,9 @@ import {
 import { callStudyAI, StudyAction, AIModel, AIExpertise } from "@/lib/study-api";
 import { useToast } from "@/hooks/use-toast";
 import { FileDropzone } from "./FileDropzone";
-import { AdaptiveDifficulty } from "./SmartControls";
+import { AdaptiveDifficulty, MethodSuitability } from "./SmartControls";
 import { useI18n } from "@/lib/i18n";
+import { useGamificationStats } from "@/hooks/useGamificationStats";
 
 // Manual editor mode types
 export type ManualEditorMode =
@@ -142,6 +144,7 @@ const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; desc
   { action: "explain-concept", icon: Lightbulb, label: "Explain", description: "Simple explanations" },
   { action: "create-study-plan", icon: Brain, label: "Study Plan", description: "Weekly schedule" },
   { action: "cheat-sheet", icon: ClipboardCheck, label: "Cheat Sheet", description: "Formulas & key concepts" },
+  { action: "presenter-slides", icon: Presentation, label: "Slides", description: "Presenter slide deck" },
   { action: "create-cornell-notes", icon: ScrollText, label: "Cornell Notes", description: "Structured notes & cues" },
 ];
 
@@ -257,6 +260,7 @@ function saveFavorites(favorites: FavoritePreset[]) {
 }
 
 export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
+  const { incrementToolsUsed } = useGamificationStats();
   const [topic, setTopic] = useState("");
   const [sources, setSources] = useState<Source[]>([]);
   const [currentTextContent, setCurrentTextContent] = useState("");
@@ -275,6 +279,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [aiCustomOpen, setAiCustomOpen] = useState(false);
   const [adaptiveDifficulty, setAdaptiveDifficulty] = useState(5);
   const [noAISearchOnImport, setNoAISearchOnImport] = useState(false);
+  const [worksheetType, setWorksheetType] = useState<string>("mixed");
+  const [worksheetDialogOpen, setWorksheetDialogOpen] = useState(false);
   const { toast } = useToast();
   const { language } = useI18n();
 
@@ -379,6 +385,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
     }
 
     setLoading(action);
+    incrementToolsUsed();
     try {
       let effectiveAction: StudyAction = action;
       if (["practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)) {
@@ -395,9 +402,16 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             "Include highly complex questions requiring expert-level analysis and synthesis."
         }`;
 
+      const worksheetInstruction = action === "worksheet" && worksheetType !== "mixed"
+        ? `Question type: only generate "${worksheetType}" questions.`
+        : action === "worksheet"
+        ? "Question types: use a mix of multiple-choice, true-false, fill-blank, short-answer, and matching questions."
+        : "";
+
       const allInstructions = [
         countInstruction,
         difficultyInstruction,
+        worksheetInstruction,
         customInstructions.trim()
       ].filter(Boolean).join("\n");
 
@@ -711,6 +725,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               onClick={() => {
                 if (action === "vocabulary-cards") {
                   setVocabDialogOpen(true);
+                } else if (action === "worksheet") {
+                  setWorksheetDialogOpen(true);
                 } else {
                   handleAction(action);
                 }
@@ -725,7 +741,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               )}
               <div className="flex flex-col items-center gap-1 z-10">
                 <span className="font-semibold text-base tracking-tight">{label}</span>
-                <span className="text-xs text-muted-foreground hidden sm:block text-center px-1 leading-tight">{description}</span>
+                <span className="text-xs text-muted-foreground hidden sm:block text-center px-1 leading-tight mb-1">{description}</span>
+                <MethodSuitability method={action} />
               </div>
             </Button>
           ))}
@@ -781,6 +798,54 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
           </DialogContent>
         </Dialog>
 
+        {/* Worksheet Question Type Dialog */}
+        <Dialog open={worksheetDialogOpen} onOpenChange={setWorksheetDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileEdit className="h-5 w-5 text-primary" />
+                Worksheet Options
+              </DialogTitle>
+              <DialogDescription>
+                Choose the type of questions for your worksheet.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Label className="text-sm font-medium">Question Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "mixed", label: "Mixed", icon: "🎲" },
+                  { value: "multiple-choice", label: "Multiple Choice", icon: "📝" },
+                  { value: "true-false", label: "True / False", icon: "⚖️" },
+                  { value: "fill-blank", label: "Fill in the Blank", icon: "✏️" },
+                  { value: "short-answer", label: "Written Answer", icon: "💬" },
+                  { value: "matching", label: "Match Definition", icon: "🔗" },
+                ].map(({ value, label, icon }) => (
+                  <Button
+                    key={value}
+                    variant={worksheetType === value ? "default" : "outline"}
+                    size="sm"
+                    className="justify-start h-10 text-sm"
+                    onClick={() => setWorksheetType(value)}
+                  >
+                    <span className="mr-2">{icon}</span>
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setWorksheetDialogOpen(false)}>Cancel</Button>
+              <Button onClick={() => {
+                setWorksheetDialogOpen(false);
+                handleAction("worksheet");
+              }}>
+                Generate Worksheet
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Manual Create Section */}
         {onManualCreate && (
           <div className="space-y-2">
@@ -796,18 +861,13 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 { action: "speed-challenge" as StudyAction, label: "Speed Challenge", icon: Gauge },
                 { action: "study-runner" as StudyAction, label: "Study Runner", icon: Gamepad2 },
                 { action: "matching-game" as StudyAction, label: "Matching Game", icon: Puzzle },
-                { action: "worksheet" as StudyAction, label: "Worksheet", icon: FileEdit },
               ].map(({ action, label, icon: Icon }) => (
                 <Button
                   key={`manual-${action}`}
                   variant="secondary"
                   className="h-auto py-4 flex flex-col items-center gap-2 text-sm"
                   onClick={() => {
-                    if (action === "worksheet") {
-                      onManualCreate({ type: "worksheet" });
-                    } else {
-                      onManualCreate({ type: "flashcard", action, label });
-                    }
+                    onManualCreate({ type: "flashcard", action, label });
                   }}
                   disabled={loading !== null}
                 >

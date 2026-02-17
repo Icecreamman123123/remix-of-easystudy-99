@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, Volume2, Loader2, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Volume2, Loader2, Plus, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { callStudyAI, AIModel, AIExpertise } from "@/lib/study-api";
+import { callStudyAI } from "@/lib/study-api";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,15 @@ export function parseVocabularyCards(response: string): VocabularyCard[] {
   }
 }
 
+const CARD_ACCENTS = [
+  "border-l-blue-500",
+  "border-l-emerald-500",
+  "border-l-violet-500",
+  "border-l-amber-500",
+  "border-l-rose-500",
+  "border-l-cyan-500",
+];
+
 export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }: VocabularyCardViewerProps) {
   const [cards, setCards] = useState<VocabularyCard[]>(initialCards);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -57,16 +66,13 @@ export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }:
   const [newWord, setNewWord] = useState("");
   const [generatingCard, setGeneratingCard] = useState(false);
 
-  // Sync if parent passes new cards
-  useEffect(() => {
-    setCards(initialCards);
-  }, [initialCards]);
+  useEffect(() => { setCards(initialCards); }, [initialCards]);
 
   const card = cards[currentIndex];
+  const accent = CARD_ACCENTS[currentIndex % CARD_ACCENTS.length];
 
   useEffect(() => {
     if (!card || imageUrls[currentIndex] || loadingImages[currentIndex]) return;
-
     const generateImage = async () => {
       setLoadingImages((prev) => ({ ...prev, [currentIndex]: true }));
       try {
@@ -83,7 +89,6 @@ export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }:
         setLoadingImages((prev) => ({ ...prev, [currentIndex]: false }));
       }
     };
-
     generateImage();
   }, [currentIndex, card]);
 
@@ -105,7 +110,7 @@ export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }:
       const newCards = parseVocabularyCards(result);
       if (newCards.length > 0) {
         setCards(prev => [...prev, ...newCards]);
-        setCurrentIndex(cards.length); // Jump to newly added card
+        setCurrentIndex(cards.length);
         setAddDialogOpen(false);
         setNewWord("");
       }
@@ -119,16 +124,16 @@ export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }:
   if (!card) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Navigation + Add button */}
+    <div className="space-y-5">
+      {/* Navigation */}
       <div className="flex items-center justify-between">
         <Button variant="outline" size="sm" onClick={goPrev} disabled={currentIndex === 0}>
           <ChevronLeft className="h-4 w-4 mr-1" /> Previous
         </Button>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
+          <Badge variant="secondary" className="font-mono text-xs">
             {currentIndex + 1} / {cards.length}
-          </span>
+          </Badge>
           <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)} disabled={generatingCard}>
             <Plus className="h-4 w-4 mr-1" /> Add Word
           </Button>
@@ -138,83 +143,67 @@ export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }:
         </Button>
       </div>
 
-      {/* Vocabulary Card - notebook paper style matching reference */}
-      <div className="rounded-xl border-2 border-border overflow-hidden bg-background shadow-md relative"
-        style={{
-          backgroundImage: "repeating-linear-gradient(transparent, transparent 27px, hsl(var(--border) / 0.25) 28px)",
-        }}
-      >
-        {/* Red margin line */}
-        <div className="absolute left-16 top-0 bottom-0 w-[2px] bg-destructive/20 z-10" />
-
-        {/* Card number top-right */}
-        <div className="absolute top-3 right-4 text-lg font-bold text-muted-foreground/40 z-10">
-          #{currentIndex + 1}
-        </div>
-
-        {/* Word title bar */}
-        <div className="px-6 py-4 border-b-2 border-border bg-primary/10">
-          <div className="flex items-center gap-3">
-            <h2 className="text-3xl font-black uppercase tracking-wider text-primary">
-              {card.word}
-            </h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={() => speak(card.word)}
-            >
+      {/* Card */}
+      <div className={`rounded-2xl border-2 border-border border-l-4 ${accent} bg-card shadow-lg overflow-hidden transition-all duration-300`}>
+        {/* Header */}
+        <div className="px-6 py-5 bg-muted/40 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">{card.word}</h2>
+                <span className="text-sm text-muted-foreground font-mono">/{card.pronunciation}/</span>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => speak(card.word)}>
               <Volume2 className="h-4 w-4" />
             </Button>
           </div>
-          <span className="text-sm text-muted-foreground font-mono mt-0.5 block">
-            ({card.pronunciation})
-          </span>
         </div>
 
-        {/* Main content: drawing left, definition right */}
-        <div className="grid grid-cols-2 min-h-[220px]">
-          {/* Left: Drawing */}
-          <div className="flex items-center justify-center p-6 border-r-2 border-dashed border-border/50">
+        {/* Body */}
+        <div className="grid grid-cols-1 md:grid-cols-5 min-h-[200px]">
+          {/* Image */}
+          <div className="md:col-span-2 flex items-center justify-center p-6 bg-muted/20 border-b md:border-b-0 md:border-r border-border/50">
             {loadingImages[currentIndex] ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-10 w-10 animate-spin" />
-                <span className="text-xs font-medium">Drawing...</span>
+                <span className="text-xs font-medium">Generating illustration...</span>
               </div>
             ) : imageUrls[currentIndex] ? (
               <img
                 src={imageUrls[currentIndex]}
                 alt={`Illustration of ${card.word}`}
-                className="max-w-full max-h-[180px] object-contain"
+                className="max-w-full max-h-[180px] object-contain rounded-lg"
               />
             ) : (
-              <div className="text-7xl opacity-20 select-none">🎨</div>
+              <div className="text-6xl opacity-15 select-none">🎨</div>
             )}
           </div>
 
-          {/* Right: Definition */}
-          <div className="p-6 flex flex-col justify-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">
-              Definition
-            </p>
-            <p className="text-base leading-relaxed font-medium">
-              {card.definition}
-            </p>
+          {/* Definition */}
+          <div className="md:col-span-3 p-6 flex flex-col justify-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Definition</p>
+            <p className="text-base leading-relaxed">{card.definition}</p>
           </div>
         </div>
 
-        {/* Bottom: Related words with dashes */}
-        <div className="border-t-2 border-border px-6 py-3 bg-muted/30">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
-            Related Words
-          </p>
-          <p className="text-sm font-medium">
-            {card.relatedWords.join(" — ")}
-          </p>
+        {/* Related Words */}
+        <div className="border-t px-6 py-3 bg-muted/30">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Related Words</p>
+          <div className="flex flex-wrap gap-2">
+            {card.relatedWords.map((w, i) => (
+              <Badge key={i} variant="outline" className="text-sm font-medium">
+                {w}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Card dots */}
+      {/* Dots */}
       {cards.length > 1 && (
         <div className="flex justify-center gap-1.5 flex-wrap">
           {cards.map((_, i) => (
@@ -250,9 +239,7 @@ export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }:
                 value={newWord}
                 onChange={(e) => setNewWord(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && newWord.trim() && !generatingCard) {
-                    handleAddCard();
-                  }
+                  if (e.key === "Enter" && newWord.trim() && !generatingCard) handleAddCard();
                 }}
                 autoFocus
                 disabled={generatingCard}
@@ -265,10 +252,7 @@ export function VocabularyCardViewer({ cards: initialCards, topic, gradeLevel }:
             </Button>
             <Button onClick={handleAddCard} disabled={!newWord.trim() || generatingCard}>
               {generatingCard ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
               ) : (
                 "Generate Card"
               )}

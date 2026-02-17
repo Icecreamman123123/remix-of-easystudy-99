@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Zap,
   Trophy,
@@ -12,208 +13,203 @@ import {
   TrendingUp,
   Target,
   Crown,
+  Info,
+  ChevronRight,
+  ShieldCheck
 } from "lucide-react";
-
-interface UserStats {
-  points: number;
-  level: number;
-  nextLevelPoints: number;
-  totalSessions: number;
-  accuracy: number;
-  streak: number;
-}
+import { Button } from "@/components/ui/button";
+import { useGamificationStats } from "@/hooks/useGamificationStats";
 
 export function GamificationHub() {
-  const [stats, setStats] = useState<UserStats>({
-    points: 0,
-    level: 1,
-    nextLevelPoints: 100,
-    totalSessions: 0,
-    accuracy: 0,
-    streak: 0,
-  });
-
-  // Load stats from localStorage
-  useEffect(() => {
-    const savedStats = localStorage.getItem("userGameStats");
-    if (savedStats) {
-      setStats(JSON.parse(savedStats));
-    }
-  }, []);
+  const { stats } = useGamificationStats();
 
   const levelProgress = (stats.points / stats.nextLevelPoints) * 100;
   const pointsToNextLevel = stats.nextLevelPoints - stats.points;
 
-  const getLevelBadge = (level: number) => {
-    if (level >= 10) return "👑";
-    if (level >= 7) return "⭐";
-    if (level >= 5) return "🏆";
-    if (level >= 3) return "🎯";
-    return "🌟";
+  const getLevelTier = (level: number) => {
+    if (level >= 10) return { label: "Grandmaster", icon: "👑", color: "text-purple-500", bg: "bg-purple-500/10" };
+    if (level >= 7) return { label: "Expert", icon: "⭐", color: "text-yellow-500", bg: "bg-yellow-500/10" };
+    if (level >= 5) return { label: "Scholar", icon: "🏆", color: "text-blue-500", bg: "bg-blue-500/10" };
+    if (level >= 3) return { label: "Apprentice", icon: "🎯", color: "text-green-500", bg: "bg-green-500/10" };
+    return { label: "Novice", icon: "🌟", color: "text-muted-foreground", bg: "bg-muted" };
   };
 
+  const tier = getLevelTier(stats.level);
+
   return (
-    <Tabs defaultValue="progress" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="progress">Progress</TabsTrigger>
-        <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-      </TabsList>
+    <TooltipProvider>
+      <Tabs defaultValue="progress" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="progress" className="gap-2">
+            <TrendingUp className="h-4 w-4" /> Progress
+          </TabsTrigger>
+          <TabsTrigger value="leaderboard" className="gap-2">
+            <Crown className="h-4 w-4" /> Rankings
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="progress" className="space-y-4">
-        {/* Level Card */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Zap className="h-5 w-5 text-yellow-500" />
-                Level {stats.level}
+        <TabsContent value="progress" className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+          {/* Level Card - Interactive */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="apple-card bg-gradient-to-br from-primary/5 via-background to-primary/5 border-primary/20 overflow-hidden group cursor-help">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <ShieldCheck className="h-20 w-20 text-primary rotate-12" />
+                </div>
+                <CardHeader className="pb-3 relative">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-black flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-yellow-500 animate-bounce" />
+                        Level {stats.level}
+                      </CardTitle>
+                      <Badge variant="secondary" className={`${tier.bg} ${tier.color} border-none font-bold uppercase tracking-widest text-[10px]`}>
+                        {tier.label}
+                      </Badge>
+                    </div>
+                    <span className="text-4xl filter drop-shadow-md group-hover:scale-125 transition-transform duration-500">{tier.icon}</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 relative">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-end">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mastery Progress</span>
+                      <span className="text-xs font-mono font-bold">
+                        {stats.points} <span className="text-muted-foreground">/ {stats.nextLevelPoints} XP</span>
+                      </span>
+                    </div>
+                    <div className="relative h-3 w-full bg-muted rounded-full overflow-hidden border border-primary/10">
+                      <div 
+                        className="absolute top-0 left-0 h-full bg-primary transition-all duration-1000 ease-out"
+                        style={{ width: `${levelProgress}%` }}
+                      >
+                        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-[shimmer_2s_linear_infinite]" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-center text-muted-foreground italic">
+                      Gain {pointsToNextLevel} more XP to reach Level {stats.level + 1}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[250px] p-3 space-y-2">
+              <p className="font-bold text-sm">Leveling System</p>
+              <p className="text-xs text-muted-foreground">Your level reflects your total study investment. Each session adds XP based on duration and accuracy.</p>
+              <div className="pt-2 border-t border-border flex justify-between items-center text-[10px] font-bold">
+                <span>NEXT REWARD:</span>
+                <span className="text-primary">Custom Profile Icon</span>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Stats Grid - Responsive & Interactive */}
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: "XP Points", val: stats.points, icon: Zap, color: "text-yellow-500", desc: "Total experience earned from all study sessions." },
+              { label: "Sessions", val: stats.totalSessions, icon: Target, color: "text-blue-500", desc: "Number of focused study blocks completed." },
+              { label: "Accuracy", val: `${Math.round(stats.accuracy)}%`, icon: TrendingUp, color: "text-green-500", desc: "Average score across all quizzes and tests." },
+              { label: "Day Streak", val: stats.streak, icon: Flame, color: "text-orange-500", desc: "Consecutive days of active studying." }
+            ].map((item, i) => (
+              <Tooltip key={i}>
+                <TooltipTrigger asChild>
+                  <Card className="apple-card hover-glow cursor-help group transition-all duration-300">
+                    <CardContent className="p-4 flex flex-col justify-between h-full">
+                      <div className="flex justify-between items-start">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">{item.label}</p>
+                        <item.icon className={`h-4 w-4 ${item.color} opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all`} />
+                      </div>
+                      <p className="text-2xl font-black mt-2 tracking-tighter">{item.val}</p>
+                    </CardContent>
+                  </Card>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs max-w-[150px]">{item.desc}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+
+          {/* Achievements Preview */}
+          <Card className="apple-card">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Award className="h-4 w-4 text-primary" />
+                Badges Earned
               </CardTitle>
-              <span className="text-2xl">{getLevelBadge(stats.level)}</span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Progress to Level {stats.level + 1}</span>
-                <span className="text-xs text-muted-foreground">
-                  {stats.points} / {stats.nextLevelPoints}
-                </span>
-              </div>
-              <Progress value={levelProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {pointsToNextLevel} points to next level
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Points</p>
-                  <p className="text-2xl font-bold text-primary mt-1">{stats.points}</p>
-                </div>
-                <Zap className="h-8 w-8 text-yellow-500 opacity-50" />
+              <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold tracking-wider">View All <ChevronRight className="h-3 w-3 ml-1" /></Button>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { icon: "🎯", label: "First Steps", hint: "Completed 1st session" },
+                  { icon: "⚡", label: "Quick Learner", hint: "80%+ accuracy" },
+                  { icon: "🔥", label: "On Fire", hint: "3 day streak" },
+                ].map((achievement, idx) => (
+                  <Tooltip key={idx}>
+                    <TooltipTrigger asChild>
+                      <Badge variant="secondary" className="gap-1.5 py-1 px-2 cursor-help hover:bg-primary/10 transition-colors">
+                        <span>{achievement.icon}</span>
+                        <span className="text-[10px] font-bold">{achievement.label}</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs font-bold">{achievement.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{achievement.hint}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
 
-          <Card>
-            <CardContent className="pt-4">
+        <TabsContent value="leaderboard" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+          <Card className="apple-card overflow-hidden">
+            <CardHeader className="bg-primary/5 pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Sessions</p>
-                  <p className="text-2xl font-bold text-blue-500 mt-1">{stats.totalSessions}</p>
-                </div>
-                <Target className="h-8 w-8 text-blue-500 opacity-50" />
+                <CardTitle className="text-sm font-black flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-yellow-500" />
+                  Global Rankings
+                </CardTitle>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Week 7</span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Accuracy</p>
-                  <p className="text-2xl font-bold text-green-500 mt-1">{Math.round(stats.accuracy)}%</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-green-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Streak</p>
-                  <p className="text-2xl font-bold text-orange-500 mt-1">{stats.streak}</p>
-                </div>
-                <Flame className="h-8 w-8 text-orange-500 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Achievements Preview */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Award className="h-4 w-4" />
-              Recent Achievements
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { icon: "🎯", label: "First Steps" },
-                { icon: "⚡", label: "Quick Learner" },
-                { icon: "🏆", label: "Study Master" },
-              ].map((achievement, idx) => (
-                <Badge key={idx} variant="secondary" className="gap-1">
-                  <span>{achievement.icon}</span>
-                  {achievement.label}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="leaderboard" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Crown className="h-4 w-4 text-yellow-500" />
-              Top Performers (This Week)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { rank: 1, name: "You", points: stats.points, badge: "👑" },
-                { rank: 2, name: "Study Master", points: stats.points - 50, badge: "⭐" },
-                { rank: 3, name: "Quick Learner", points: stats.points - 100, badge: "🏆" },
-              ].map((user) => (
-                <div
-                  key={user.rank}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-primary w-6">{user.rank}</span>
-                    <div>
-                      <p className="font-medium text-sm">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.badge}</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {[
+                  { rank: 1, name: "StudySage", points: 2450, badge: "👑", self: false },
+                  { rank: 2, name: "You", points: stats.points, badge: "⭐", self: true },
+                  { rank: 3, name: "QuizWhiz", points: 1820, badge: "🏆", self: false },
+                  { rank: 4, name: "Brainiac", points: 1540, badge: "🎯", self: false },
+                ].sort((a, b) => b.points - a.points).map((user, idx) => (
+                  <div
+                    key={user.name}
+                    className={`flex items-center justify-between p-4 transition-colors ${user.self ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className={`text-sm font-black w-4 ${idx === 0 ? 'text-yellow-500' : 'text-muted-foreground'}`}>{idx + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border-2 ${user.self ? 'border-primary bg-primary/20' : 'border-muted bg-muted'}`}>
+                          {user.badge}
+                        </div>
+                        <div>
+                          <p className={`font-bold text-sm ${user.self ? 'text-primary' : ''}`}>{user.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Tier: {getLevelTier(Math.floor(user.points/100)).label}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-black text-sm tabular-nums">{user.points}</p>
+                      <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">XP</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-primary">{user.points}</p>
-                    <p className="text-xs text-muted-foreground">points</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Star className="h-4 w-4 text-blue-500" />
-              Leaderboard Info
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Earn points by completing study sessions, maintaining streaks, and achieving high accuracy. 
-              Compete with other learners and climb the leaderboard!
-            </p>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </TooltipProvider>
   );
 }

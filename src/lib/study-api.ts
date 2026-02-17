@@ -16,7 +16,8 @@ export type StudyAction =
   | "speed-challenge"
   | "elaborative-interrogation"
   | "create-cornell-notes"
-  | "vocabulary-cards";
+  | "vocabulary-cards"
+  | "presenter-slides";
 
 export type AIModel =
   | "gemini-flash"

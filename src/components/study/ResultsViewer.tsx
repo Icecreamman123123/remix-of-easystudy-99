@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { X, FileDown } from "lucide-react";
 import { StudyAction, parseFlashcards, parsePracticeProblems, parseConcepts, parseWorksheet, parseStudyPlan, parseCornellNotes, Flashcard, Concept } from "@/lib/study-api";
+import { exportToPdf, exportToTxt, exportToCsv } from "@/lib/file-utils";
 import { FlashcardViewer } from "./FlashcardViewer";
 import { PracticeTest } from "./PracticeTest";
 import { MindMap } from "./MindMap";
@@ -15,7 +17,7 @@ import { ElaborativeInterrogation } from "./ElaborativeInterrogation";
 import { CornellNotesViewer } from "./CornellNotesViewer";
 import { VocabularyCardViewer, parseVocabularyCards } from "./VocabularyCardViewer";
 import { CheatSheetViewer } from "./CheatSheetViewer";
-import { ExportPdfButton } from "./ExportPdfButton";
+import { SlidePresenter, parseSlides } from "./SlidePresenter";
 import { StudyPlanCalendar } from "./StudyPlanCalendar";
 import ReactMarkdown from "react-markdown";
 
@@ -188,6 +190,13 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
       case "cheat-sheet": {
         return <CheatSheetViewer content={result} topic={topic} />;
       }
+      case "presenter-slides": {
+        const slides = parseSlides(result);
+        if (slides.length > 0) {
+          return <SlidePresenter slides={slides} topic={topic} />;
+        }
+        break;
+      }
       case "create-cornell-notes": {
         const cornellData = parseCornellNotes(result);
         if (cornellData) {
@@ -276,6 +285,7 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
       case "explain-concept": return "Concept Explanation";
       case "create-study-plan": return "Study Schedule";
       case "cheat-sheet": return "Cheat Sheet";
+      case "presenter-slides": return "Presenter Slides";
       case "create-cornell-notes": return "Cornell Notes";
       case "vocabulary-cards": return "Vocabulary Cards";
       case "practice-problems": return "Practice Problems";
@@ -284,16 +294,32 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
   };
 
   // For interactive modes, use full height
-  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards", "create-study-plan", "cheat-sheet"].includes(action);
+  const isInteractiveMode = ["practice-test", "mind-map", "study-runner", "worksheet", "matching-game", "speed-challenge", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards", "create-study-plan", "cheat-sheet", "presenter-slides"].includes(action);
 
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle>{getTitle()}</CardTitle>
         <div className="flex items-center gap-2">
-          {flashcards.length > 0 && (
-            <ExportPdfButton flashcards={flashcards} title={topic || getTitle()} />
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <FileDown className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportToPdf({ title: topic || getTitle(), content: result, items: flashcards.length > 0 ? flashcards : undefined })}>
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToTxt({ title: topic || getTitle(), content: result, items: flashcards.length > 0 ? flashcards : undefined })}>
+                Export as TXT
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToCsv({ title: topic || getTitle(), content: result, items: flashcards.length > 0 ? flashcards : undefined })}>
+                Export as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>

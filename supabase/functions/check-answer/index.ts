@@ -26,11 +26,11 @@
        return undefined;
      };
 
-     const LOVABLE_API_KEY = getEnv("LOVABLE_API_KEY");
-     
-     if (!LOVABLE_API_KEY) {
-       throw new Error("LOVABLE_API_KEY is not configured");
-     }
+      const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
+      
+      if (!GOOGLE_GEMINI_API_KEY) {
+        throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+      }
  
      const prompt = `You are an answer checker for educational content. Compare the user's answer to the correct answer and determine if it's correct.
 
@@ -57,14 +57,14 @@ Respond with ONLY a JSON object (no markdown, no code blocks):
   "matchPercentage": 0-100
 }`;
  
-     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-       method: "POST",
-       headers: {
-         Authorization: `Bearer ${LOVABLE_API_KEY}`,
-         "Content-Type": "application/json",
-       },
-       body: JSON.stringify({
-         model: "google/gemini-2.5-flash-lite",
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gemini-2.5-flash-lite",
          messages: [{ role: "user", content: prompt }],
        }),
      });

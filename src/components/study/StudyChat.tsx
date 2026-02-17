@@ -25,7 +25,7 @@
  
  const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/study-chat`;
  
- export function StudyChat({ topic, gradeLevel, onClose }: StudyChatProps) {
+ export function StudyChat({ topic, gradeLevel, onClose, sourceContext, language }: StudyChatProps & { sourceContext?: string; language?: string }) {
    const [messages, setMessages] = useState<Message[]>([]);
    const [input, setInput] = useState("");
    const [isLoading, setIsLoading] = useState(false);
@@ -149,11 +149,13 @@
            "Content-Type": "application/json",
            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
          },
-         body: JSON.stringify({
-           messages: newMessages,
-           topic,
-           gradeLevel,
-         }),
+          body: JSON.stringify({
+            messages: newMessages,
+            topic,
+            gradeLevel,
+            language: language || "en",
+            sourceContext: sourceContext || undefined,
+          }),
        });
  
        if (!resp.ok || !resp.body) {
