@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles } from "lucide-react";
+import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles, CloudRain } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -15,18 +15,11 @@ type Track = {
 };
 
 const TRACKS: Track[] = [
-    { id: "rain", name: "Gentle Rain", icon: Waves, type: "youtube", color: "text-blue-400", youtubeId: "mPZkdNF637E" },
+    { id: "rain", name: "Gentle Rain", icon: CloudRain, type: "youtube", color: "text-blue-400", youtubeId: "mPZkdNF637E" },
     { id: "pink", name: "Deep Focus", icon: Waves, type: "noise", color: "text-rose-400" },
     { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "youtube", color: "text-purple-400", youtubeId: "jfKfPfyJRdk" },
     { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "youtube", color: "text-emerald-400", youtubeId: "DWcJYn7qpg8" },
 ];
-
-declare global {
-    interface Window {
-        onYouTubeIframeAPIReady: () => void;
-        YT: any;
-    }
-}
 
 export function StudyMusicPlayer() {
     const [isPlaying, setIsPlaying] = useState(false);
@@ -38,23 +31,39 @@ export function StudyMusicPlayer() {
     const noiseNode = useRef<AudioNode | null>(null);
     const gainNode = useRef<GainNode | null>(null);
     const ytPlayer = useRef<any>(null);
-    const playerContainerRef = useRef<HTMLDivElement>(null);
 
     // Initialize YouTube API
     useEffect(() => {
-        if (window.YT && window.YT.Player) {
+        const win = window as any;
+        if (win.YT && win.YT.Player) {
             setIsApiReady(true);
             return;
         }
 
-        const tag = document.createElement("script");
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName("script")[0];
-        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        // Only add script if it's not already there
+        if (!document.getElementById("youtube-api-script")) {
+            const tag = document.createElement("script");
+            tag.id = "youtube-api-script";
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName("script")[0];
+            firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        }
 
-        window.onYouTubeIframeAPIReady = () => {
+        const oldOnReady = win.onYouTubeIframeAPIReady;
+        win.onYouTubeIframeAPIReady = () => {
+            if (oldOnReady) oldOnReady();
             setIsApiReady(true);
         };
+
+        // Check occasionally in case onYouTubeIframeAPIReady was already called
+        const checkInterval = setInterval(() => {
+            if (win.YT && win.YT.Player) {
+                setIsApiReady(true);
+                clearInterval(checkInterval);
+            }
+        }, 1000);
+
+        return () => clearInterval(checkInterval);
     }, []);
 
     const initAudio = () => {
@@ -96,10 +105,10 @@ export function StudyMusicPlayer() {
         return pinkNoise;
     };
 
-    const stopAll = (callback?: () => void) => {
+    const stopAll = () => {
         // Stop YouTube
         if (ytPlayer.current && typeof ytPlayer.current.stopVideo === "function") {
-            try { ytPlayer.current.stopVideo(); } catch (e) { }
+            try { ytPlayer.current.stopVideo(); } catch (e) { console.error("YT stop failed", e); }
         }
 
         // Stop Local Noise
@@ -110,31 +119,35 @@ export function StudyMusicPlayer() {
         }
 
         setIsPlaying(false);
-        if (callback) callback();
     };
 
     const playTrack = (trackId: string) => {
         const track = TRACKS.find(t => t.id === trackId);
         if (!track) return;
 
-        const doPlay = () => {
-            if (track.type === "noise") {
-                initAudio();
-                const node = createPinkNoise();
-                if (node && gainNode.current) {
-                    gainNode.current.gain.value = volume;
-                    node.connect(gainNode.current);
-                    node.start();
-                    noiseNode.current = node;
-                }
-            } else if (track.type === "youtube" && track.youtubeId) {
-                if (!isApiReady) {
-                    console.error("YouTube API not ready");
-                    return;
-                }
+        // Stop current before starting new
+        stopAll();
 
-                if (!ytPlayer.current) {
-                    ytPlayer.current = new window.YT.Player("youtube-player-container", {
+        if (track.type === "noise") {
+            initAudio();
+            const node = createPinkNoise();
+            if (node && gainNode.current) {
+                gainNode.current.gain.value = volume;
+                node.connect(gainNode.current);
+                node.start();
+                noiseNode.current = node;
+            }
+        } else if (track.type === "youtube" && track.youtubeId) {
+            const win = window as any;
+            if (!isApiReady || !win.YT || !win.YT.Player) {
+                console.warn("YouTube API not ready, retrying shortly...");
+                setTimeout(() => playTrack(trackId), 500);
+                return;
+            }
+
+            if (!ytPlayer.current) {
+                try {
+                    ytPlayer.current = new win.YT.Player("youtube-player-container", {
                         height: "0",
                         width: "0",
                         videoId: track.youtubeId,
@@ -143,30 +156,37 @@ export function StudyMusicPlayer() {
                             loop: 1,
                             playlist: track.youtubeId,
                             controls: 0,
+                            origin: window.location.origin
                         },
                         events: {
                             onReady: (event: any) => {
                                 event.target.setVolume(volume * 100);
                                 event.target.playVideo();
+                            },
+                            onError: (e: any) => {
+                                console.error("YouTube Player Error:", e);
+                                setIsPlaying(false);
                             }
                         }
                     });
-                } else {
+                } catch (err) {
+                    console.error("Failed to init YT player:", err);
+                }
+            } else {
+                try {
                     ytPlayer.current.loadVideoById(track.youtubeId);
                     ytPlayer.current.setVolume(volume * 100);
                     ytPlayer.current.playVideo();
+                } catch (err) {
+                    console.error("Failed to load YT video:", err);
+                    ytPlayer.current = null; // Reset and try again
+                    playTrack(trackId);
                 }
             }
-
-            setActiveTrack(trackId);
-            setIsPlaying(true);
-        };
-
-        if (isPlaying || (ytPlayer.current && activeTrack !== trackId)) {
-            stopAll(doPlay);
-        } else {
-            doPlay();
         }
+
+        setActiveTrack(trackId);
+        setIsPlaying(true);
     };
 
     const togglePlay = () => {
@@ -184,7 +204,7 @@ export function StudyMusicPlayer() {
             gainNode.current.gain.value = volume;
         }
         if (ytPlayer.current && typeof ytPlayer.current.setVolume === "function") {
-            ytPlayer.current.setVolume(volume * 100);
+            try { ytPlayer.current.setVolume(volume * 100); } catch (e) { }
         }
     }, [volume]);
 
@@ -199,8 +219,12 @@ export function StudyMusicPlayer() {
 
     return (
         <Card className="glass-card border-primary/10 shadow-lg">
-            <CardContent className="p-5 space-y-4">
-                <div id="youtube-player-container" className="hidden pointer-events-none invisible h-0 w-0"></div>
+            <CardContent className="p-5 space-y-4 relative overflow-hidden">
+                <div
+                    id="youtube-player-container"
+                    className="absolute -top-10 -left-10 w-0 h-0 opacity-0 pointer-events-none"
+                    aria-hidden="true"
+                ></div>
 
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
