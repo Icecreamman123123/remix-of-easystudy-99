@@ -98,15 +98,8 @@ const GRADE_LEVELS = [
 ];
 
 const AI_MODELS: { value: AIModel; label: string; description: string }[] = [
-  { value: "gemini-flash-lite", label: "Gemini Flash Lite", description: "Ultra fast, best for simple tasks" },
-  { value: "gpt-5-nano", label: "GPT-5 Nano", description: "Lightweight & quick" },
-  { value: "gemini-flash", label: "Gemini 3 Flash", description: "Fast & capable (default)" },
-  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", description: "Great speed/quality balance" },
-  { value: "gpt-5-mini", label: "GPT-5 Mini", description: "Strong reasoning, good speed" },
-  { value: "gemini-pro", label: "Gemini 2.5 Pro", description: "Advanced reasoning & context" },
-  { value: "gemini-3-pro", label: "Gemini 3 Pro", description: "Next-gen flagship model" },
-  { value: "gpt-5", label: "GPT-5", description: "Powerful all-rounder" },
-  { value: "gpt-5.2", label: "GPT-5.2", description: "Latest & most capable" },
+  { value: "gemini-flash", label: "Gemini Flash", description: "Fast & capable (default)" },
+  { value: "gemini-pro", label: "Gemini Pro", description: "Advanced reasoning & context" },
   { value: "wikipedia", label: "Wikipedia", description: "Use Wikipedia content as the source" },
 ];
 
@@ -405,8 +398,8 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
       const worksheetInstruction = action === "worksheet" && worksheetType !== "mixed"
         ? `Question type: only generate "${worksheetType}" questions.`
         : action === "worksheet"
-        ? "Question types: use a mix of multiple-choice, true-false, fill-blank, short-answer, and matching questions."
-        : "";
+          ? "Question types: use a mix of multiple-choice, true-false, fill-blank, short-answer, and matching questions."
+          : "";
 
       const allInstructions = [
         countInstruction,

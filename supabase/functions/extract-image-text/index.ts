@@ -24,7 +24,7 @@ serve(async (req) => {
     };
 
     const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
-    
+
     if (!GOOGLE_GEMINI_API_KEY) {
       throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
     }
@@ -42,14 +42,14 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         messages: [
-          { 
-            role: "system", 
-            content: "You are an OCR assistant. Extract ALL text from the provided image exactly as it appears. Include headings, paragraphs, lists, tables, and any other text content. Maintain the structure and formatting as much as possible using plain text. If this is handwritten text, do your best to transcribe it accurately. Only output the extracted text, nothing else." 
+          {
+            role: "system",
+            content: "You are an OCR assistant. Extract ALL text from the provided image exactly as it appears. Include headings, paragraphs, lists, tables, and any other text content. Maintain the structure and formatting as much as possible using plain text. If this is handwritten text, do your best to transcribe it accurately. Only output the extracted text, nothing else."
           },
-          { 
-            role: "user", 
+          {
+            role: "user",
             content: [
               {
                 type: "image_url",

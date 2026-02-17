@@ -70,7 +70,7 @@ Analyze the student's mistakes and identify patterns. Respond with ONLY a JSON o
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gemini-2.5-flash-lite",
+          model: "gemini-1.5-flash",
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -105,7 +105,7 @@ Analyze the student's mistakes and identify patterns. Respond with ONLY a JSON o
 
     if (action === "generate-focused-test") {
       const weakAreas = insights?.weakAreas || wrongAnswers.map((w: WrongAnswer) => w.question);
-      
+
       const prompt = `You are an educational AI generating a focused practice test.
 
 The student needs to improve in these areas:
@@ -134,7 +134,7 @@ Respond with ONLY a JSON array (no markdown):
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gemini-2.5-flash",
+          model: "gemini-1.5-flash",
           messages: [{ role: "user", content: prompt }],
         }),
       });

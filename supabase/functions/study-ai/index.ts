@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { tryWikipediaFallback, fetchWikipediaExtractServer, formatWikipediaForAction } from "../wikipedia-fallback/handler.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,15 +9,8 @@ const corsHeaders = {
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 const MODEL_MAP: Record<string, string> = {
-  "gemini-flash-lite": "gemini-2.5-flash-lite",
-  "gpt-5-nano": "gemini-2.5-flash-lite",
-  "gemini-flash": "gemini-2.5-flash",
-  "gemini-2.5-flash": "gemini-2.5-flash",
-  "gpt-5-mini": "gemini-2.5-flash",
-  "gemini-pro": "gemini-2.5-pro",
-  "gemini-3-pro": "gemini-2.5-pro",
-  "gpt-5": "gemini-2.5-pro",
-  "gpt-5.2": "gemini-2.5-pro",
+  "gemini-flash": "gemini-1.5-flash",
+  "gemini-pro": "gemini-1.5-pro",
 };
 
 const EXPERTISE_APPROACHES: Record<string, string> = {
@@ -73,28 +66,35 @@ serve(async (req) => {
         });
       }
       try {
-        const params = new URLSearchParams({ action: "query", prop: "extracts", exintro: "1", explaintext: "1", redirects: "1", format: "json", titles: query });
-        const wikiResp = await fetch(`${WIKIPEDIA_API}?${params}`);
-        if (!wikiResp.ok) throw new Error("Wikipedia API error");
-        const wikiJson = await wikiResp.json();
-        const pages = wikiJson.query?.pages;
-        const page = pages ? Object.values(pages)[0] as { extract?: string } : null;
-        const extract = page?.extract || "";
+        const extract = await fetchWikipediaExtractServer(query);
         if (!extract) {
-          return new Response(JSON.stringify({ error: "No Wikipedia extract found for topic" }), {
-            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (includeWikipedia && model !== "wikipedia") {
-          content = `${extract}\n\n[Wikipedia extract]\n\n${content || ""}`;
+          // Try search if direct title check fails
+          const wikiFallback = await tryWikipediaFallback(query);
+          if (wikiFallback.success) {
+            if (includeWikipedia && model !== "wikipedia") {
+              content = `${wikiFallback.content}\n\n[Wikipedia extract]\n\n${content || ""}`;
+            } else {
+              content = wikiFallback.content;
+            }
+          } else if (model === "wikipedia") {
+            return new Response(JSON.stringify({ error: "No Wikipedia content found for topic" }), {
+              status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         } else {
-          content = extract;
+          if (includeWikipedia && model !== "wikipedia") {
+            content = `${extract}\n\n[Wikipedia extract]\n\n${content || ""}`;
+          } else {
+            content = extract;
+          }
         }
       } catch (err) {
         console.error("Wikipedia fetch failed:", err);
-        return new Response(JSON.stringify({ error: "Wikipedia fetch failed" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        if (model === "wikipedia") {
+          return new Response(JSON.stringify({ error: "Wikipedia fetch failed" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 
@@ -109,7 +109,7 @@ serve(async (req) => {
     const expertiseApproach = EXPERTISE_APPROACHES[expertise] || "";
 
     // Adaptive difficulty instruction
-    const adaptiveText = adaptiveDifficulty != null 
+    const adaptiveText = adaptiveDifficulty != null
       ? `\nAdaptive difficulty level: ${adaptiveDifficulty}/10. Gradually increase complexity across questions - start easier and build to harder ones matching this target level.`
       : "";
 
@@ -260,6 +260,16 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
     });
 
     if (!response.ok) {
+      console.warn(`AI request failed with status ${response.status}, attempting Wikipedia fallback`);
+      const wikiFallback = await tryWikipediaFallback(topic || content || "");
+      if (wikiFallback.success) {
+        const formatted = formatWikipediaForAction(action, wikiFallback.content, wikiFallback.source, difficulty);
+        return new Response(
+          JSON.stringify({ success: true, result: formatted, source: "wikipedia_fallback" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
