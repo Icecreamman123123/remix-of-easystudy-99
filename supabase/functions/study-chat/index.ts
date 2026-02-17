@@ -104,13 +104,21 @@ serve(async (req: Request) => {
 
     if (!response.ok) {
       console.warn(`Study chat AI failed with status ${response.status}, attempting Wikipedia fallback`);
-      const wikiFallback = await tryWikipediaFallback(topic || "");
+      const wikiFallback = await tryWikipediaFallback(topic || "", { language });
       if (wikiFallback.success) {
         // Create a simple stream-like response for consistency
         const encoder = new TextEncoder();
         const stream = new ReadableStream({
           start(controller) {
-            const feedback = `Main AI server unavailable. Showing information from Wikipedia about ${wikiFallback.source}:\n\n${wikiFallback.content.substring(0, 1000)}...`;
+            const localizedMessages: Record<string, string> = {
+              "en": "Main AI server unavailable. Showing information from Wikipedia about",
+              "zh": "人工智能服务器不可用。显示来自维基百科关于以下内容的信息：",
+              "fr": "Serveur AI principal indisponible. Affichage des informations de Wikipédia sur",
+              "es": "El servidor principal de IA no está disponible. Mostrando información de Wikipedia sobre",
+              "hi": "मुख्य एआई सर्वर अनुपलब्ध है। इसके बारे में विकिपीडिया से जानकारी दिखा रहा है"
+            };
+            const msgPrefix = localizedMessages[language] || localizedMessages["en"];
+            const feedback = `${msgPrefix} ${wikiFallback.source}:\n\n${wikiFallback.content.substring(0, 1000)}...`;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: feedback } }] })}\n\n`));
             controller.close();
           },

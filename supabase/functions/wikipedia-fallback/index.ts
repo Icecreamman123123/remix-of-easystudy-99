@@ -12,7 +12,7 @@ serve(async (req: Request) => {
     }
 
     try {
-        const { topic, action, difficulty } = await req.json();
+        const { topic, action, difficulty, language } = await req.json();
 
         if (!topic) {
             return new Response(JSON.stringify({ error: "Topic is required" }), {
@@ -21,7 +21,7 @@ serve(async (req: Request) => {
             });
         }
 
-        const result = await tryWikipediaFallback(topic);
+        const result = await tryWikipediaFallback(topic, { language });
 
         if (!result.success) {
             return new Response(JSON.stringify({ error: "Could not find Wikipedia content for topic" }), {
@@ -30,7 +30,7 @@ serve(async (req: Request) => {
             });
         }
 
-        const formatted = formatWikipediaForAction(action, result.content, result.source, difficulty);
+        const formatted = formatWikipediaForAction(action, result.content, result.source, difficulty, language);
 
         return new Response(JSON.stringify({ success: true, result: formatted, source: "wikipedia" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },

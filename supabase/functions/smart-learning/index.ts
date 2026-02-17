@@ -19,7 +19,7 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { wrongAnswers, insights, topic, action, difficulty, gradeLevel, instruction, customInstruction } = body;
+    const { wrongAnswers, insights, topic, action, difficulty, gradeLevel, instruction, customInstruction, language } = body;
     const customInstructionText = customInstruction || instruction;
 
     // Deno environment access
@@ -38,6 +38,15 @@ serve(async (req: Request) => {
       throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
     }
 
+    const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+      "en": "",
+      "zh": "IMPORTANT: Respond entirely in Simplified Chinese (简体中文). All analysis and descriptions must be in Chinese.",
+      "fr": "IMPORTANT: Respond entirely in French (Français). All analysis and descriptions must be in French.",
+      "es": "IMPORTANT: Respond entirely in Spanish (Español). All analysis and descriptions must be in Spanish.",
+      "hi": "IMPORTANT: Respond entirely in Hindi (हिन्दी). All analysis and descriptions must be in Hindi.",
+    };
+    const langInstruction = LANGUAGE_INSTRUCTIONS[language] || "";
+
     if (action === "analyze") {
       const prompt = `You are an educational AI analyzing a student's learning weaknesses.
 
@@ -55,7 +64,8 @@ ${customInstructionText ? `Custom instruction: ${customInstructionText}` : ""}
 
 Take into account the target grade level and difficulty when analyzing mistakes. If a custom instruction is provided, prioritize it when making recommendations.
 
-Analyze the student's mistakes and identify patterns. Respond with ONLY a JSON object (no markdown):
+Analyze the student's mistakes and identify patterns. ${langInstruction}
+Respond with ONLY a JSON object (no markdown):
 {
   "weakAreas": ["list of 2-4 specific concepts or areas the student struggles with"],
   "recommendations": ["list of 2-3 specific actions to improve"],
@@ -120,7 +130,7 @@ Generate 5-8 flashcard-style questions that specifically target these weak areas
 Adjust question wording and complexity to be appropriate for the target grade level and difficulty.
 If a custom instruction is provided, follow it when selecting and phrasing questions.
 Focus on the concepts the student struggled with, but phrase questions differently.
-
+${langInstruction}
 Respond with ONLY a JSON array (no markdown):
 [
   {"question": "question text", "answer": "correct answer", "hint": "optional hint"},

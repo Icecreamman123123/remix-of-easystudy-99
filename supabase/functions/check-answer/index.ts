@@ -13,7 +13,7 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { userAnswer, correctAnswer, question, topic, difficulty, gradeLevel, instruction, customInstruction } = body;
+    const { userAnswer, correctAnswer, question, topic, difficulty, gradeLevel, instruction, customInstruction, language } = body;
     const customInstructionText = customInstruction || instruction;
 
     // Deno environment access
@@ -32,6 +32,15 @@ serve(async (req: Request) => {
       throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
     }
 
+    const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+      "en": "",
+      "zh": "IMPORTANT: Respond entirely in Simplified Chinese (简体中文). The feedback must be in Chinese.",
+      "fr": "IMPORTANT: Respond entirely in French (Français). The feedback must be in French.",
+      "es": "IMPORTANT: Respond entirely in Spanish (Español). The feedback must be in Spanish.",
+      "hi": "IMPORTANT: Respond entirely in Hindi (हिन्दी). The feedback must be in Hindi.",
+    };
+    const langInstruction = LANGUAGE_INSTRUCTIONS[language] || "";
+
     const prompt = `You are an answer checker for educational content. Compare the user's answer to the correct answer and determine if it's correct.
 
 Question: "${question}"
@@ -49,7 +58,7 @@ Evaluate if the user's answer is semantically correct. Consider:
 - Take the target grade level and difficulty into account: be more lenient for lower grades and easier difficulties; be stricter for higher grades and harder difficulties
 
 If a custom instruction is provided, prioritize it and use it to guide what counts as sufficient.
-
+${langInstruction}
 Respond with ONLY a JSON object (no markdown, no code blocks):
 {
   "isCorrect": true/false,

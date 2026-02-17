@@ -66,10 +66,10 @@ serve(async (req: Request) => {
         });
       }
       try {
-        const extract = await fetchWikipediaExtractServer(query);
+        const extract = await fetchWikipediaExtractServer(query, { language });
         if (!extract) {
           // Try search if direct title check fails
-          const wikiFallback = await tryWikipediaFallback(query);
+          const wikiFallback = await tryWikipediaFallback(query, { language });
           if (wikiFallback.success) {
             if (includeWikipedia && model !== "wikipedia") {
               content = `${wikiFallback.content}\n\n[Wikipedia extract]\n\n${content || ""}`;
@@ -261,9 +261,9 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
 
     if (!response.ok) {
       console.warn(`AI request failed with status ${response.status}, attempting Wikipedia fallback`);
-      const wikiFallback = await tryWikipediaFallback(topic || content || "");
+      const wikiFallback = await tryWikipediaFallback(topic || content || "", { language });
       if (wikiFallback.success) {
-        const formatted = formatWikipediaForAction(action, wikiFallback.content, wikiFallback.source, difficulty);
+        const formatted = formatWikipediaForAction(action, wikiFallback.content, wikiFallback.source, difficulty, language);
         return new Response(
           JSON.stringify({ success: true, result: formatted, source: "wikipedia_fallback" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -286,7 +286,12 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
     }
 
     const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content || "";
+    let aiResponse = data.choices?.[0]?.message?.content || "";
+
+    // Sanitize AI response if it's supposed to be JSON
+    if (["generate-flashcards", "generate-concepts", "worksheet", "create-study-plan", "practice-problems", "elaborative-interrogation", "create-cornell-notes", "vocabulary-cards", "presenter-slides"].includes(action)) {
+      aiResponse = aiResponse.replace(/```json\n?|\n?```/g, "").trim();
+    }
 
     console.log(`Successfully processed ${action}`);
 

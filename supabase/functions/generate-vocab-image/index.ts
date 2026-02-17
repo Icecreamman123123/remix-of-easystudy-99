@@ -57,7 +57,16 @@ serve(async (req: Request) => {
     }
 
     const data = await response.json();
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url || "";
+
+    // Support both standard OpenAI image response and Gemini's parts-based response
+    let imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url ||
+      data.choices?.[0]?.message?.content?.match(/https:\/\/\S+/)?.[0] || "";
+
+    // If no URL found yet, check parts if available
+    if (!imageUrl && data.choices?.[0]?.message?.content) {
+      // Sometimes it's just the URL in the content
+      imageUrl = data.choices[0].message.content.trim();
+    }
 
     return new Response(
       JSON.stringify({ success: true, imageUrl }),
