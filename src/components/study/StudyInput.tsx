@@ -275,7 +275,41 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   const [worksheetType, setWorksheetType] = useState<string>("mixed");
   const [worksheetDialogOpen, setWorksheetDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
+
+  const GRADE_LEVELS = [
+    { value: "1", label: `Grade 1` },
+    { value: "2", label: `Grade 2` },
+    { value: "3", label: `Grade 3` },
+    { value: "4", label: `Grade 4` },
+    { value: "5", label: `Grade 5` },
+    { value: "6", label: `Grade 6` },
+    { value: "7", label: `Grade 7` },
+    { value: "8", label: `Grade 8` },
+    { value: "9", label: `Grade 9` },
+    { value: "10", label: `Grade 10` },
+    { value: "11", label: `Grade 11` },
+    { value: "12", label: `Grade 12` },
+    { value: "university", label: "University" },
+    { value: "phd", label: "PhD Level" },
+  ];
+
+  const ACTIONS: { action: StudyAction; icon: typeof BookOpen; label: string; description: string }[] = [
+    { action: "generate-flashcards", icon: BookOpen, label: t("action.flashcards"), description: t("action.flashcards.desc") },
+    { action: "vocabulary-cards", icon: GraduationCap, label: t("action.vocabCards"), description: t("action.vocabCards.desc") },
+    { action: "matching-game", icon: Puzzle, label: t("action.matchingGame"), description: t("action.matchingGame.desc") },
+    { action: "speed-challenge", icon: Zap, label: t("action.speedChallenge"), description: t("action.speedChallenge.desc") },
+    { action: "practice-test", icon: Target, label: t("action.practiceTest"), description: t("action.practiceTest.desc") },
+    { action: "elaborative-interrogation", icon: HelpCircle, label: t("action.elaborative"), description: t("action.elaborative.desc") },
+    { action: "worksheet", icon: FileEdit, label: t("action.worksheet"), description: t("action.worksheet.desc") },
+    { action: "study-runner", icon: Gamepad2, label: t("action.studyRunner"), description: t("action.studyRunner.desc") },
+    { action: "mind-map", icon: Network, label: t("action.mindMap"), description: t("action.mindMap.desc") },
+    { action: "explain-concept", icon: Lightbulb, label: t("action.explain"), description: t("action.explain.desc") },
+    { action: "create-study-plan", icon: Brain, label: t("action.studyPlan"), description: t("action.studyPlan.desc") },
+    { action: "cheat-sheet", icon: ClipboardCheck, label: t("action.cheatSheet"), description: t("action.cheatSheet.desc") },
+    { action: "presenter-slides", icon: Presentation, label: t("action.slides"), description: t("action.slides.desc") },
+    { action: "create-cornell-notes", icon: ScrollText, label: t("action.cornell"), description: t("action.cornell.desc") },
+  ];
 
   useEffect(() => {
     setFavorites(loadFavorites());
@@ -429,9 +463,9 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
   return (
     <Card className="apple-card border-none shadow-lg">
       <CardHeader className="pb-2">
-        <CardTitle className="text-3xl font-bold tracking-tight text-gradient">What would you like to study?</CardTitle>
+        <CardTitle className="text-3xl font-bold tracking-tight text-gradient">{t("study.whatToStudy")}</CardTitle>
         <CardDescription className="text-base">
-          Enter a topic or add multiple sources, then choose a study method
+          {t("study.enterTopicOrSources")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -440,7 +474,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
           <div className="flex items-center gap-2">
             <Label htmlFor="grade-level" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
               <GraduationCap className="h-4 w-4" />
-              Level:
+              {t("study.level")}
             </Label>
             <Select value={gradeLevel} onValueChange={setGradeLevel}>
               <SelectTrigger id="grade-level" className="w-[140px]">
@@ -461,7 +495,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             <Button variant="outline" className="w-full justify-between text-sm h-9">
               <span className="flex items-center gap-2">
                 <Gauge className="h-4 w-4" />
-                Difficulty & Length
+                {t("study.diffLength")}
                 {isDiffLengthModified && <Badge variant="secondary" className="text-xs ml-1">Modified</Badge>}
               </span>
               {diffLengthOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -472,14 +506,14 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   <Gauge className="h-4 w-4" />
-                  Difficulty: <span className="font-bold text-primary">{DIFFICULTY_LABELS[difficulty]}</span>
+                  {t("study.difficulty")} <span className="font-bold text-primary">{DIFFICULTY_LABELS[difficulty]}</span>
                 </Label>
                 <DraggableSlider value={difficulty} onChange={setDifficulty} max={3} labels={DIFFICULTY_LABELS} />
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   <Hash className="h-4 w-4" />
-                  Questions: <span className="font-bold text-primary">{questionCount}</span>
+                  {t("study.questions")} <span className="font-bold text-primary">{questionCount}</span>
                 </Label>
                 <div className="flex gap-1">
                   {LENGTH_OPTIONS.map(({ value, label }) => (
@@ -506,7 +540,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
             <Button variant="outline" className="w-full justify-between text-sm h-9">
               <span className="flex items-center gap-2">
                 <Sliders className="h-4 w-4" />
-                AI Customization
+                {t("study.aiCustom")}
                 {isAIModified && <Badge variant="secondary" className="text-xs ml-1">Modified</Badge>}
               </span>
               {aiCustomOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -518,7 +552,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               <div className="flex items-center gap-2">
                 <Label htmlFor="ai-model" className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
                   <Cpu className="h-4 w-4" />
-                  Model:
+                  {t("study.model")}
                 </Label>
                 <Select value={aiModel} onValueChange={(v) => setAiModel(v as AIModel)}>
                   <SelectTrigger id="ai-model" className="w-[220px]">
@@ -539,21 +573,21 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               <div className="flex items-center gap-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Network className="h-4 w-4" />
-                  Include Wikipedia
+                  {t("study.wiki")}
                 </Label>
                 <Switch checked={includeWikipedia} onCheckedChange={(v) => setIncludeWikipedia(!!v)} disabled={aiModel === "wikipedia" || hasNoAISearchSource} />
               </div>
               {hasNoAISearchSource && (
                 <div className="w-full mt-1">
                   <div className="inline-block rounded px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-xs text-amber-800 dark:text-amber-200">
-                    AI search disabled — using uploaded file context only
+                    {t("study.wikiDisabled")}
                   </div>
                 </div>
               )}
             </div>
 
             <div className="w-full">
-              <div className="text-xs text-muted-foreground">⚠️ AI may be inaccurate — please double-check sources and verify facts.</div>
+              <div className="text-xs text-muted-foreground">⚠️ {t("study.aiWarning")}</div>
             </div>
 
             {/* Expertise */}
@@ -565,7 +599,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 </Label>
                 <Button size="sm" variant="ghost" onClick={addToFavorites} className="h-7 text-xs gap-1 hover:text-primary">
                   <Star className="h-3.5 w-3.5" />
-                  Save Combo
+                  {t("study.saveCombo")}
                 </Button>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -589,7 +623,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Star className="h-4 w-4 text-primary" />
-                  Favorite Presets
+                  {t("study.favorites")}
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {favorites.map((favorite) => (
@@ -621,7 +655,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
         {/* Sources Display */}
         {sources.length > 0 && (
           <div className="p-3 bg-muted/30 rounded-lg space-y-2">
-            <Label className="text-sm font-medium">Sources ({sources.length})</Label>
+            <Label className="text-sm font-medium">{t("study.sources")} ({sources.length})</Label>
             <div className="flex flex-wrap gap-2">
               {sources.map(source => (
                 <Badge
@@ -651,27 +685,27 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
 
         <Tabs defaultValue="topic" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="topic">Topic</TabsTrigger>
-            <TabsTrigger value="content">Add Notes</TabsTrigger>
-            <TabsTrigger value="upload">Upload File</TabsTrigger>
+            <TabsTrigger value="topic">{t("study.topic")}</TabsTrigger>
+            <TabsTrigger value="content">{t("study.addNotes")}</TabsTrigger>
+            <TabsTrigger value="upload">{t("study.uploadFile")}</TabsTrigger>
           </TabsList>
           <TabsContent value="topic" className="space-y-2">
             <Input
-              placeholder="e.g., Photosynthesis, World War II, Calculus derivatives..."
+              placeholder={t("study.placeholder.topic")}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
             />
           </TabsContent>
           <TabsContent value="content" className="space-y-2">
             <Textarea
-              placeholder="Paste your notes, textbook excerpts, or lecture content here..."
+              placeholder={t("study.placeholder.notes")}
               value={currentTextContent}
               onChange={(e) => setCurrentTextContent(e.target.value)}
               className="min-h-[120px]"
             />
             <Button size="sm" variant="outline" onClick={addTextSource} disabled={!currentTextContent.trim()}>
               <Plus className="h-4 w-4 mr-1" />
-              Add as Source
+              {t("study.addAsSource")}
             </Button>
           </TabsContent>
           <TabsContent value="upload" className="space-y-3">
@@ -683,7 +717,7 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
                 onCheckedChange={(v) => setNoAISearchOnImport(!!v)}
               />
               <Label htmlFor="no-ai-search" className="text-xs text-muted-foreground cursor-pointer">
-                Use only this file as context (no AI search)
+                {t("study.useOnlyFile")}
               </Label>
             </div>
           </TabsContent>
@@ -694,15 +728,12 @@ export function StudyInput({ onResult, onManualCreate }: StudyInputProps) {
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Settings2 className="h-4 w-4 text-primary" />
-              Custom Instructions
+              {t("study.customInstructions")}
             </Label>
             {customInstructions && <Badge variant="secondary" className="text-xs">Active</Badge>}
           </div>
           <Textarea
-            placeholder="Tell the AI exactly what you want! Examples:
-• 'Focus on practical real-world examples'
-• 'Include memory tricks and mnemonics'
-• 'Make questions more challenging'"
+            placeholder={t("study.placeholder.custom")}
             value={customInstructions}
             onChange={(e) => setCustomInstructions(e.target.value)}
             className="min-h-[80px] bg-background"

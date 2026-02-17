@@ -7,6 +7,8 @@ import {
   Target,
 } from "lucide-react";
 
+import { useI18n } from "@/lib/i18n";
+
 interface EnhancedFeatureCardProps {
   icon: typeof Sparkles;
   title: string;
@@ -50,29 +52,30 @@ export function EnhancedFeatureCard({
 }
 
 export function CompactFeatureBanner() {
+  const { t } = useI18n();
   const features = [
     {
       icon: Sparkles,
-      title: "Active Recall",
-      description: "Test yourself, not just review",
+      title: t("feature.activeRecall"),
+      description: t("feature.activeRecall.desc"),
       color: "from-blue-500 to-cyan-500",
     },
     {
       icon: Repeat,
-      title: "Spaced Repetition",
-      description: "Optimal review timing",
+      title: t("feature.spacedRepetition"),
+      description: t("feature.spacedRepetition.desc"),
       color: "from-purple-500 to-pink-500",
     },
     {
       icon: Brain,
-      title: "Feynman Technique",
-      description: "Explain to understand",
+      title: t("feature.feynman"),
+      description: t("feature.feynman.desc"),
       color: "from-orange-500 to-red-500",
     },
     {
       icon: Target,
-      title: "Pomodoro Method",
-      description: "Focused study sessions",
+      title: t("feature.pomodoro"),
+      description: t("feature.pomodoro.desc"),
       color: "from-green-500 to-emerald-500",
     },
   ];

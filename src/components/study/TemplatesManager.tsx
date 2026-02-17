@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { STUDY_TEMPLATES } from "@/lib/study-templates";
 import { Globe, UploadCloud, User, Sparkles } from "lucide-react";
 
+import { useI18n } from "@/lib/i18n";
+
 interface TemplatesManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,6 +37,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
   const { templates, loading, createTemplate, updateTemplate, deleteTemplate } = useStudyTemplates();
   const { user, publisherName, setPublisherName } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const [editing, setEditing] = React.useState<string | null>(null);
   const [form, setForm] = React.useState({
@@ -205,10 +208,10 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
             <div className="p-2 bg-primary/10 rounded-xl text-primary">
               <Sparkles className="h-6 w-6" />
             </div>
-            Study Templates
+            {t("manager.title")}
           </DialogTitle>
           <DialogDescription className="text-base text-muted-foreground ml-11">
-            Create, manage and share your custom study workflows.
+            {t("manager.desc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -216,9 +219,9 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
           {/* Left Sidebar - Template List */}
           <div className="md:col-span-2 flex flex-col overflow-hidden bg-muted/10">
             <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-background/50 backdrop-blur z-10">
-              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">My Library</h4>
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("manager.myLibrary")}</h4>
               <Button size="sm" onClick={() => startCreate(false)} className="rounded-full h-8 px-4 text-xs font-semibold shadow-none">
-                + New Template
+                {t("manager.newTemplate")}
               </Button>
             </div>
 
@@ -228,14 +231,14 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 shadow-sm space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-primary">
                     <User className="h-4 w-4" />
-                    Sign In Required
+                    {t("manager.signInRequired")}
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-xs text-muted-foreground">
-                      You must be signed in to create and save study templates to the cloud.
+                      {t("manager.signInDesc")}
                     </p>
                     <Button size="sm" className="w-full text-xs" onClick={() => (window.location.href = "/auth")}>
-                      Sign In / Sign Up
+                      {t("header.auth")}
                     </Button>
                   </div>
                 </div>
@@ -246,18 +249,18 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm gap-2">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    Loading...
+                    {t("explore.loading")}
                   </div>
                 ) : templates.length === 0 ? (
                   <div className="text-center py-10 px-4 rounded-xl border border-dashed bg-muted/20">
-                    <p className="font-medium text-muted-foreground">No templates found</p>
+                    <p className="font-medium text-muted-foreground">{t("manager.noTemplates")}</p>
                     {user ? (
                       <>
-                        <p className="text-xs text-muted-foreground mt-1">Create one to get started</p>
-                        <Button variant="link" size="sm" onClick={() => startCreate(false)}>Create New</Button>
+                        <p className="text-xs text-muted-foreground mt-1">{t("manager.createFirst")}</p>
+                        <Button variant="link" size="sm" onClick={() => startCreate(false)}>{t("manager.createTemplate")}</Button>
                       </>
                     ) : (
-                      <p className="text-xs text-muted-foreground mt-1">Sign in to view your templates</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t("manager.signInToView")}</p>
                     )}
                   </div>
                 ) : (
@@ -277,13 +280,13 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                               {t.name}
                               {t.is_public && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-sky-500/10 text-sky-600 border border-sky-200">
-                                  Public
+                                  {t("manager.public")}
                                 </span>
                               )}
                             </div>
                             <div className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{t.description}</div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                              <span className="px-2 py-0.5 rounded-md bg-muted font-medium">{t.estimated_count || "—"} cards</span>
+                              <span className="px-2 py-0.5 rounded-md bg-muted font-medium">{t.estimated_count || "—"} {t("explore.items")}</span>
                               {/* Show publisher name if available */}
                               {(t as any).profiles?.display_name && (
                                 <span className="flex items-center gap-1 text-primary/70">
@@ -308,7 +311,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
 
               {/* Sample Templates Section moved to bottom or separate tab if needed, keeping it here for now */}
               <div className="pt-4 border-t">
-                <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider mb-3">Community Examples</h5>
+                <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider mb-3">{t("manager.communityExamples")}</h5>
                 <div className="space-y-2">
                   {STUDY_TEMPLATES.slice(0, 3).map((t) => (
                     <div key={t.id} className="p-3 rounded-xl border bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
@@ -335,8 +338,8 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
           <div className="md:col-span-3 flex flex-col bg-background h-full overflow-hidden">
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="space-y-1">
-                <h3 className="text-lg font-semibold">{editing ? "Edit Template" : "New Template"}</h3>
-                <p className="text-sm text-muted-foreground">Configure how your content is generated.</p>
+                <h3 className="text-lg font-semibold">{editing ? t("manager.editTemplate") : t("manager.newTemplateHeader")}</h3>
+                <p className="text-sm text-muted-foreground">{t("manager.configureDesc")}</p>
               </div>
 
               {!user && !editing && (
@@ -345,13 +348,13 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                     <User className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <div className="space-y-2 max-w-sm">
-                    <h4 className="font-medium">Sign in to Create Templates</h4>
+                    <h4 className="font-medium">{t("manager.signInRequired")}</h4>
                     <p className="text-sm text-muted-foreground">
-                      You need to be signed in to create, save, and share your own study templates.
+                      {t("manager.signInDesc")}
                     </p>
                   </div>
                   <Button onClick={() => (window.location.href = "/auth")}>
-                    Sign In
+                    {t("header.auth")}
                   </Button>
                 </div>
               )}
@@ -360,7 +363,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                 <>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label>Template Name</Label>
+                      <Label>{t("manager.name")}</Label>
                       <Input
                         value={form.name}
                         onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
@@ -370,23 +373,23 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Action Type</Label>
+                      <Label>{t("manager.actionType")}</Label>
                       <Select value={form.action} onValueChange={(v) => setForm((s) => ({ ...s, action: v }))} disabled={!user}>
                         <SelectTrigger className="bg-muted/10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="generate-flashcards">Generate Flashcards</SelectItem>
+                          <SelectItem value="generate-flashcards">{t("action.flashcards")}</SelectItem>
                           <SelectItem value="cheat-sheet">Cheat Sheet</SelectItem>
-                          <SelectItem value="create-study-plan">Create Study Plan</SelectItem>
-                          <SelectItem value="create-cornell-notes">Generate Cornell Notes</SelectItem>
+                          <SelectItem value="create-study-plan">{t("results.title.schedule")}</SelectItem>
+                          <SelectItem value="create-cornell-notes">Cornell Notes</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Description</Label>
+                    <Label>{t("manager.description")}</Label>
                     <Input
                       value={form.description}
                       onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
@@ -398,9 +401,9 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
 
                   <div className="space-y-4 pt-2">
                     <div className="flex items-center justify-between">
-                      <Label>Configuration (JSON Payload)</Label>
+                      <Label>{t("manager.payload")}</Label>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setForm(s => ({ ...s, payload: JSON.stringify(JSON.parse(s.payload || "{}"), null, 2) }))} disabled={!user}>Format</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setForm(s => ({ ...s, payload: JSON.stringify(JSON.parse(s.payload || "{}"), null, 2) }))} disabled={!user}>{t("manager.format")}</Button>
                       </div>
                     </div>
                     <div className="relative">
@@ -413,7 +416,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                       />
                       {payloadError && (
                         <div className="absolute bottom-4 right-4 text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded shadow-sm animate-in fade-in slide-in-from-bottom-1">
-                          Invalid JSON
+                          {t("manager.invalidJson")}
                         </div>
                       )}
                     </div>
@@ -421,7 +424,7 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
 
                   <div className="grid grid-cols-2 gap-6 pt-2">
                     <div className="space-y-2">
-                      <Label>Est. Cards/Items</Label>
+                      <Label>{t("manager.estCards")}</Label>
                       <Input
                         type="number"
                         value={String(form.estimated_count)}
@@ -434,8 +437,8 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
                     {user && (
                       <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
                         <div className="space-y-0.5">
-                          <Label className="text-base">Public Template</Label>
-                          <p className="text-xs text-muted-foreground">Share with the community</p>
+                          <Label className="text-base">{t("manager.publicTemplate")}</Label>
+                          <p className="text-xs text-muted-foreground">{t("manager.shareCommunity")}</p>
                         </div>
                         <Switch
                           checked={form.is_public}
@@ -451,13 +454,13 @@ export function TemplatesManager({ open, onOpenChange, defaultIsPublic = false, 
             <div className="p-6 border-t bg-muted/10 flex items-center justify-between">
               {editing && user && (
                 <Button variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(editing)}>
-                  Delete Template
+                  {t("manager.deleteTemplate")}
                 </Button>
               )}
               <div className="flex gap-3 ml-auto">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
                 <Button onClick={handleSave} disabled={!!payloadError || !form.name.trim() || !user} className="min-w-[120px]">
-                  {editing ? "Save Changes" : "Create Template"}
+                  {editing ? t("manager.saveChanges") : t("manager.createTemplate")}
                 </Button>
               </div>
             </div>

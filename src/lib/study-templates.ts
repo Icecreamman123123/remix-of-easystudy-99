@@ -11,6 +11,7 @@ export interface StudyTemplate {
   defaultCount?: number;
   difficulty?: string;
   gradeLevel?: string;
+  instructions?: string;
 }
 
 export const STUDY_TEMPLATES: StudyTemplate[] = [
@@ -24,6 +25,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 20,
     difficulty: "hard",
+    instructions: "Focus on high-yield, frequently tested information. Prioritize core definitions and essential mechanisms that often appear on examinations.",
   },
   {
     id: "vocabulary-builder",
@@ -34,6 +36,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 15,
     difficulty: "medium",
+    instructions: "Focus on term-definition pairs. Each flashcard answer should include both a clear definition and a short usage example in a sentence.",
   },
   {
     id: "concept-deep-dive",
@@ -44,6 +47,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 12,
     difficulty: "hard",
+    instructions: "Generate questions that explore the 'why' and 'how' behind concepts. Focus on theoretical underpinnings and complex relationships rather than simple recall.",
   },
   {
     id: "quick-review",
@@ -54,6 +58,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 10,
     difficulty: "easy",
+    instructions: "Keep questions and answers brief and straightforward. Focus on the most important 'must-know' facts for quick memory reinforcement.",
   },
   {
     id: "case-study",
@@ -64,6 +69,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 8,
     difficulty: "hard",
+    instructions: "Present real-world scenarios or problems and ask for analysis or solutions based on the study topic. Encourage practical application of knowledge.",
   },
   {
     id: "compare-contrast",
@@ -74,6 +80,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 10,
     difficulty: "medium",
+    instructions: "Focus on comparing and contrasting key entities or concepts. Use an 'A vs B' format for questions and highlight specific differences and similarities in the answers.",
   },
   {
     id: "timeline-events",
@@ -84,6 +91,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 15,
     difficulty: "medium",
+    instructions: "Focus on chronological sequences, key dates, and causal relationships between historical or process-oriented events.",
   },
   {
     id: "formulas-equations",
@@ -94,6 +102,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 12,
     difficulty: "medium",
+    instructions: "Focus on when and how to use specific formulas or equations. Each answer should state the formula clearly and provide a quick verbal explanation of its components.",
   },
   {
     id: "real-world-application",
@@ -104,6 +113,7 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
     action: "generate-flashcards",
     defaultCount: 10,
     difficulty: "medium",
+    instructions: "Create cards that connect the study topic to everyday life, common careers, or current events. Focus on the 'usefulness' of the information.",
   },
 
   // === STUDY PLAN TEMPLATES ===
@@ -156,7 +166,8 @@ export const STUDY_TEMPLATES: StudyTemplate[] = [
 export async function generateTemplateDeck(
   templateId: string,
   topic?: string,
-  gradeLevel?: string
+  gradeLevel?: string,
+  language: string = "en"
 ): Promise<{ title: string; flashcards: Flashcard[]; rawResult?: string }> {
   const template = STUDY_TEMPLATES.find((t) => t.id === templateId);
   if (!template) throw new Error("Unknown template");
@@ -167,10 +178,13 @@ export async function generateTemplateDeck(
   if (template.action === "generate-flashcards") {
     const ai = await callStudyAIWithFallback(
       "generate-flashcards",
-      undefined,
+      template.instructions ? `[Instructions: ${template.instructions}]` : undefined,
       topic,
       template.difficulty,
-      gradeLevel
+      gradeLevel,
+      undefined,
+      undefined,
+      language
     );
 
     const cards = parseFlashcards(ai.result);
@@ -189,10 +203,13 @@ export async function generateTemplateDeck(
   if (template.action === "cheat-sheet") {
     const ai = await callStudyAIWithFallback(
       "cheat-sheet",
-      undefined,
+      template.instructions ? `[Instructions: ${template.instructions}]` : undefined,
       topic,
       template.difficulty,
-      gradeLevel
+      gradeLevel,
+      undefined,
+      undefined,
+      language
     );
 
     return { title, flashcards: [], rawResult: ai.result };
@@ -214,10 +231,13 @@ export async function generateTemplateDeck(
 
     const ai = await callStudyAIWithFallback(
       "create-study-plan",
-      undefined,
+      template.instructions ? `[Instructions: ${template.instructions}]` : undefined,
       topic,
       template.difficulty,
-      gradeLevel
+      gradeLevel,
+      undefined,
+      undefined,
+      language
     );
 
     const text = ai.result || "";
@@ -230,10 +250,13 @@ export async function generateTemplateDeck(
   if (template.action === "create-cornell-notes") {
     const ai = await callStudyAIWithFallback(
       "create-cornell-notes",
-      undefined,
+      template.instructions ? `[Instructions: ${template.instructions}]` : undefined,
       topic,
       template.difficulty,
-      gradeLevel
+      gradeLevel,
+      undefined,
+      undefined,
+      language
     );
 
     return { title, flashcards: [], rawResult: ai.result };

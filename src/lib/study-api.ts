@@ -295,11 +295,12 @@ export async function callStudyAIWithFallback(
   difficulty?: string,
   gradeLevel?: string,
   model?: AIModel,
-  expertise?: AIExpertise
+  expertise?: AIExpertise,
+  language: string = "en"
 ): Promise<{ result: string; fallback: boolean; source: "primary" | "wikipedia" | "error" }> {
   try {
     // Try primary API
-    const result = await callStudyAI(action, content, topic, difficulty, gradeLevel, model, expertise);
+    const result = await callStudyAI(action, content, topic, difficulty, gradeLevel, model, expertise, undefined, language);
     return { result, fallback: false, source: "primary" };
   } catch (error) {
     console.warn("Primary study AI failed, attempting Wikipedia fallback:", error);
@@ -331,7 +332,8 @@ export async function callStudyAIWithFallback(
         action,
         wikiResults[0],
         difficulty,
-        gradeLevel
+        gradeLevel,
+        language
       );
 
       return { result: formattedResult, fallback: true, source: "wikipedia" };
@@ -353,13 +355,44 @@ function formatWikipediaContentForAction(
   action: StudyAction,
   wikiResult: Awaited<ReturnType<typeof searchWikipedia>>[0],
   difficulty?: string,
-  gradeLevel?: string
+  gradeLevel?: string,
+  language: string = "en"
 ): string {
   const baseContent = `# ${wikiResult.title}\n\n${wikiResult.extract}\n\n**Source:** Wikipedia\n**Learn more:** ${wikiResult.url}`;
 
+  const translations: Record<string, any> = {
+    "en": {
+      q: `What is ${wikiResult.title}?`,
+      h: "See the Wikipedia article",
+      m: `${wikiResult.title}\n- Definition: ${wikiResult.extract.substring(0, 100)}...`
+    },
+    "zh": {
+      q: `${wikiResult.title}是什么？`,
+      h: "查看维基百科文章",
+      m: `${wikiResult.title}\n- 定义: ${wikiResult.extract.substring(0, 100)}...`
+    },
+    "fr": {
+      q: `Qu'est-ce que ${wikiResult.title} ?`,
+      h: "Voir l'article Wikipédia",
+      m: `${wikiResult.title}\n- Définition : ${wikiResult.extract.substring(0, 100)}...`
+    },
+    "es": {
+      q: `¿Qué es ${wikiResult.title}?`,
+      h: "Ver el artículo de Wikipedia",
+      m: `${wikiResult.title}\n- Definición: ${wikiResult.extract.substring(0, 100)}...`
+    },
+    "hi": {
+      q: `${wikiResult.title} क्या है?`,
+      h: "विकिपीडिया लेख देखें",
+      m: `${wikiResult.title}\n- परिभाषा: ${wikiResult.extract.substring(0, 100)}...`
+    }
+  };
+
+  const t = translations[language] || translations["en"];
+
   switch (action) {
     case "generate-flashcards":
-      return `[{"question": "What is ${wikiResult.title}?", "answer": "${wikiResult.extract.substring(0, 200)}...", "hint": "See the Wikipedia article"}]`;
+      return `[{"question": "${t.q}", "answer": "${wikiResult.extract.substring(0, 200)}...", "hint": "${t.h}"}]`;
 
     case "explain-concept":
       return baseContent;
@@ -368,7 +401,7 @@ function formatWikipediaContentForAction(
       return `${wikiResult.title}\n\n${wikiResult.extract.substring(0, 300)}...`;
 
     case "mind-map":
-      return `${wikiResult.title}\n- Definition: ${wikiResult.extract.substring(0, 100)}...`;
+      return t.m;
 
     default:
       return baseContent;

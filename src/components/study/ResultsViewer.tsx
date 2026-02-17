@@ -20,6 +20,7 @@ import { CheatSheetViewer } from "./CheatSheetViewer";
 import { SlidePresenter, parseSlides } from "./SlidePresenter";
 import { StudyPlanCalendar } from "./StudyPlanCalendar";
 import ReactMarkdown from "react-markdown";
+import { useI18n } from "@/lib/i18n";
 
 interface ResultsViewerProps {
   action: StudyAction;
@@ -65,6 +66,7 @@ function toMindMapFormat(concepts: Concept[]) {
 
 export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isManual, onSavePlan }: ResultsViewerProps) {
   const [completed, setCompleted] = useState(false);
+  const { t } = useI18n();
   const flashcards = ["generate-flashcards", "practice-test", "study-runner", "matching-game", "speed-challenge"].includes(action)
     ? parseFlashcards(result)
     : [];
@@ -226,7 +228,7 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
                 <Card key={index}>
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">Problem {index + 1}</CardTitle>
+                      <CardTitle className="text-base">{t("results.problem")} {index + 1}</CardTitle>
                       <span className={`text-xs px-2 py-1 rounded-full ${problem.difficulty === "easy"
                         ? "bg-primary/20 text-primary"
                         : problem.difficulty === "medium"
@@ -243,13 +245,13 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
                     </div>
                     <details className="group">
                       <summary className="cursor-pointer text-sm font-medium text-primary hover:underline">
-                        Show Solution
+                        {t("results.showSolution")}
                       </summary>
                       <div className="mt-2 p-3 bg-muted rounded-lg prose prose-sm dark:prose-invert max-w-none">
                         <ReactMarkdown>{problem.solution}</ReactMarkdown>
                         {problem.tip && (
                           <p className="text-sm text-muted-foreground mt-2 italic">
-                            💡 Tip: {problem.tip}
+                            💡 {t("results.tip")}: {problem.tip}
                           </p>
                         )}
                       </div>
@@ -274,22 +276,22 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
 
   const getTitle = () => {
     switch (action) {
-      case "generate-flashcards": return "Flashcards";
-      case "practice-test": return "Practice Test";
-      case "mind-map": return "Mind Map";
-      case "study-runner": return "Study Runner";
-      case "worksheet": return "Worksheet";
-      case "matching-game": return "Matching Game";
+      case "generate-flashcards": return t("action.flashcards");
+      case "practice-test": return t("action.practiceTest");
+      case "mind-map": return t("action.mindMap");
+      case "study-runner": return t("action.studyRunner");
+      case "worksheet": return t("action.worksheet");
+      case "matching-game": return t("action.matchingGame");
       case "speed-challenge": return "Speed Challenge";
       case "elaborative-interrogation": return "Elaborative Interrogation";
-      case "explain-concept": return "Concept Explanation";
-      case "create-study-plan": return "Study Schedule";
+      case "explain-concept": return t("results.title.explanation");
+      case "create-study-plan": return t("results.title.schedule");
       case "cheat-sheet": return "Cheat Sheet";
       case "presenter-slides": return "Presenter Slides";
       case "create-cornell-notes": return "Cornell Notes";
       case "vocabulary-cards": return "Vocabulary Cards";
       case "practice-problems": return "Practice Problems";
-      default: return "Results";
+      default: return t("results.title.results");
     }
   };
 
@@ -305,18 +307,18 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <FileDown className="h-4 w-4 mr-2" />
-                Export
+                {t("results.export")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => exportToPdf({ title: topic || getTitle(), content: result, items: flashcards.length > 0 ? flashcards : undefined })}>
-                Export as PDF
+                {t("results.exportPdf")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportToTxt({ title: topic || getTitle(), content: result, items: flashcards.length > 0 ? flashcards : undefined })}>
-                Export as TXT
+                {t("results.exportTxt")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportToCsv({ title: topic || getTitle(), content: result, items: flashcards.length > 0 ? flashcards : undefined })}>
-                Export as CSV
+                {t("results.exportCsv")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -330,7 +332,7 @@ export function ResultsViewer({ action, result, onClose, topic, gradeLevel, isMa
           <div className="mb-3">
             <div className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs border border-amber-200 dark:border-amber-800/50">
               <span>⚠️</span>
-              <span>AI may be inaccurate — please double-check sources before studying.</span>
+              <span>{t("results.aiWarning")}</span>
             </div>
           </div>
         )}
