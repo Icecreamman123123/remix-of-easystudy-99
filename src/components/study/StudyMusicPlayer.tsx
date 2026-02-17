@@ -15,10 +15,10 @@ type Track = {
 };
 
 const TRACKS: Track[] = [
-    { id: "white", name: "White Noise", icon: Wind, type: "noise", color: "text-blue-400" },
-    { id: "brown", name: "Brown Noise", icon: Waves, type: "noise", color: "text-amber-600" },
-    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "url", color: "text-purple-400", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" }, // Placeholder for lofi
-    { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "url", color: "text-emerald-400", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" }, // Placeholder for ambient
+    { id: "rain", name: "Gentle Rain", icon: Waves, type: "url", color: "text-blue-400", url: "https://www.orangefreesounds.com/wp-content/uploads/2018/04/Gentle-rain-loop.mp3" },
+    { id: "pink", name: "Deep Focus", icon: Waves, type: "noise", color: "text-rose-400" },
+    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "url", color: "text-purple-400", url: "https://www.chosic.com/wp-content/uploads/2021/04/Purrple-Cat-Warm-Sun.mp3" },
+    { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "url", color: "text-emerald-400", url: "https://www.chosic.com/wp-content/uploads/2020/06/Kai-Engel-Satin.mp3" },
 ];
 
 export function StudyMusicPlayer() {
@@ -30,6 +30,7 @@ export function StudyMusicPlayer() {
     const noiseNode = useRef<AudioNode | null>(null);
     const gainNode = useRef<GainNode | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const fadeOutInterval = useRef<NodeJS.Timeout | null>(null);
 
     const initAudio = () => {
         if (!audioCtx.current) {
@@ -42,75 +43,132 @@ export function StudyMusicPlayer() {
         }
     };
 
-    const createWhiteNoise = () => {
+    const createPinkNoise = () => {
         if (!audioCtx.current || !gainNode.current) return;
-        const bufferSize = 2 * audioCtx.current.sampleRate;
+        const bufferSize = 4 * audioCtx.current.sampleRate;
         const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
         const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
-        const whiteNoise = audioCtx.current.createBufferSource();
-        whiteNoise.buffer = noiseBuffer;
-        whiteNoise.loop = true;
-        return whiteNoise;
-    };
 
-    const createBrownNoise = () => {
-        if (!audioCtx.current || !gainNode.current) return;
-        const bufferSize = 2 * audioCtx.current.sampleRate;
-        const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let lastOut = 0.0;
+        let b0, b1, b2, b3, b4, b5, b6;
+        b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+
         for (let i = 0; i < bufferSize; i++) {
             const white = Math.random() * 2 - 1;
-            output[i] = (lastOut + (0.02 * white)) / 1.02;
-            lastOut = output[i];
-            output[i] *= 3.5; // (roughly) compensate for gain
+
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            b3 = 0.86650 * b3 + white * 0.3104856;
+            b4 = 0.55000 * b4 + white * 0.5329522;
+            b5 = -0.7616 * b5 - white * 0.0168980;
+
+            output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+            output[i] *= 0.11; // (roughly) compensate for gain
+            b6 = white * 0.115926;
         }
-        const brownNoise = audioCtx.current.createBufferSource();
-        brownNoise.buffer = noiseBuffer;
-        brownNoise.loop = true;
-        return brownNoise;
+
+        const pinkNoise = audioCtx.current.createBufferSource();
+        pinkNoise.buffer = noiseBuffer;
+        pinkNoise.loop = true;
+        return pinkNoise;
     };
 
-    const stopAll = () => {
-        if (noiseNode.current) {
-            try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
-            noiseNode.current.disconnect();
-            noiseNode.current = null;
-        }
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current = null;
+    const stopAll = (callback?: () => void) => {
+        if (fadeOutInterval.current) clearInterval(fadeOutInterval.current);
+
+        const currentAudio = audioRef.current;
+        const currentNoiseGain = gainNode.current;
+
+        if (isPlaying && (currentAudio || noiseNode.current)) {
+            // Fade out
+            let v = volume;
+            fadeOutInterval.current = setInterval(() => {
+                v -= 0.05;
+                if (v <= 0) {
+                    if (fadeOutInterval.current) clearInterval(fadeOutInterval.current);
+                    if (currentAudio) {
+                        currentAudio.pause();
+                    }
+                    if (noiseNode.current) {
+                        try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
+                        noiseNode.current.disconnect();
+                        noiseNode.current = null;
+                    }
+                    if (callback) callback();
+                } else {
+                    if (currentAudio) currentAudio.volume = v;
+                    if (currentNoiseGain) currentNoiseGain.gain.value = v;
+                }
+            }, 50);
+        } else {
+            if (currentAudio) currentAudio.pause();
+            if (noiseNode.current) {
+                try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
+                noiseNode.current.disconnect();
+                noiseNode.current = null;
+            }
+            if (callback) callback();
         }
         setIsPlaying(false);
     };
 
     const playTrack = (trackId: string) => {
         initAudio();
-        stopAll();
 
-        const track = TRACKS.find(t => t.id === trackId);
-        if (!track) return;
+        const doPlay = () => {
+            const track = TRACKS.find(t => t.id === trackId);
+            if (!track) return;
 
-        if (track.type === "noise") {
-            const node = track.id === "white" ? createWhiteNoise() : createBrownNoise();
-            if (node && gainNode.current) {
-                node.connect(gainNode.current);
-                node.start();
-                noiseNode.current = node;
+            if (track.type === "noise") {
+                const node = createPinkNoise();
+                if (node && gainNode.current) {
+                    gainNode.current.gain.value = 0; // Start silent for fade in
+                    node.connect(gainNode.current);
+                    node.start();
+                    noiseNode.current = node;
+
+                    // Fade in
+                    let v = 0;
+                    const fadeIn = setInterval(() => {
+                        v += 0.05;
+                        if (v >= volume) {
+                            clearInterval(fadeIn);
+                            if (gainNode.current) gainNode.current.gain.value = volume;
+                        } else {
+                            if (gainNode.current) gainNode.current.gain.value = v;
+                        }
+                    }, 50);
+                }
+            } else if (track.url) {
+                const audio = new Audio(track.url);
+                audio.crossOrigin = "anonymous";
+                audio.loop = true;
+                audio.volume = 0; // Start silent for fade in
+                audio.play().catch(e => console.error("Audio play failed:", e));
+                audioRef.current = audio;
+
+                // Fade in
+                let v = 0;
+                const fadeIn = setInterval(() => {
+                    v += 0.05;
+                    if (v >= volume) {
+                        clearInterval(fadeIn);
+                        if (audioRef.current) audioRef.current.volume = volume;
+                    } else {
+                        if (audioRef.current) audioRef.current.volume = v;
+                    }
+                }, 50);
             }
-        } else if (track.url) {
-            const audio = new Audio(track.url);
-            audio.loop = true;
-            audio.volume = volume;
-            audio.play();
-            audioRef.current = audio;
-        }
 
-        setActiveTrack(trackId);
-        setIsPlaying(true);
+            setActiveTrack(trackId);
+            setIsPlaying(true);
+        };
+
+        if (isPlaying) {
+            stopAll(doPlay);
+        } else {
+            doPlay();
+        }
     };
 
     const togglePlay = () => {
