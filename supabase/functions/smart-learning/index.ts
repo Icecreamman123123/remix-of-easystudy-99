@@ -139,14 +139,23 @@ Respond with ONLY a JSON array (no markdown):
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("AI generation failed");
-      }
-
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content || "[]";
 
-      return new Response(JSON.stringify({ content }), {
+      // Parse and standardize output
+      let result;
+      try {
+        const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
+        result = JSON.parse(cleanContent);
+        if (!Array.isArray(result)) {
+          // If AI returned an object with a field, extract it
+          result = result.questions || result.flashcards || result.items || [];
+        }
+      } catch {
+        result = [];
+      }
+
+      return new Response(JSON.stringify({ content: JSON.stringify(result) }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

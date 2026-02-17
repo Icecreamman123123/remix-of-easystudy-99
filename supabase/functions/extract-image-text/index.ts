@@ -13,25 +13,13 @@ serve(async (req) => {
   try {
     const { imageBase64, mimeType } = await req.json();
 
-    // Deno environment access
     const getEnv = (key: string): string | undefined => {
-      try {
-        return Deno.env.get(key);
-      } catch (e) {
-        console.warn("getEnv error:", e);
-      }
-      return undefined;
+      try { return Deno.env.get(key); } catch { return undefined; }
     };
 
     const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
-
-    if (!GOOGLE_GEMINI_API_KEY) {
-      throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
-    }
-
-    if (!imageBase64) {
-      throw new Error("No image data provided");
-    }
+    if (!GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    if (!imageBase64) throw new Error("No image data provided");
 
     console.log("Processing image for text extraction");
 
@@ -46,7 +34,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are an OCR assistant. Extract ALL text from the provided image exactly as it appears. Include headings, paragraphs, lists, tables, and any other text content. Maintain the structure and formatting as much as possible using plain text. If this is handwritten text, do your best to transcribe it accurately. Only output the extracted text, nothing else."
+            content: "You are an OCR assistant. Extract ALL text from the provided image exactly as it appears. Include headings, paragraphs, lists, tables, and any other text content. Maintain the structure and formatting as much as possible using plain text. Only output the extracted text, nothing else."
           },
           {
             role: "user",
@@ -71,8 +59,12 @@ serve(async (req) => {
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Usage limit reached. Please add credits." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
