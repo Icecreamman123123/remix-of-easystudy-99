@@ -15,10 +15,10 @@ type Track = {
 };
 
 const TRACKS: Track[] = [
-    { id: "rain", name: "Gentle Rain", icon: Waves, type: "url", color: "text-blue-400", url: "https://www.orangefreesounds.com/wp-content/uploads/2018/04/Gentle-rain-loop.mp3" },
+    { id: "rain", name: "Gentle Rain", icon: Waves, type: "url", color: "text-blue-400", url: "https://cdn.pixabay.com/audio/2022/03/24/audio_7306362545.mp3" }, // High quality rain loop
     { id: "pink", name: "Deep Focus", icon: Waves, type: "noise", color: "text-rose-400" },
-    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "url", color: "text-purple-400", url: "https://www.chosic.com/wp-content/uploads/2021/04/Purrple-Cat-Warm-Sun.mp3" },
-    { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "url", color: "text-emerald-400", url: "https://www.chosic.com/wp-content/uploads/2020/06/Kai-Engel-Satin.mp3" },
+    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "url", color: "text-purple-400", url: "https://cdn.pixabay.com/audio/2022/05/27/audio_180873747b.mp3" }, // Mellow lofi
+    { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "url", color: "text-emerald-400", url: "https://cdn.pixabay.com/audio/2021/11/25/audio_91b32e02f9.mp3" }, // Deep ambient
 ];
 
 export function StudyMusicPlayer() {
@@ -141,23 +141,26 @@ export function StudyMusicPlayer() {
                 }
             } else if (track.url) {
                 const audio = new Audio(track.url);
-                audio.crossOrigin = "anonymous";
                 audio.loop = true;
                 audio.volume = 0; // Start silent for fade in
-                audio.play().catch(e => console.error("Audio play failed:", e));
-                audioRef.current = audio;
-
-                // Fade in
-                let v = 0;
-                const fadeIn = setInterval(() => {
-                    v += 0.05;
-                    if (v >= volume) {
-                        clearInterval(fadeIn);
-                        if (audioRef.current) audioRef.current.volume = volume;
-                    } else {
-                        if (audioRef.current) audioRef.current.volume = v;
-                    }
-                }, 50);
+                audio.play().then(() => {
+                    audioRef.current = audio;
+                    // Fade in
+                    let v = 0;
+                    const fadeIn = setInterval(() => {
+                        v += 0.05;
+                        if (v >= volume) {
+                            clearInterval(fadeIn);
+                            if (audioRef.current) audioRef.current.volume = volume;
+                        } else {
+                            if (audioRef.current) audioRef.current.volume = v;
+                        }
+                    }, 50);
+                }).catch(e => {
+                    console.error("Audio play failed:", e);
+                    setIsPlaying(false);
+                    setActiveTrack(null);
+                });
             }
 
             setActiveTrack(trackId);
