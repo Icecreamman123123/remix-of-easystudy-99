@@ -174,14 +174,6 @@ const IndexContent = () => {
           <div className={`lg:col-span-3 space-y-10 transition-all duration-500 ${isFocusMode ? 'lg:col-span-4 max-w-4xl mx-auto' : ''}`}>
             <section className="space-y-6">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h2 className="text-3xl font-black tracking-tighter">
-                    {t("hero.title")}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {t("hero.subtitle")}
-                  </p>
-                </div>
                 
                 <Button 
                   variant="outline" 
