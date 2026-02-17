@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, Music, Coffee, Sparkles, Zap } from "lucide-react";
+import { Play, Pause, Volume2, Music, Coffee, Sparkles, Zap, Clock, Heart, Shuffle, SkipForward, SkipBack, Headphones, BarChart3, Settings } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 type Track = {
     id: string;
@@ -13,12 +14,16 @@ type Track = {
     color: string;
     youtubeId?: string;
     frequency?: number;
+    duration?: number;
+    category?: "focus" | "relax" | "energy";
 };
 
 const TRACKS: Track[] = [
-    { id: "gamma", name: "87Hz Waves", icon: Zap, type: "tone", color: "text-indigo-400", frequency: 87 },
-    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "youtube", color: "text-purple-400", youtubeId: "jfKfPfyJRdk" },
-    { id: "rain", name: "Rainy Night", icon: Sparkles, type: "youtube", color: "text-blue-500", youtubeId: "mPZkdNF637E" },
+    { id: "gamma", name: "87Hz Waves", icon: Zap, type: "tone", color: "text-indigo-400", frequency: 87, category: "focus" },
+    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "youtube", color: "text-purple-400", youtubeId: "jfKfPfyJRdk", category: "relax" },
+    { id: "rain", name: "Rainy Night", icon: Sparkles, type: "youtube", color: "text-blue-500", youtubeId: "mPZkdNF637E", category: "relax" },
+    { id: "focus", name: "Deep Focus", icon: Coffee, type: "youtube", color: "text-green-500", youtubeId: "5qap5aO4i9A", category: "focus" },
+    { id: "nature", name: "Forest Sounds", icon: Sparkles, type: "youtube", color: "text-emerald-500", youtubeId: "hHW1oY26kxQ", category: "relax" },
 ];
 
 export function StudyMusicPlayer() {
@@ -26,11 +31,27 @@ export function StudyMusicPlayer() {
     const [activeTrack, setActiveTrack] = useState<string | null>(null);
     const [volume, setVolume] = useState(0.5);
     const [isApiReady, setIsApiReady] = useState(false);
+    const [isShuffleOn, setIsShuffleOn] = useState(false);
+    const [favorites, setFavorites] = useState<string[]>([]);
+    const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+    const [currentCategory, setCurrentCategory] = useState<"all" | "focus" | "relax" | "energy">("all");
+    const [isMiniPlayer, setIsMiniPlayer] = useState(false);
+    const [showVisualizer, setShowVisualizer] = useState(false);
+    const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [crossfadeEnabled, setCrossfadeEnabled] = useState(false);
+    const [queue, setQueue] = useState<string[]>([]);
+    const { toast } = useToast();
 
     const audioCtx = useRef<AudioContext | null>(null);
     const soundNode = useRef<AudioNode | null>(null);
     const gainNode = useRef<GainNode | null>(null);
     const ytPlayer = useRef<any>(null);
+    const sleepTimerRef = useRef<number | null>(null);
+    const playbackStartTime = useRef<number | null>(null);
+    const sessionHistory = useRef<Array<{track: string, startTime: number, duration: number}>>([]);
+    const visualizerCanvas = useRef<HTMLCanvasElement>(null);
+    const animationFrameRef = useRef<number | null>(null);
+    const audioAnalyser = useRef<AnalyserNode | null>(null);
 
     useEffect(() => {
         const win = window as any;
@@ -62,6 +83,170 @@ export function StudyMusicPlayer() {
 
         return () => clearInterval(checkInterval);
     }, []);
+
+    const toggleFavorite = (trackId: string) => {
+        setFavorites(prev => 
+            prev.includes(trackId) 
+                ? prev.filter(id => id !== trackId)
+                : [...prev, trackId]
+        );
+        toast({
+            title: favorites.includes(trackId) ? "Removed from favorites" : "Added to favorites",
+            duration: 1500
+        });
+    };
+
+    const setSleepTimer = (minutes: number) => {
+        if (sleepTimerRef.current) {
+            clearTimeout(sleepTimerRef.current);
+        }
+        
+        setSleepTimerMinutes(minutes);
+        sleepTimerRef.current = window.setTimeout(() => {
+            stopAll();
+            setSleepTimerMinutes(null);
+            toast({
+                title: "Sleep timer finished",
+                description: "Music stopped automatically",
+                duration: 3000
+            });
+        }, minutes * 60 * 1000);
+        
+        toast({
+            title: `Sleep timer set for ${minutes} minutes`,
+            duration: 2000
+        });
+    };
+
+    const playNextTrack = () => {
+        const filteredTracks = currentCategory === "all" 
+            ? TRACKS 
+            : TRACKS.filter(t => t.category === currentCategory);
+        
+        const currentIndex = filteredTracks.findIndex(t => t.id === activeTrack);
+        let nextIndex;
+        
+        if (isShuffleOn) {
+            nextIndex = Math.floor(Math.random() * filteredTracks.length);
+        } else {
+            nextIndex = (currentIndex + 1) % filteredTracks.length;
+        }
+        
+        playTrack(filteredTracks[nextIndex].id);
+    };
+
+    const playPreviousTrack = () => {
+        const filteredTracks = currentCategory === "all" 
+            ? TRACKS 
+            : TRACKS.filter(t => t.category === currentCategory);
+        
+        const currentIndex = filteredTracks.findIndex(t => t.id === activeTrack);
+        const prevIndex = currentIndex === 0 ? filteredTracks.length - 1 : currentIndex - 1;
+        
+        playTrack(filteredTracks[prevIndex].id);
+    };
+
+    const clearSleepTimer = () => {
+        if (sleepTimerRef.current) {
+            clearTimeout(sleepTimerRef.current);
+            sleepTimerRef.current = null;
+        }
+        setSleepTimerMinutes(null);
+    };
+
+    const initVisualizer = () => {
+        if (!audioCtx.current || !visualizerCanvas.current) return;
+        
+        audioAnalyser.current = audioCtx.current.createAnalyser();
+        audioAnalyser.current.fftSize = 256;
+        
+        if (gainNode.current) {
+            gainNode.current.connect(audioAnalyser.current);
+            audioAnalyser.current.connect(audioCtx.current.destination);
+        }
+    };
+
+    const drawVisualizer = () => {
+        if (!visualizerCanvas.current || !audioAnalyser.current) return;
+        
+        const canvas = visualizerCanvas.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        const bufferLength = audioAnalyser.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        audioAnalyser.current.getByteFrequencyData(dataArray);
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const barWidth = (canvas.width / bufferLength) * 2.5;
+        let barHeight;
+        let x = 0;
+        
+        for (let i = 0; i < bufferLength; i++) {
+            barHeight = (dataArray[i] / 255) * canvas.height * 0.7;
+            
+            const r = barHeight + 25 * (i / bufferLength);
+            const g = 250 * (i / bufferLength);
+            const b = 50;
+            
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+            
+            x += barWidth + 1;
+        }
+        
+        animationFrameRef.current = requestAnimationFrame(drawVisualizer);
+    };
+
+    const toggleVisualizer = () => {
+        if (showVisualizer) {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+            setShowVisualizer(false);
+        } else {
+            initVisualizer();
+            setShowVisualizer(true);
+            drawVisualizer();
+        }
+    };
+
+    const toggleMiniPlayer = () => {
+        setIsMiniPlayer(!isMiniPlayer);
+    };
+
+    const addToQueue = (trackId: string) => {
+        setQueue(prev => [...prev, trackId]);
+        toast({
+            title: "Added to queue",
+            duration: 1500
+        });
+    };
+
+    const removeFromQueue = (index: number) => {
+        setQueue(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const clearQueue = () => {
+        setQueue([]);
+        toast({
+            title: "Queue cleared",
+            duration: 1500
+        });
+    };
+
+    const changePlaybackSpeed = (speed: number) => {
+        setPlaybackSpeed(speed);
+        if (ytPlayer.current && typeof ytPlayer.current.setPlaybackRate === 'function') {
+            ytPlayer.current.setPlaybackRate(speed);
+        }
+        toast({
+            title: `Playback speed: ${speed}x`,
+            duration: 1500
+        });
+    };
 
     const initAudio = () => {
         if (!audioCtx.current) {
@@ -186,6 +371,12 @@ export function StudyMusicPlayer() {
     useEffect(() => {
         return () => {
             stopAll();
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+            if (sleepTimerRef.current) {
+                clearTimeout(sleepTimerRef.current);
+            }
             if (audioCtx.current) {
                 audioCtx.current.close();
             }
@@ -193,8 +384,17 @@ export function StudyMusicPlayer() {
     }, []);
 
     return (
-        <Card className="glass-card border-primary/10 shadow-lg">
-            <CardContent className="p-5 space-y-4 relative overflow-hidden">
+        <Card className={cn("glass-card border-primary/10 shadow-lg", isMiniPlayer && "p-2")}>
+            <CardContent className={cn("space-y-4 relative overflow-hidden", isMiniPlayer ? "p-2" : "p-5")}>
+                {showVisualizer && !isMiniPlayer && (
+                    <canvas
+                        ref={visualizerCanvas}
+                        width={300}
+                        height={100}
+                        className="w-full h-20 bg-black/20 rounded-lg mb-4"
+                    />
+                )}
+                
                 <div
                     id="youtube-player-container"
                     className="absolute -top-10 -left-10 w-0 h-0 opacity-0 pointer-events-none"
@@ -206,16 +406,40 @@ export function StudyMusicPlayer() {
                         <div className="p-2 bg-secondary/20 rounded-lg text-secondary-foreground">
                             <Music className="h-4 w-4" />
                         </div>
-                        <h3 className="font-bold text-sm tracking-tight uppercase">Study Sounds</h3>
+                        <h3 className={cn("font-bold tracking-tight uppercase", isMiniPlayer ? "text-xs" : "text-sm")}>
+                            {isMiniPlayer ? "Study Music" : "Study Sounds"}
+                        </h3>
                     </div>
-                    <Button
-                        variant={isPlaying ? "destructive" : "default"}
-                        size="sm"
-                        className="h-8 w-8 rounded-full p-0"
-                        onClick={togglePlay}
-                    >
-                        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-                    </Button>
+                    <div className="flex items-center gap-1">
+                        {!isMiniPlayer && (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 rounded-full p-0"
+                                    onClick={toggleVisualizer}
+                                >
+                                    <BarChart3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 rounded-full p-0"
+                                    onClick={toggleMiniPlayer}
+                                >
+                                    <Settings className="h-4 w-4" />
+                                </Button>
+                            </>
+                        )}
+                        <Button
+                            variant={isPlaying ? "destructive" : "default"}
+                            size="sm"
+                            className={cn("rounded-full p-0", isMiniPlayer ? "h-6 w-6" : "h-8 w-8")}
+                            onClick={togglePlay}
+                        >
+                            {isPlaying ? <Pause className={cn("ml-0", isMiniPlayer ? "h-3 w-3" : "h-4 w-4")} /> : <Play className={cn("ml-0.5", isMiniPlayer ? "h-3 w-3" : "h-4 w-4")} />}
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-1.5">
