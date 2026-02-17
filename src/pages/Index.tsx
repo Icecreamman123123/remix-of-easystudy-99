@@ -14,6 +14,8 @@ import { CompactFeatureBanner } from "@/components/study/EnhancedFeatureCards";
 import { OnboardingGuide } from "@/components/study/OnboardingTooltips";
 import { GamificationHub } from "@/components/study/GamificationHub";
 import { ActivityHeatmap, VelocityGauge, PerformanceHeatmap } from "@/components/study/VisualAnalytics";
+import { StudyMusicPlayer } from "@/components/study/StudyMusicPlayer";
+import { DailyStudyTip } from "@/components/study/DailyStudyTip";
 
 import { FloatingQuickActions } from "@/components/study/QuickActions";
 import { UIProvider, useUI } from "@/context/UIContext";
@@ -172,9 +174,20 @@ const IndexContent = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
           {/* Main Study Area */}
           <div className={`lg:col-span-3 space-y-10 transition-all duration-500 ${isFocusMode ? 'lg:col-span-4 max-w-4xl mx-auto' : ''}`}>
+            {currentResult && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <ResultsViewer
+                  action={currentResult.action}
+                  result={currentResult.result}
+                  isManual={currentResult.isManual}
+                  topic={currentTopic}
+                  onClose={() => setCurrentResult(null)}
+                />
+              </div>
+            )}
+
             <section className="space-y-6">
               <div className="flex items-center justify-between">
-
                 <Button
                   variant="outline"
                   size="sm"
@@ -206,22 +219,64 @@ const IndexContent = () => {
               />
             )}
 
-            {currentResult && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <ResultsViewer
-                  action={currentResult.action}
-                  result={currentResult.result}
-                  isManual={currentResult.isManual}
-                  topic={currentTopic}
-                  onClose={() => setCurrentResult(null)}
-                />
+            {/* Reorganized Vertical Stack: Analytics & Gamification moved from sidebar */}
+            <div className={`space-y-10 pt-10 border-t ${isFocusMode ? 'hidden' : 'block'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StreakDisplay />
+                <StudyTimer />
+                <GamificationHub />
               </div>
-            )}
+
+              {user && (
+                <div className="space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <ActivityHeatmap />
+                    <PerformanceHeatmap />
+                    <VelocityGauge />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <LearningAnalytics />
+                    <AchievementsDisplay />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Study Tips Card */}
+                <div className="bg-card border rounded-2xl p-6 apple-card">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                    {t("tips.title")}
+                  </h3>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-muted-foreground">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <li key={i} className="flex items-start gap-3 bg-muted/30 p-3 rounded-xl">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{i}</span>
+                        {t(`tips.${i}` as any)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {!user && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col justify-center text-center">
+                    <h3 className="text-lg font-semibold mb-2">{t("auth.saveProgress")}</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      {t("auth.saveProgressDesc")}
+                    </p>
+                    <Button asChild size="lg" className="w-full sm:w-auto mx-auto px-10 shadow-lg shadow-primary/20">
+                      <Link to="/auth">{t("auth.createAccount")}</Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Sidebar Area - Hidden in Focus Mode */}
-          <div className={`space-y-10 transition-all duration-500 ${isFocusMode ? 'hidden' : 'block'}`}>
-            <StreakDisplay />
+          {/* Sidebar Area - Blank for future features */}
+          <div className={`space-y-6 transition-all duration-500 ${isFocusMode ? 'hidden' : 'block'}`}>
+            <StudyMusicPlayer />
+            <DailyStudyTip />
 
             {showChat && (
               <div className="animate-in fade-in zoom-in-95">
@@ -235,63 +290,7 @@ const IndexContent = () => {
               </div>
             )}
 
-            <StudyTimer />
-
-            {/* Show detailed analytics for logged-in users */}
-            {user && (
-              <>
-                <GamificationHub />
-                <div className="grid grid-cols-1 gap-6">
-                  <ActivityHeatmap />
-                  <PerformanceHeatmap />
-                  <VelocityGauge />
-                </div>
-                <LearningAnalytics />
-                <AchievementsDisplay />
-              </>
-            )}
-
-            {/* Study Tips Card */}
-            <div className="bg-card border rounded-lg p-4">
-              <h3 className="font-semibold flex items-center gap-2 mb-3">
-                <BookOpen className="h-4 w-4" />
-                {t("tips.title")}
-              </h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  {t("tips.1")}
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  {t("tips.2")}
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  {t("tips.3")}
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  {t("tips.4")}
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  {t("tips.5")}
-                </li>
-              </ul>
-            </div>
-
-            {!user && (
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-                <h3 className="font-semibold mb-2">{t("auth.saveProgress")}</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {t("auth.saveProgressDesc")}
-                </p>
-                <Button asChild size="sm" className="w-full">
-                  <Link to="/auth">{t("auth.createAccount")}</Link>
-                </Button>
-              </div>
-            )}
+            {/* Future features will be added here */}
           </div>
         </div>
       </main>
