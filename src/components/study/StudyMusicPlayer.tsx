@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, Music, Wind, Waves, Coffee, Sparkles } from "lucide-react";
+import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -9,28 +9,53 @@ type Track = {
     id: string;
     name: string;
     icon: any;
-    type: "noise" | "url";
+    type: "noise" | "youtube";
     color: string;
-    url?: string;
+    youtubeId?: string;
 };
 
 const TRACKS: Track[] = [
-    { id: "rain", name: "Gentle Rain", icon: Waves, type: "url", color: "text-blue-400", url: "https://cdn.pixabay.com/audio/2022/03/24/audio_7306362545.mp3" }, // High quality rain loop
+    { id: "rain", name: "Gentle Rain", icon: Waves, type: "youtube", color: "text-blue-400", youtubeId: "mPZkdNF637E" },
     { id: "pink", name: "Deep Focus", icon: Waves, type: "noise", color: "text-rose-400" },
-    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "url", color: "text-purple-400", url: "https://cdn.pixabay.com/audio/2022/05/27/audio_180873747b.mp3" }, // Mellow lofi
-    { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "url", color: "text-emerald-400", url: "https://cdn.pixabay.com/audio/2021/11/25/audio_91b32e02f9.mp3" }, // Deep ambient
+    { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "youtube", color: "text-purple-400", youtubeId: "jfKfPfyJRdk" },
+    { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "youtube", color: "text-emerald-400", youtubeId: "DWcJYn7qpg8" },
 ];
+
+declare global {
+    interface Window {
+        onYouTubeIframeAPIReady: () => void;
+        YT: any;
+    }
+}
 
 export function StudyMusicPlayer() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [activeTrack, setActiveTrack] = useState<string | null>(null);
     const [volume, setVolume] = useState(0.5);
+    const [isApiReady, setIsApiReady] = useState(false);
 
     const audioCtx = useRef<AudioContext | null>(null);
     const noiseNode = useRef<AudioNode | null>(null);
     const gainNode = useRef<GainNode | null>(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const fadeOutInterval = useRef<NodeJS.Timeout | null>(null);
+    const ytPlayer = useRef<any>(null);
+    const playerContainerRef = useRef<HTMLDivElement>(null);
+
+    // Initialize YouTube API
+    useEffect(() => {
+        if (window.YT && window.YT.Player) {
+            setIsApiReady(true);
+            return;
+        }
+
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName("script")[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+        window.onYouTubeIframeAPIReady = () => {
+            setIsApiReady(true);
+        };
+    }, []);
 
     const initAudio = () => {
         if (!audioCtx.current) {
@@ -54,16 +79,14 @@ export function StudyMusicPlayer() {
 
         for (let i = 0; i < bufferSize; i++) {
             const white = Math.random() * 2 - 1;
-
             b0 = 0.99886 * b0 + white * 0.0555179;
             b1 = 0.99332 * b1 + white * 0.0750759;
             b2 = 0.96900 * b2 + white * 0.1538520;
             b3 = 0.86650 * b3 + white * 0.3104856;
             b4 = 0.55000 * b4 + white * 0.5329522;
             b5 = -0.7616 * b5 - white * 0.0168980;
-
             output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-            output[i] *= 0.11; // (roughly) compensate for gain
+            output[i] *= 0.11;
             b6 = white * 0.115926;
         }
 
@@ -74,100 +97,72 @@ export function StudyMusicPlayer() {
     };
 
     const stopAll = (callback?: () => void) => {
-        if (fadeOutInterval.current) clearInterval(fadeOutInterval.current);
-
-        const currentAudio = audioRef.current;
-        const currentNoiseGain = gainNode.current;
-
-        if (isPlaying && (currentAudio || noiseNode.current)) {
-            // Fade out
-            let v = volume;
-            fadeOutInterval.current = setInterval(() => {
-                v -= 0.05;
-                if (v <= 0) {
-                    if (fadeOutInterval.current) clearInterval(fadeOutInterval.current);
-                    if (currentAudio) {
-                        currentAudio.pause();
-                    }
-                    if (noiseNode.current) {
-                        try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
-                        noiseNode.current.disconnect();
-                        noiseNode.current = null;
-                    }
-                    if (callback) callback();
-                } else {
-                    if (currentAudio) currentAudio.volume = v;
-                    if (currentNoiseGain) currentNoiseGain.gain.value = v;
-                }
-            }, 50);
-        } else {
-            if (currentAudio) currentAudio.pause();
-            if (noiseNode.current) {
-                try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
-                noiseNode.current.disconnect();
-                noiseNode.current = null;
-            }
-            if (callback) callback();
+        // Stop YouTube
+        if (ytPlayer.current && typeof ytPlayer.current.stopVideo === "function") {
+            try { ytPlayer.current.stopVideo(); } catch (e) { }
         }
+
+        // Stop Local Noise
+        if (noiseNode.current) {
+            try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
+            noiseNode.current.disconnect();
+            noiseNode.current = null;
+        }
+
         setIsPlaying(false);
+        if (callback) callback();
     };
 
     const playTrack = (trackId: string) => {
-        initAudio();
+        const track = TRACKS.find(t => t.id === trackId);
+        if (!track) return;
 
         const doPlay = () => {
-            const track = TRACKS.find(t => t.id === trackId);
-            if (!track) return;
-
             if (track.type === "noise") {
+                initAudio();
                 const node = createPinkNoise();
                 if (node && gainNode.current) {
-                    gainNode.current.gain.value = 0; // Start silent for fade in
+                    gainNode.current.gain.value = volume;
                     node.connect(gainNode.current);
                     node.start();
                     noiseNode.current = node;
-
-                    // Fade in
-                    let v = 0;
-                    const fadeIn = setInterval(() => {
-                        v += 0.05;
-                        if (v >= volume) {
-                            clearInterval(fadeIn);
-                            if (gainNode.current) gainNode.current.gain.value = volume;
-                        } else {
-                            if (gainNode.current) gainNode.current.gain.value = v;
-                        }
-                    }, 50);
                 }
-            } else if (track.url) {
-                const audio = new Audio(track.url);
-                audio.loop = true;
-                audio.volume = 0; // Start silent for fade in
-                audio.play().then(() => {
-                    audioRef.current = audio;
-                    // Fade in
-                    let v = 0;
-                    const fadeIn = setInterval(() => {
-                        v += 0.05;
-                        if (v >= volume) {
-                            clearInterval(fadeIn);
-                            if (audioRef.current) audioRef.current.volume = volume;
-                        } else {
-                            if (audioRef.current) audioRef.current.volume = v;
+            } else if (track.type === "youtube" && track.youtubeId) {
+                if (!isApiReady) {
+                    console.error("YouTube API not ready");
+                    return;
+                }
+
+                if (!ytPlayer.current) {
+                    ytPlayer.current = new window.YT.Player("youtube-player-container", {
+                        height: "0",
+                        width: "0",
+                        videoId: track.youtubeId,
+                        playerVars: {
+                            autoplay: 1,
+                            loop: 1,
+                            playlist: track.youtubeId,
+                            controls: 0,
+                        },
+                        events: {
+                            onReady: (event: any) => {
+                                event.target.setVolume(volume * 100);
+                                event.target.playVideo();
+                            }
                         }
-                    }, 50);
-                }).catch(e => {
-                    console.error("Audio play failed:", e);
-                    setIsPlaying(false);
-                    setActiveTrack(null);
-                });
+                    });
+                } else {
+                    ytPlayer.current.loadVideoById(track.youtubeId);
+                    ytPlayer.current.setVolume(volume * 100);
+                    ytPlayer.current.playVideo();
+                }
             }
 
             setActiveTrack(trackId);
             setIsPlaying(true);
         };
 
-        if (isPlaying) {
+        if (isPlaying || (ytPlayer.current && activeTrack !== trackId)) {
             stopAll(doPlay);
         } else {
             doPlay();
@@ -188,8 +183,8 @@ export function StudyMusicPlayer() {
         if (gainNode.current) {
             gainNode.current.gain.value = volume;
         }
-        if (audioRef.current) {
-            audioRef.current.volume = volume;
+        if (ytPlayer.current && typeof ytPlayer.current.setVolume === "function") {
+            ytPlayer.current.setVolume(volume * 100);
         }
     }, [volume]);
 
@@ -205,6 +200,8 @@ export function StudyMusicPlayer() {
     return (
         <Card className="glass-card border-primary/10 shadow-lg">
             <CardContent className="p-5 space-y-4">
+                <div id="youtube-player-container" className="hidden pointer-events-none invisible h-0 w-0"></div>
+
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-secondary/20 rounded-lg text-secondary-foreground">
