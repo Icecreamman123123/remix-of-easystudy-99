@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles, Wind } from "lucide-react";
+import { Play, Pause, Volume2, Music, Waves, Coffee, Sparkles, Wind, Zap } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -9,17 +9,18 @@ type Track = {
     id: string;
     name: string;
     icon: any;
-    type: "noise" | "youtube";
+    type: "noise" | "youtube" | "tone";
     color: string;
     youtubeId?: string;
+    frequency?: number;
 };
 
 const TRACKS: Track[] = [
-    { id: "white", name: "White Noise", icon: Wind, type: "noise", color: "text-blue-400" },
-    { id: "brown", name: "Brown Noise", icon: Waves, type: "noise", color: "text-amber-600" },
-    { id: "pink", name: "Deep Focus", icon: Waves, type: "noise", color: "text-rose-400" },
+    { id: "white", name: "Soft White", icon: Wind, type: "noise", color: "text-blue-300" },
+    { id: "brown", name: "Deep Brown", icon: Waves, type: "noise", color: "text-amber-700" },
+    { id: "gamma", name: "87Hz Waves", icon: Zap, type: "tone", color: "text-indigo-400", frequency: 87 },
     { id: "lofi", name: "Lofi Vibes", icon: Coffee, type: "youtube", color: "text-purple-400", youtubeId: "jfKfPfyJRdk" },
-    { id: "ambient", name: "Ambient Study", icon: Sparkles, type: "youtube", color: "text-emerald-400", youtubeId: "DWcJYn7qpg8" },
+    { id: "rain", name: "Rainy Night", icon: Sparkles, type: "youtube", color: "text-blue-500", youtubeId: "mPZkdNF637E" },
 ];
 
 export function StudyMusicPlayer() {
@@ -29,11 +30,10 @@ export function StudyMusicPlayer() {
     const [isApiReady, setIsApiReady] = useState(false);
 
     const audioCtx = useRef<AudioContext | null>(null);
-    const noiseNode = useRef<AudioNode | null>(null);
+    const soundNode = useRef<AudioNode | null>(null);
     const gainNode = useRef<GainNode | null>(null);
     const ytPlayer = useRef<any>(null);
 
-    // Initialize YouTube API
     useEffect(() => {
         const win = window as any;
         if (win.YT && win.YT.Player) {
@@ -77,70 +77,63 @@ export function StudyMusicPlayer() {
     };
 
     const createWhiteNoise = () => {
-        if (!audioCtx.current || !gainNode.current) return;
+        if (!audioCtx.current) return;
         const bufferSize = 2 * audioCtx.current.sampleRate;
         const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
         const output = noiseBuffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
+            output[i] = (Math.random() * 2 - 1) * 0.5; // Softer white noise
         }
-        const whiteNoise = audioCtx.current.createBufferSource();
-        whiteNoise.buffer = noiseBuffer;
-        whiteNoise.loop = true;
-        return whiteNoise;
+        const source = audioCtx.current.createBufferSource();
+        source.buffer = noiseBuffer;
+        source.loop = true;
+        return source;
     };
 
     const createBrownNoise = () => {
-        if (!audioCtx.current || !gainNode.current) return;
+        if (!audioCtx.current) return;
         const bufferSize = 2 * audioCtx.current.sampleRate;
         const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
         const output = noiseBuffer.getChannelData(0);
         let lastOut = 0.0;
         for (let i = 0; i < bufferSize; i++) {
             const white = Math.random() * 2 - 1;
+            // Stronger integration for "actually deep" brown noise
             output[i] = (lastOut + (0.02 * white)) / 1.02;
             lastOut = output[i];
-            output[i] *= 3.5;
+            output[i] *= 2.5; // Gain adjustment
         }
-        const brownNoise = audioCtx.current.createBufferSource();
-        brownNoise.buffer = noiseBuffer;
-        brownNoise.loop = true;
-        return brownNoise;
+        const source = audioCtx.current.createBufferSource();
+        source.buffer = noiseBuffer;
+        source.loop = true;
+        return source;
     };
 
-    const createPinkNoise = () => {
-        if (!audioCtx.current || !gainNode.current) return;
-        const bufferSize = 4 * audioCtx.current.sampleRate;
-        const noiseBuffer = audioCtx.current.createBuffer(1, bufferSize, audioCtx.current.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let b0, b1, b2, b3, b4, b5, b6;
-        b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
-        for (let i = 0; i < bufferSize; i++) {
-            const white = Math.random() * 2 - 1;
-            b0 = 0.99886 * b0 + white * 0.0555179;
-            b1 = 0.99332 * b1 + white * 0.0750759;
-            b2 = 0.96900 * b2 + white * 0.1538520;
-            b3 = 0.86650 * b3 + white * 0.3104856;
-            b4 = 0.55000 * b4 + white * 0.5329522;
-            b5 = -0.7616 * b5 - white * 0.0168980;
-            output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-            output[i] *= 0.11;
-            b6 = white * 0.115926;
-        }
-        const pinkNoise = audioCtx.current.createBufferSource();
-        pinkNoise.buffer = noiseBuffer;
-        pinkNoise.loop = true;
-        return pinkNoise;
+    const createBrainWave = (freq: number) => {
+        if (!audioCtx.current) return;
+        // Create an oscillator for the 87Hz base frequency
+        const osc = audioCtx.current.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, audioCtx.current.currentTime);
+
+        // Add a bit of texture/harmonics so it's not a boring beep
+        const shaper = audioCtx.current.createWaveShaper();
+        shaper.curve = new Float32Array([0.1, 0.4, 0.6, 0.9]); // Subtle distortion for texture
+
+        osc.connect(shaper);
+        return { osc, lastNode: shaper };
     };
 
     const stopAll = () => {
         if (ytPlayer.current && typeof ytPlayer.current.stopVideo === "function") {
             try { ytPlayer.current.stopVideo(); } catch (e) { }
         }
-        if (noiseNode.current) {
-            try { (noiseNode.current as AudioBufferSourceNode).stop(); } catch (e) { }
-            noiseNode.current.disconnect();
-            noiseNode.current = null;
+        if (soundNode.current) {
+            try {
+                if ((soundNode.current as any).stop) (soundNode.current as any).stop();
+            } catch (e) { }
+            soundNode.current.disconnect();
+            soundNode.current = null;
         }
         setIsPlaying(false);
     };
@@ -152,16 +145,21 @@ export function StudyMusicPlayer() {
 
         if (track.type === "noise") {
             initAudio();
-            let node;
-            if (track.id === "white") node = createWhiteNoise();
-            else if (track.id === "brown") node = createBrownNoise();
-            else node = createPinkNoise();
-
+            const node = track.id === "white" ? createWhiteNoise() : createBrownNoise();
             if (node && gainNode.current) {
                 gainNode.current.gain.value = volume;
                 node.connect(gainNode.current);
                 node.start();
-                noiseNode.current = node;
+                soundNode.current = node;
+            }
+        } else if (track.type === "tone" && track.frequency) {
+            initAudio();
+            const res = createBrainWave(track.frequency);
+            if (res && gainNode.current) {
+                gainNode.current.gain.value = volume * 0.4; // Tones are louder, scale down
+                res.lastNode.connect(gainNode.current);
+                res.osc.start();
+                soundNode.current = res.osc as any;
             }
         } else if (track.type === "youtube" && track.youtubeId) {
             const win = window as any;
@@ -221,12 +219,13 @@ export function StudyMusicPlayer() {
 
     useEffect(() => {
         if (gainNode.current) {
-            gainNode.current.gain.value = volume;
+            const track = TRACKS.find(t => t.id === activeTrack);
+            gainNode.current.gain.value = track?.type === "tone" ? volume * 0.4 : volume;
         }
         if (ytPlayer.current && typeof ytPlayer.current.setVolume === "function") {
             try { ytPlayer.current.setVolume(volume * 100); } catch (e) { }
         }
-    }, [volume]);
+    }, [volume, activeTrack]);
 
     useEffect(() => {
         return () => {
@@ -279,7 +278,7 @@ export function StudyMusicPlayer() {
                                 onClick={() => playTrack(track.id)}
                             >
                                 <Icon className={cn("h-4 w-4", isActive ? track.color : "text-muted-foreground")} />
-                                <span className="text-[9px] font-bold uppercase tracking-tighter text-center leading-none">{track.name}</span>
+                                <span className="text-[9px] font-bold uppercase tracking-tighter text-center">{track.name}</span>
                             </Button>
                         );
                     })}
