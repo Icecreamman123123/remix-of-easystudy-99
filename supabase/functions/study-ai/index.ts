@@ -60,7 +60,7 @@ serve(async (req: Request) => {
       throw new Error("No API key configured");
     }
 
-    const selectedModel = MODEL_MAP[model] || MODEL_MAP["gemini-flash"];
+    const selectedModel = MODEL_MAP[model] || (NVIDIA_API_KEY ? MODEL_MAP["minimax"] : MODEL_MAP["gemini-flash"]);
     const langInstruction = LANGUAGE_INSTRUCTIONS[language] || "";
 
     // Wikipedia fetch
@@ -248,6 +248,12 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
     userPrompt += customInstructionText ? `\n\nCustom instruction: ${customInstructionText}` : "";
 
     console.log(`Processing ${action} request with model ${selectedModel}`);
+    console.log("Request payload preview:", {
+      model: selectedModel,
+      messageCount: 2,
+      systemPromptLength: systemPrompt?.length || 0,
+      userPromptLength: userPrompt?.length || 0
+    });
 
     let response;
     
@@ -268,7 +274,6 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
           temperature: 1,
           top_p: 0.95,
           max_tokens: 8192,
-          stream: false,
         }),
       });
     } else {
@@ -291,6 +296,15 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
     }
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("API request failed:", response.status, errorText);
+      console.error("Request details:", {
+        model: selectedModel,
+        api: selectedModel.includes("minimax") ? "NVIDIA" : "Gemini",
+        hasNvidiaKey: !!NVIDIA_API_KEY,
+        hasGeminiKey: !!GOOGLE_GEMINI_API_KEY
+      });
+      
       console.warn(`AI request failed with status ${response.status}, attempting Wikipedia fallback`);
       const wikiFallback = await tryWikipediaFallback(topic || content || "", { language });
       if (wikiFallback.success) {
@@ -311,7 +325,6 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       throw new Error(`AI request failed: ${response.status}`);
     }
