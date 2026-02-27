@@ -35,9 +35,10 @@ serve(async (req: Request) => {
     };
 
     const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
+    const OPENROUTER_API_KEY = "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";
 
-    if (!GOOGLE_GEMINI_API_KEY) {
-      throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    if (!GOOGLE_GEMINI_API_KEY && !OPENROUTER_API_KEY) {
+      throw new Error("No API key configured");
     }
 
     const gradeLevelText = gradeLevel
@@ -86,21 +87,42 @@ serve(async (req: Request) => {
       systemPrompt += `\n\nCUSTOM INSTRUCTION: ${customInstructionText}\nFollow this instruction and prioritize it when appropriate.`;
     }
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gemini-1.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
-      }),
-    });
+    let response;
+    if (OPENROUTER_API_KEY) {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://easystudy.app",
+          "X-Title": "EasyStudy",
+        },
+        body: JSON.stringify({
+          model: "qwen/qwen3-vl-235b-a22b-thinking",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          stream: true,
+        }),
+      });
+    } else {
+      response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gemini-1.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          stream: true,
+        }),
+      });
+    }
 
     if (!response.ok) {
       console.warn(`Study chat AI failed with status ${response.status}, attempting Wikipedia fallback`);

@@ -68,7 +68,7 @@ export function FloatingQuickActions({ onSave, onAskAI, onExport, onShare }: Qui
   if (!isVisible && !isFocusMode) return null;
 
   return (
-    <div className="fixed bottom-20 right-6 z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4">
+    <div className="fixed bottom-20 right-4 sm:right-6 z-50 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4">
       {/* Focus Mode Toggle (Always visible if scrolling or in focus mode) */}
       <Button 
         variant={isFocusMode ? "default" : "secondary"}
@@ -86,7 +86,7 @@ export function FloatingQuickActions({ onSave, onAskAI, onExport, onShare }: Qui
             <Plus className="h-7 w-7" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 p-2 space-y-1">
+        <DropdownMenuContent align="end" className="w-56 p-2 space-y-1 z-[60]">
           <DropdownMenuItem className="gap-3 py-3 cursor-pointer" onClick={() => handleAction("Save", onSave)}>
             <div className="p-2 bg-blue-500/10 rounded-lg"><Save className="h-4 w-4 text-blue-500" /></div>
             <span className="font-semibold">Save to Deck</span>

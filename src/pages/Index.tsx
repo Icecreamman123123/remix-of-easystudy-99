@@ -170,8 +170,8 @@ const IndexContent = () => {
       {/* Feature Banner - Hidden in Focus Mode */}
       {!isFocusMode && <CompactFeatureBanner />}
 
-      <main className="flex-1 max-w-[1600px] mx-auto w-full px-6 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+      <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <div className="grid grid-cols-1 xl:grid-cols-4 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
           {/* Main Study Area */}
           <div className={`lg:col-span-3 space-y-10 transition-all duration-500 ${isFocusMode ? 'lg:col-span-4 max-w-4xl mx-auto' : ''}`}>
             {currentResult && (
@@ -274,7 +274,7 @@ const IndexContent = () => {
           </div>
 
           {/* Sidebar Area - Blank for future features */}
-          <div className={`space-y-6 transition-all duration-500 ${isFocusMode ? 'hidden' : 'block'}`}>
+          <div className={`lg:col-span-2 xl:col-span-1 space-y-6 transition-all duration-500 ${isFocusMode ? 'hidden' : 'block'}`}>
             <StudyMusicPlayer />
             <DailyStudyTip />
 

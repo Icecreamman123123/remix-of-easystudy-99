@@ -18,43 +18,89 @@ serve(async (req: Request) => {
     };
 
     const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
-    if (!GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    const OPENROUTER_API_KEY = "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";
+    
+    if (!GOOGLE_GEMINI_API_KEY && !OPENROUTER_API_KEY) {
+      throw new Error("No API key configured");
+    }
     if (!imageBase64) throw new Error("No image data provided");
 
     console.log("Processing image for text extraction");
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gemini-1.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: "You are an OCR assistant. Extract ALL text from the provided image exactly as it appears. Include headings, paragraphs, lists, tables, and any other text content. Maintain the structure and formatting as much as possible using plain text. Only output the extracted text, nothing else."
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`
+    let response;
+    
+    // Try OpenRouter Qwen VL model first for better image understanding
+    try {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://easystudy.app",
+          "X-Title": "EasyStudy",
+        },
+        body: JSON.stringify({
+          model: "qwen/qwen3-vl-235b-a22b-thinking",
+          messages: [
+            {
+              role: "system",
+              content: "You are an OCR assistant. Extract ALL text from the provided image exactly as it appears. Include headings, paragraphs, lists, tables, and any other text content. Maintain structure and formatting as much as possible using plain text. Only output the extracted text, nothing else."
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`
+                  }
+                },
+                {
+                  type: "text",
+                  text: "Extract all text from this image. Output only the text content."
                 }
-              },
-              {
-                type: "text",
-                text: "Extract all the text from this image. Output only the text content."
-              }
-            ]
-          },
-        ],
-        stream: false,
-      }),
-    });
+              ]
+            },
+          ],
+          stream: false,
+        }),
+      });
+    } catch (error) {
+      console.log("OpenRouter failed, falling back to Gemini:", error);
+      // Fallback to Gemini
+      response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gemini-1.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: "You are an OCR assistant. Extract ALL text from provided image exactly as it appears. Include headings, paragraphs, lists, tables, and any other text content. Maintain structure and formatting as much as possible using plain text. Only output extracted text, nothing else."
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`
+                  }
+                },
+                {
+                  type: "text",
+                  text: "Extract all text from this image. Output only text content."
+                }
+              ]
+            },
+          ],
+          stream: false,
+        }),
+      });
+    }
 
     if (!response.ok) {
       if (response.status === 429) {

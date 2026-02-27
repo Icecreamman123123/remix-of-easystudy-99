@@ -11,6 +11,8 @@ const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/openai/
 const MODEL_MAP: Record<string, string> = {
   "gemini-flash": "gemini-1.5-flash",
   "gemini-pro": "gemini-1.5-pro",
+  "qwen-vl": "qwen/qwen3-vl-235b-a22b-thinking",
+  "qwen-thinking": "qwen/qwen3-vl-235b-a22b-thinking",
 };
 
 const EXPERTISE_APPROACHES: Record<string, string> = {
@@ -52,7 +54,11 @@ serve(async (req: Request) => {
     };
 
     const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
-    if (!GOOGLE_GEMINI_API_KEY) throw new Error("GOOGLE_GEMINI_API_KEY is not configured");
+    const OPENROUTER_API_KEY = "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";
+    
+    if (!GOOGLE_GEMINI_API_KEY && !OPENROUTER_API_KEY) {
+      throw new Error("No API key configured");
+    }
 
     const selectedModel = MODEL_MAP[model] || MODEL_MAP["gemini-flash"];
     const langInstruction = LANGUAGE_INSTRUCTIONS[language] || "";
@@ -243,21 +249,45 @@ Return JSON: [{"title":"...","bullets":["..."],"speakerNotes":"...","layout":"ti
 
     console.log(`Processing ${action} request with model ${selectedModel}`);
 
-    const response = await fetch(`${GEMINI_API_URL}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        stream: false,
-      }),
-    });
+    let response;
+    
+    // Use OpenRouter for Qwen models
+    if (selectedModel.includes("qwen")) {
+      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://easystudy.app",
+          "X-Title": "EasyStudy",
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          stream: false,
+        }),
+      });
+    } else {
+      // Use Gemini API for other models
+      response = await fetch(`${GEMINI_API_URL}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GOOGLE_GEMINI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          stream: false,
+        }),
+      });
+    }
 
     if (!response.ok) {
       console.warn(`AI request failed with status ${response.status}, attempting Wikipedia fallback`);

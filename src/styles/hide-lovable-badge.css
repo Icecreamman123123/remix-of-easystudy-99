@@ -1,0 +1,11 @@
+/* Hide Lovable badge */
+#lovable-badge-cta {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Alternative selector if ID changes */
+a[href*="lovable.dev/projects"][aria-label*="Edit with Lovable"] {
+  display: none !important;
+}

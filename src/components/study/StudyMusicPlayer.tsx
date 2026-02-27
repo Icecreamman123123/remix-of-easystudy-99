@@ -442,6 +442,7 @@ export function StudyMusicPlayer() {
                     </div>
                 </div>
 
+                {!isMiniPlayer && (
                 <div className="grid grid-cols-2 gap-1.5">
                     {TRACKS.map((track) => {
                         const Icon = track.icon;
@@ -463,7 +464,9 @@ export function StudyMusicPlayer() {
                         );
                     })}
                 </div>
+            )}
 
+                {!isMiniPlayer && (
                 <div className="pt-1 flex items-center gap-3">
                     <Volume2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <Slider
@@ -474,6 +477,7 @@ export function StudyMusicPlayer() {
                         className="flex-1"
                     />
                 </div>
+            )}
             </CardContent>
         </Card>
     );

@@ -132,7 +132,7 @@ export function OnboardingGuide() {
   if (!showGuide) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-sm">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 max-w-sm">
       <div className="bg-card border rounded-lg shadow-lg p-4 space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-2">
