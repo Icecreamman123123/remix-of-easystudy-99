@@ -35,9 +35,9 @@ serve(async (req: Request) => {
     };
 
     const GOOGLE_GEMINI_API_KEY = getEnv("GOOGLE_GEMINI_API_KEY");
-    const OPENROUTER_API_KEY = "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";
+    const NVIDIA_API_KEY = "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";
 
-    if (!GOOGLE_GEMINI_API_KEY && !OPENROUTER_API_KEY) {
+    if (!GOOGLE_GEMINI_API_KEY && !NVIDIA_API_KEY) {
       throw new Error("No API key configured");
     }
 
@@ -88,21 +88,22 @@ serve(async (req: Request) => {
     }
 
     let response;
-    if (OPENROUTER_API_KEY) {
-      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    if (NVIDIA_API_KEY) {
+      response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${NVIDIA_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://easystudy.app",
-          "X-Title": "EasyStudy",
         },
         body: JSON.stringify({
-          model: "qwen/qwen3-vl-235b-a22b-thinking",
+          model: "minimaxai/minimax-m2.5",
           messages: [
             { role: "system", content: systemPrompt },
             ...messages,
           ],
+          temperature: 1,
+          top_p: 0.95,
+          max_tokens: 8192,
           stream: true,
         }),
       });
